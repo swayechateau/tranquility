@@ -1,36 +1,59 @@
-use std::env;
+use which::which;
+
+fn command_exists(cmd: &str) -> bool {
+    which(cmd).is_ok()
+}
+
+fn get_os() -> &'static str {
+    // Get the OS using Rust's built-in constant.
+    std::env::consts::OS
+}
+
+fn package_manager(os: &str) -> &'static str {
+    // Determine the package manager based on the OS.
+    let package_manager = match os {
+        "linux" => {
+            if command_exists("apt") {
+                "apt"
+            } else if command_exists("yum") {
+                "yum"
+            } else if command_exists("dnf") {
+                "dnf"
+            } else if command_exists("pacman") {
+                "pacman"
+            } else {
+                "unknown"
+            }
+        },
+        "macos" => {
+            if command_exists("brew") {
+                "brew"
+            } else {
+                "unknown"
+            }
+        },
+        "windows" => {
+            if command_exists("choco") {
+                "choco"
+            } else if command_exists("winget") {
+                "winget"
+            } else {
+                "unknown"
+            }
+        },
+        _ => "unknown",
+    };
+
+    package_manager
+}
 
 fn main() {
-    // Fetch the command line arguments
-    let args: Vec<String> = env::args().collect();
+    // Get the OS using Rust's built-in constant.
+    let os = get_os();
+    println!("Operating System: {}", os);
 
-    // Check if optional arguments were provided
-    if args.len() > 1 {
-        // Process the optional arguments
-        for arg in &args[1..] {
-            match arg.as_str() {
-                "-a" => {
-                    // Handle the "-a" flag
-                    println!("Option -a is provided, installing everyrthing!");
-                    break;
-                }
-                "-b" => {
-                    // Handle the "-b" flag
-                    println!("Option -b is provided, for the brave souls, wanting only the core dev tools!");
-                    break;
-                }
-                "-c" => {
-                    // Handle the "-c" flag
-                    println!("Option -c is provided.. I see, you wish for something custom!");
-                }
-                _ => {
-                    // Handle any other unrecognized options
-                    println!("Unrecognized option: {}, you think we wouldn't know", arg);
-                }
-            }
-        }
-    } else {
-        // No optional arguments provided
-        println!("No optional arguments provided.");
-    }
+    // Determine the package manager based on the OS.
+    let package_manager = package_manager(os);
+
+    println!("Package Manager: {}", package_manager);
 }
