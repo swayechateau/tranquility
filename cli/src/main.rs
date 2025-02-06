@@ -61,6 +61,12 @@ fn detect_package_manager(os: &str) -> &'static str {
 fn main() {
     // Get the OS using Rust's built-in constant.
     let detected_os = detect_os();
+    // Exit the CLI if the OS is unsupported.
+    if os != "linux" && os != "macos" && os != "windows" {
+        eprintln!("Your operating system is unsupported.");
+        std::process::exit(1);
+    }
+
     println!("Operating System: {}", detected_os);
 
     // Determine the package manager based on the OS.
