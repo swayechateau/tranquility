@@ -62,6 +62,11 @@ if answer_default_y "$answer"; then
         brew install curl
     fi
 
+    read -p "Do you want to install protoc? [Y/n] " answer
+    if answer_default_y "$answer"; then
+        brew install protoc protoc-gen-go
+    fi
+
     # Linux Only
     # read -p "Do you want to install docker and docker-compose? [Y/n] " answer
     # if answer_default_y "$answer"; then
@@ -219,11 +224,17 @@ if answer_default_y "$answer"; then
     fi
 fi
 
+# Browsers
 read -p "Do you want to install a browser? [Y/n] " answer
 if answer_default_y "$answer"; then
     read -p "Do you want to install Brave browser? [Y/n] " answer
     if answer_default_y "$answer"; then
         pkg_man_install brave-browser
+    fi
+
+    read -p "Do you want to install LibreWolf browser? [Y/n] " answer
+    if answer_default_y "$answer"; then
+        pkg_man_install librewolf --no-quarantine
     fi
 
     read -p "Do you want to install Opera browser? [Y/n] " answer
