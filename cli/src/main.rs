@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::io::{self};
 
 /// Checks if a given command exists in the system's PATH.
 fn command_exists(cmd: &str) -> bool {
@@ -57,12 +58,33 @@ fn detect_package_manager(os: &str) -> &'static str {
 }
 
 // Functions to install package manager if unknow is returned.
+fn read_input() -> String {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    input.trim().to_string()
+}
+/// Prompts the user to decide if they wish to install a package manager.
+/// If the user confirms, prints a placeholder message.
+fn prompt_install_package_manager() {
+    println!("No known package manager detected. Would you like to install one? (y/N): ");
+    // Flush stdout to ensure the prompt appears before waiting for input.
+    let input = read_input();
+    let answer = input.trim().to_lowercase();
+    
+    if answer == "y" || answer == "yes" {
+        println!("Installation process initiated... (this is a placeholder)");
+        // Here you can add logic to automate or instruct on installing a package manager.
+    } else {
+        println!("No package manager will be installed. Exiting.");
+        std::process::exit(0);
+    }
+
+}
 
 fn main() {
     // Get the OS using Rust's built-in constant.
     let detected_os = detect_os();
-    // Exit the CLI if the OS is unsupported.
-    if os != "linux" && os != "macos" && os != "windows" {
+    if detected_os != "linux" && detected_os != "macos" && detected_os != "windows" {
         eprintln!("Your operating system is unsupported.");
         std::process::exit(1);
     }
@@ -71,6 +93,10 @@ fn main() {
 
     // Determine the package manager based on the OS.
     let detected_pm = detect_package_manager(detected_os);
+
+    if detected_pm == "unknown" {
+        prompt_install_package_manager();
+    }
 
     println!("Package Manager: {}", detected_pm);
 }
