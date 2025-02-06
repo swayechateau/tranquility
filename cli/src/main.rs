@@ -1,16 +1,25 @@
-use which::which;
+use std::process::Command;
 
+/// Checks if a given command exists in the system's PATH.
 fn command_exists(cmd: &str) -> bool {
-    which(cmd).is_ok()
+    // Use 'where' on Windows and 'which' on Unix-like systems.
+    let output = if cfg!(target_os = "windows") {
+        Command::new("where").arg(cmd).output()
+    } else {
+        Command::new("which").arg(cmd).output()
+    };
+
+    // Consider the command found if the output is successful and non-empty.
+    output.map(|o| o.status.success() && !o.stdout.is_empty()).unwrap_or(false)
 }
 
-fn get_os() -> &'static str {
-    // Get the OS using Rust's built-in constant.
+// Get the OS using Rust's built-in constant.
+fn detect_os() -> &'static str {
     std::env::consts::OS
 }
 
-fn package_manager(os: &str) -> &'static str {
-    // Determine the package manager based on the OS.
+// Determine the package manager based on the OS.
+fn detect_package_manager(os: &str) -> &'static str {
     let package_manager = match os {
         "linux" => {
             if command_exists("apt") {
@@ -47,13 +56,15 @@ fn package_manager(os: &str) -> &'static str {
     package_manager
 }
 
+// Functions to install package manager if unknow is returned.
+
 fn main() {
     // Get the OS using Rust's built-in constant.
-    let os = get_os();
+    let os = detect_os();
     println!("Operating System: {}", os);
 
     // Determine the package manager based on the OS.
-    let package_manager = package_manager(os);
+    let package_manager = detect_package_manager(os);
 
     println!("Package Manager: {}", package_manager);
 }
