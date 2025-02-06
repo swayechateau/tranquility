@@ -60,11 +60,11 @@ fn detect_package_manager(os: &str) -> &'static str {
 
 fn main() {
     // Get the OS using Rust's built-in constant.
-    let os = detect_os();
-    println!("Operating System: {}", os);
+    let detected_os = detect_os();
+    println!("Operating System: {}", detected_os);
 
     // Determine the package manager based on the OS.
-    let package_manager = detect_package_manager(os);
+    let detected_pm = detect_package_manager(detected_os);
 
-    println!("Package Manager: {}", package_manager);
+    println!("Package Manager: {}", detected_pm);
 }
