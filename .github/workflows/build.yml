@@ -2,7 +2,7 @@ name: Rust Build, Lint, and Artifact Deployment
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ rust-app ]
   release:
     types: [ published ]
 
