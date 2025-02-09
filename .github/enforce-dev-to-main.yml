@@ -1,0 +1,22 @@
+name: Enforce Dev Branch for PRs to Main
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  check-dev-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR originates from dev branch
+        run: |
+          if [ "${{ github.head_ref }}" != "dev" ]; then
+            echo "Error: Pull requests to main must originate from the dev branch."
+            exit 1
+          fi
+          echo "Pull request originates from the dev branch."
