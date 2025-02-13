@@ -94,7 +94,9 @@ is_sudo() {
 
 check_arch() {
     arch=$(uname -m)
-    if [[ "$arch" == "x86_64" ]]; then
+    if [[ "$arch" == "aarch64" ]]; then
+        arch="ARM64"
+    elif [[ "$arch" == "x86_64" ]]; then
         arch="x64"
     elif [[ "$arch" == *"arm"* ]]; then
         arch="ARM"
