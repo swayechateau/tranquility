@@ -12,6 +12,31 @@ textwhite="\033[0;37m" # White
 textreset='\033[0m'
 
 # Variables
+categories=(
+    "Fonts"
+    "Package Managers"
+    "Shells"
+    "Programming Languages"
+    "Browsers"
+    "CLI Tools"
+    "Customization"
+    "Communication"
+    "Creative Tools"
+    "Dev Tools"
+    "IDEs"
+    "Video Players"
+    "Audio Tools"
+    "Productivity"
+    "Virtualization & Containers"
+    "Networking"
+    "Gaming & Game Development"
+    "Security & Privacy"
+    "Streaming & Recording"
+    "Utilities"
+    "Customization & Theming"
+    "Done"
+)
+
 declare -A nerd_font_list=(
     ["3270"]="3270"
     ["0xproto"]="0xProto"
@@ -185,6 +210,17 @@ add_nerd_font() {
     
 }
 
+select_nerd_font() {
+    # Ask the user to select a font
+    echo -e "${textgreen}Please select a font to install:${textreset}"
+    read -p "" font
+    check_nerd_font $font
+    if [[ $? -eq 1 ]]; then
+        select_nerd_font
+    fi
+    return 0
+}
+
 # Function to install packages using dnf on Fedora 22+ and RHEL 8+
 install_with_dnf() {
     for package in "$@"; do
@@ -202,6 +238,10 @@ install_with_yum() {
 }
 
 install_nix() {
+    if command -v nix-env >/dev/null; then
+        echo -e "${textgreen}NIX is already installed.${textreset}"
+        return 0
+    fi
     echo -e "${textgreen}Installing Nix...${textreset}"
     sh <(curl -L https://nixos.org/nix/install) --daemon
     echo -e "${textgreen}Nix installed.${textreset}"
@@ -215,6 +255,10 @@ install_with_nix() {
 }
 
 install_flatpak() {
+    if command -v flatpak >/dev/null; then
+        echo -e "${textgreen}Flatpak is already installed.${textreset}"
+        return 0
+    fi
     echo -e "${textgreen}Installing Flatpak...${textreset}"
     install_with_dnf flatpak
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -228,11 +272,260 @@ install_with_flatpak() {
     done
 }
 
-# Tests
-if is_sudo ; then
-    echo "You are root"
-else
-    echo "You are not root"
-fi
-check_arch
-show_nerd_fonts
+# install package manager
+install_package_manager() {
+    # Would you like to install Nix?
+    echo -e "${textgreen}Would you like to install Nix?${textreset}"
+    echo -e "${textyellow}1) Yes${textreset}"
+    echo -e "${textyellow}2) No${textreset}"
+    read -p "" answer
+    if answer_default_y "$answer"; then
+        install_nix
+    fi
+
+    # Would you like to install Flatpak?
+    echo -e "${textgreen}Would you like to install Flatpak?${textreset}"
+    echo -e "${textyellow}1) Yes${textreset}"
+    echo -e "${textyellow}2) No${textreset}"
+    read -p "" answer
+    if answer_default_y "$answer"; then
+        install_flatpak
+    fi
+}
+# Install fish
+install_fish() {
+    if command -v fish >/dev/null; then
+        echo -e "${textgreen}Fish is already installed.${textreset}"
+        return 0
+    fi
+    echo -e "${textgreen}Installing Fish...${textreset}"
+    install_with_dnf fish
+    echo -e "${textgreen}Fish installed.${textreset}"
+}
+# Install Zsh
+install_zsh() {
+    if command -v zsh >/dev/null; then
+        echo -e "${textgreen}Zsh is already installed.${textreset}"
+        return 0
+    fi
+    echo -e "${textgreen}Installing Zsh...${textreset}"
+    install_with_dnf zsh
+    echo -e "${textgreen}Zsh installed.${textreset}"
+}
+
+# Install Oh My Zsh
+install_oh_my_zsh() {
+    if [ -d "$HOME/.oh-my-zsh" ]; then
+        echo -e "${textgreen}Oh My Zsh is already installed.${textreset}"
+        return 0
+    fi
+    echo -e "${textgreen}Installing Oh My Zsh...${textreset}"
+    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    echo -e "${textgreen}Oh My Zsh installed.${textreset}"
+}
+
+# Install Shell
+install_shell() {
+    read -p "Do you want to install an additional shell? [Y/n] " answer
+    if answer_default_y "$answer"; then
+        read -p "Do you want to install the zsh shell? [Y/n] " answer
+        if answer_default_y "$answer"; then
+            install_zsh
+        fi
+        read -p "Do you want to install the fish shell? [Y/n] " answer
+        if answer_default_y "$answer"; then
+            install_fish
+        fi
+    fi
+}
+
+# Install Programming Languages
+install_go() {
+    if command -v go >/dev/null; then
+        echo -e "${textgreen}Go is already installed.${textreset}"
+        return 0
+    fi
+    echo -e "${textgreen}Installing Go...${textreset}"
+    install_with_dnf golang
+    echo -e "${textgreen}Go installed.${textreset}"
+}
+
+install_php() {
+    if command -v php >/dev/null; then
+        echo -e "${textgreen}PHP is already installed.${textreset}"
+        return 0
+    fi
+    echo -e "${textgreen}Installing PHP...${textreset}"
+    install_with_dnf php
+    echo -e "${textgreen}PHP installed.${textreset}"
+}
+
+# Define available installation categories
+install_fonts() {
+    echo -e "${textblue}Installing fonts...${textreset}"
+    select_nerd_font
+    add_nerd_font $font
+}
+
+install_package_managers() {
+    echo -e "${textblue}Installing package managers...${textreset}"
+    install_package_manager
+}
+
+install_shells() {
+    echo -e "${textblue}Installing alternative shells...${textreset}"
+    install_shell
+}
+
+install_programming_languages() {
+    echo -e "${textblue}Installing programming languages...${textreset}"
+    install_go
+    install_php
+}
+
+install_browsers() {
+    echo -e "${textblue}Installing browsers...${textreset}"
+    install_with_dnf firefox
+}
+
+install_cli_tools() {
+    echo -e "${textblue}Installing CLI utilities...${textreset}"
+    install_with_dnf jq
+}
+
+install_customization() {
+    echo -e "${textblue}Installing customization tools...${textreset}"
+    # Add customization installation commands here
+}
+
+install_communication() {
+    echo -e "${textblue}Installing communication apps...${textreset}"
+    install_with_flatpak slack
+}
+
+install_creative_tools() {
+    echo -e "${textblue}Installing creative software...${textreset}"
+    install_with_flatpak gimp
+}
+
+install_dev_tools() {
+    echo -e "${textblue}Installing development tools...${textreset}"
+    install_with_dnf git
+}
+
+install_ides() {
+    echo -e "${textblue}Installing IDEs...${textreset}"
+    install_with_flatpak com.visualstudio.code
+}
+
+install_video_players() {
+    echo -e "${textblue}Installing video players...${textreset}"
+    install_with_flatpak org.videolan.VLC
+}
+
+install_audio_tools() {
+    echo -e "${textblue}Installing audio production tools...${textreset}"
+    install_with_flatpak org.audacityteam.Audacity
+}
+
+install_productivity() {
+    echo -e "${textblue}Installing productivity applications...${textreset}"
+    install_with_flatpak org.onlyoffice.desktopeditors
+}
+
+install_virtualization_containers() {
+    echo -e "${textblue}Installing virtualization software...${textreset}"
+    install_with_dnf virtualbox
+}
+
+install_networking() {
+    echo -e "${textblue}Installing networking tools...${textreset}"
+    install_with_dnf wireshark
+}
+
+install_gaming_game_development() {
+    echo -e "${textblue}Installing game development software...${textreset}"
+    install_with_flatpak com.unity.UnityHub
+}
+
+install_security_privacy() {
+    echo -e "${textblue}Installing security and privacy tools...${textreset}"
+    install_with_dnf keepassxc
+}
+
+install_streaming_recording() {
+    echo -e "${textblue}Installing streaming and recording software...${textreset}"
+    install_with_flatpak com.obsproject.Studio
+}
+
+install_utilities() {
+    echo -e "${textblue}Installing system utilities...${textreset}"
+    install_with_dnf htop
+}
+
+install_customization_theming() {
+    echo -e "${textblue}Installing Customization Tools...${textreset}"
+    install_oh_my_zsh
+}
+
+install_category() {
+    case "$1" in
+        "Fonts") install_fonts ;;
+        "Package Managers") install_package_managers ;;
+        "Shells") install_shells ;;
+        "Programming Languages") install_programming_languages ;;
+        "Browsers") install_browsers ;;
+        "CLI Tools") install_cli_tools ;;
+        "Customization") install_customization ;;
+        "Communication") install_communication ;;
+        "Creative Tools") install_creative_tools ;;
+        "Dev Tools") install_dev_tools ;;
+        "IDEs") install_ides ;;
+        "Video Players") install_video_players ;;
+        "Audio Tools") install_audio_tools ;;
+        "Productivity") install_productivity ;;
+        "Virtualization & Containers") install_virtualization_containers ;;
+        "Networking") install_networking ;;
+        "Gaming & Game Development") install_gaming_game_development ;;
+        "Security & Privacy") install_security_privacy ;;
+        "Streaming & Recording") install_streaming_recording ;;
+        "Utilities") install_utilities ;;
+        "Customization & Theming") install_customization_theming ;;
+        "Done") return 1 ;;
+        *) echo -e "${textred}Invalid category: $1${textreset}" ;;
+    esac
+}
+
+start() {
+    PS3="Select a category (or choose 'Done' to start installation): "
+    selected_categories=()
+
+    while true; do
+        echo "Available Categories:"
+        select opt in "${categories[@]}"; do
+            if [[ "$opt" == "Done" ]]; then
+                break 2  # Exit both loops
+            elif [[ -n "$opt" ]]; then
+                if [[ ! " ${selected_categories[@]} " =~ " ${opt} " ]]; then
+                    selected_categories+=("$opt")
+                    echo -e "${textgreen}✔ Added: $opt${textreset}"
+                else
+                    echo -e "${textyellow}⚠ $opt is already selected!${textreset}"
+                fi
+                break
+            else
+                echo -e "${textred}❌ Invalid choice, please try again.${textreset}"
+            fi
+        done
+    done
+
+    # Execute installations
+    echo -e "${textblue}Starting installation process...${textreset}"
+    for category in "${selected_categories[@]}"; do
+        install_category "$category"
+    done
+
+    echo -e "${textgreen}✅ Installation completed for: ${selected_categories[*]}${textreset}"
+}
+
+start
