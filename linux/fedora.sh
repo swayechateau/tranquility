@@ -180,7 +180,7 @@ check_nerd_font() {
     return 0
 }
 
-add_nerd_font() {
+install_nerd_font() {
     local $font = $1
 
     # convert font name to lowercase, then check if it exists in the font_names array
@@ -210,15 +210,36 @@ add_nerd_font() {
     
 }
 
-select_nerd_font() {
+install_nerd_fonts() {
     # Ask the user to select a font
     echo -e "${textgreen}Please select a font to install:${textreset}"
-    read -p "" font
-    check_nerd_font $font
-    if [[ $? -eq 1 ]]; then
-        select_nerd_font
-    fi
-    return 0
+    selected_fonts=()
+
+    # show the list of available fonts
+    while true; do
+        echo "Available Fonts:"
+        select opt in "${nerd_font_list[@]}"; do
+            if [[ "$opt" == "Done" ]]; then
+                break 2  # Exit both loops
+            elif [[ -n "$opt" ]]; then
+                if [[ ! " ${selected_fonts[@]} " =~ " ${opt} " ]]; then
+                    selected_fonts+=("$opt")
+                    echo -e "${textgreen}✔ Added: $opt${textreset}"
+                else
+                    echo -e "${textyellow}⚠ $opt is already selected!${textreset}"
+                fi
+                break
+            else
+                echo -e "${textred}❌ Invalid choice, please try again.${textreset}"
+            fi
+        done
+    done
+
+    # Execute installations
+    echo -e "${textblue}Starting installation process...${textreset}"
+    for font in "${selected_fonts[@]}"; do
+        install_nerd_font "$font"
+    done
 }
 
 # Function to install packages using dnf on Fedora 22+ and RHEL 8+
@@ -275,19 +296,13 @@ install_with_flatpak() {
 # install package manager
 install_package_manager() {
     # Would you like to install Nix?
-    echo -e "${textgreen}Would you like to install Nix?${textreset}"
-    echo -e "${textyellow}1) Yes${textreset}"
-    echo -e "${textyellow}2) No${textreset}"
-    read -p "" answer
+    read -p -e "${textgreen}Would you like to install Nix? [Y/n] ${textreset}" answer
     if answer_default_y "$answer"; then
         install_nix
     fi
 
     # Would you like to install Flatpak?
-    echo -e "${textgreen}Would you like to install Flatpak?${textreset}"
-    echo -e "${textyellow}1) Yes${textreset}"
-    echo -e "${textyellow}2) No${textreset}"
-    read -p "" answer
+    echo -e "${textgreen}Would you like to install Flatpak? [Y/n] ${textreset}"
     if answer_default_y "$answer"; then
         install_flatpak
     fi
@@ -363,8 +378,7 @@ install_php() {
 # Define available installation categories
 install_fonts() {
     echo -e "${textblue}Installing fonts...${textreset}"
-    select_nerd_font
-    add_nerd_font $font
+    install_nerd_fonts
 }
 
 install_package_managers() {
