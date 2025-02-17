@@ -158,28 +158,6 @@ open_url() {
     return 1
 }
 
-show_nerd_fonts(){
-    # show the list of available fonts
-    echo -e "${textyellow}Available Nerd Fonts:${textreset}"
-    for font in "${!nerd_font_list[@]}"; do
-        echo -e "${textyellow}$font${textreset}"
-    done
-    return 0
-}
-
-check_nerd_font() {
-    local $font = $1
-
-    # convert font name to lowercase, then check if it exists in the font_names array
-    if [[ -z ${nerd_font_list[${font,,}]} ]]; then
-        echo -e "${textred}Error: Font not found. Please choose from the following:${textreset}"
-        show_nerd_fonts
-        return 1
-    fi
-
-    return 0
-}
-
 install_nerd_font() {
     local $font = $1
 
@@ -214,12 +192,20 @@ install_nerd_fonts() {
     # Ask the user to select a font
     echo -e "${textgreen}Please select a font to install:${textreset}"
     selected_fonts=()
+    available_fonts=(
+        "All" 
+        "${!nerd_font_list[@]}" 
+        "Done"
+    )
 
     # show the list of available fonts
     while true; do
         echo "Available Fonts:"
-        select opt in "${nerd_font_list[@]}"; do
+        select opt in "${available_fonts[@]}"; do
             if [[ "$opt" == "Done" ]]; then
+                break 2  # Exit both loops
+            elif [[ "$opt" == "All" ]]; then
+                selected_fonts=("${!nerd_font_list[@]}")
                 break 2  # Exit both loops
             elif [[ -n "$opt" ]]; then
                 if [[ ! " ${selected_fonts[@]} " =~ " ${opt} " ]]; then
@@ -306,7 +292,38 @@ install_package_manager() {
     if answer_default_y "$answer"; then
         install_flatpak
     fi
+
+    # Would you like to install Homebrew?
+    echo -e "${textgreen}Would you like to install Homebrew? [Y/n] ${textreset}"
+    if answer_default_y "$answer"; then
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+
+    # Would you like to install nodeJS?
+    echo -e "${textgreen}Would you like to install nodeJS? [Y/n] ${textreset}"
+    if answer_default_y "$answer"; then
+        install_with_dnf nodejs
+    fi
+
+    # Would you like to install NPM?
+    echo -e "${textgreen}Would you like to install NPM? [Y/n] ${textreset}"
+    if answer_default_y "$answer"; then
+        install_with_dnf npm
+    fi
+
+    # Would you like to install Yarn?
+    echo -e "${textgreen}Would you like to install Yarn? [Y/n] ${textreset}"
+    if answer_default_y "$answer"; then
+        install_with_dnf yarn
+    fi
+
+    # Would you like to install Composer?
+    echo -e "${textgreen}Would you like to install Composer? [Y/n] ${textreset}"
+    if answer_default_y "$answer"; then
+        install_with_dnf composer
+    fi
 }
+
 # Install fish
 install_fish() {
     if command -v fish >/dev/null; then
@@ -373,6 +390,16 @@ install_php() {
     echo -e "${textgreen}Installing PHP...${textreset}"
     install_with_dnf php
     echo -e "${textgreen}PHP installed.${textreset}"
+}
+
+install_dotnet() {
+    if command -v dotnet >/dev/null; then
+        echo -e "${textgreen}.NET is already installed.${textreset}"
+        return 0
+    fi
+    echo -e "${textgreen}Installing .NET...${textreset}"
+    install_with_dnf dotnet
+    echo -e "${textgreen}.NET installed.${textreset}"
 }
 
 # Define available installation categories
@@ -482,8 +509,35 @@ install_customization_theming() {
     install_oh_my_zsh
 }
 
+# Install all available software
+install_all() {
+    echo -e "${textblue}Installing all available software...${textreset}"
+    install_fonts
+    install_package_managers
+    install_shells
+    install_programming_languages
+    install_browsers
+    install_cli_tools
+    install_customization
+    install_communication
+    install_creative_tools
+    install_dev_tools
+    install_ides
+    install_video_players
+    install_audio_tools
+    install_productivity
+    install_virtualization_containers
+    install_networking
+    install_gaming_game_development
+    install_security_privacy
+    install_streaming_recording
+    install_utilities
+    install_customization_theming
+}
+
 install_category() {
     case "$1" in
+        "All") install_all ;;
         "Fonts") install_fonts ;;
         "Package Managers") install_package_managers ;;
         "Shells") install_shells ;;
@@ -517,7 +571,7 @@ start() {
     while true; do
         echo "Available Categories:"
         select opt in "${categories[@]}"; do
-            if [[ "$opt" == "Done" ]]; then
+            if [[ "$opt" == "Done" || "$opt" == "All" ]]; then
                 break 2  # Exit both loops
             elif [[ -n "$opt" ]]; then
                 if [[ ! " ${selected_categories[@]} " =~ " ${opt} " ]]; then
