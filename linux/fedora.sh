@@ -13,6 +13,7 @@ textreset='\033[0m'
 
 # Variables
 categories=(
+    "All"
     "Fonts"
     "Package Managers"
     "Shells"
