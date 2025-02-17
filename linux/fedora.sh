@@ -38,76 +38,76 @@ categories=(
     "Done"
 )
 
-declare -A nerd_font_list=(
-    ["3270"]="3270"
-    ["0xproto"]="0xProto"
-    ["agave"]="Agave"
-    ["anonymouspro"]="AnonymousPro"
-    ["arimon"]="Arimo"
-    ["aurulentsansm"]="AurulentSansMono"
-    ["bigblueterm"]="BigBlueTerminal"
-    ["bitstromwera"]="BitstreamVeraSansMono"
-    ["cascadiacode"]="CascadiaCode"
-    ["cascadiamono"]="CascadiaMono"
-    ["codenewroman"]="CodeNewRoman"
-    ["comicshannsmono"]="ComicShannsMono"
-    ["commitmono"]="CommitMono"
-    ["cousine"]="Cousine"
-    ["d2coding"]="D2Coding"
-    ["daddytimemono"]="DaddyTimeMono"
-    ["dejavusansmono"]="DejaVuSansMono"
-    ["departuremono"]="DepartureMono"
-    ["droidsansmono"]="DroidSansMono"
-    ["envycoder"]="EnvyCodeR"
-    ["fantasquesansmono"]="FantasqueSansMono"
-    ["firacode"]="FiraCode"
-    ["firamono"]="FiraMono"
-    ["fontpatcher"]="FontPatcher"
-    ["geistmono"]="GeistMono"
-    ["go-mono"]="Go-Mono"
-    ["gohu"]="Gohu"
-    ["hack"]="Hack"
-    ["hasklig"]="Hasklig"
-    ["heavydata"]="HeavyData"
-    ["hermit"]="Hermit"
-    ["ia-writer"]="iA-Writer"
-    ["ibmplexmono"]="IBMPlexMono"
-    ["inconsolata"]="Inconsolata"
-    ["inconsolatago"]="InconsolataGo"
-    ["inconsolatalgc"]="InconsolataLGC"
-    ["intelonemono"]="IntelOneMono"
-    ["iosevka"]="Iosevka"
-    ["iosevkaterm"]="IosevkaTerm"
-    ["iosevkatermslab"]="IosevkaTermSlab"
-    ["jetbrainsmono"]="JetBrainsMono"
-    ["lekton"]="Lekton"
-    ["liberationmono"]="LiberationMono"
-    ["lilex"]="Lilex"
-    ["martianmono"]="MartianMono"
-    ["meslo"]="Meslo"
-    ["monaspace"]="Monaspace"
-    ["monofur"]="Monofur"
-    ["monoid"]="Monoid"
-    ["mononoki"]="Mononoki"
-    ["mplus"]="MPlus"
-    ["nerdfontssymbolsonly"]="NerdFontsSymbolsOnly"
-    ["noto"]="Noto"
-    ["opendyslexic"]="OpenDyslexic"
-    ["overpass"]="Overpass"
-    ["profont"]="ProFont"
-    ["proggyclean"]="ProggyClean"
-    ["recursive"]="Recursive"
-    ["robotomono"]="RobotoMono"
-    ["sharetechmono"]="ShareTechMono"
-    ["sourcecodepro"]="SourceCodePro"
-    ["spacemono"]="SpaceMono"
-    ["terminus"]="Terminus"
-    ["tinos"]="Tinos"
-    ["ubuntu"]="Ubuntu"
-    ["ubuntumono"]="UbuntuMono"
-    ["ubuntusans"]="UbuntuSans"
-    ["victormono"]="VictorMono"
-    ["zedmono"]="ZedMono"
+nerd_font_list=(
+    "3270"
+    "0xProto"
+    "Agave"
+    "AnonymousPro"
+    "Arimo"
+    "AurulentSansMono"
+    "BigBlueTerminal"
+    "BitstreamVeraSansMono"
+    "CascadiaCode"
+    "CascadiaMono"
+    "CodeNewRoman"
+    "ComicShannsMono"
+    "CommitMono"
+    "Cousine"
+    "D2Coding"
+    "DaddyTimeMono"
+    "DejaVuSansMono"
+    "DepartureMono"
+    "DroidSansMono"
+    "EnvyCodeR"
+    "FantasqueSansMono"
+    "FiraCode"
+    "FiraMono"
+    "FontPatcher"
+    "GeistMono"
+    "Go-Mono"
+    "Gohu"
+    "Hack"
+    "Hasklig"
+    "HeavyData"
+    "Hermit"
+    "iA-Writer"
+    "IBMPlexMono"
+    "Inconsolata"
+    "InconsolataGo"
+    "InconsolataLGC"
+    "IntelOneMono"
+    "Iosevka"
+    "IosevkaTerm"
+    "IosevkaTermSlab"
+    "JetBrainsMono"
+    "Lekton"
+    "LiberationMono"
+    "Lilex"
+    "MartianMono"
+    "Meslo"
+    "Monaspace"
+    "Monofur"
+    "Monoid"
+    "Mononoki"
+    "MPlus"
+    "NerdFontsSymbolsOnly"
+    "Noto"
+    "OpenDyslexic"
+    "Overpass"
+    "ProFont"
+    "ProggyClean"
+    "Recursive"
+    "RobotoMono"
+    "ShareTechMono"
+    "SourceCodePro"
+    "SpaceMono"
+    "Terminus"
+    "Tinos"
+    "Ubuntu"
+    "UbuntuMono"
+    "UbuntuSans"
+    "VictorMono"
+    "ZedMono"
 )
 
 # Functions
@@ -160,32 +160,61 @@ open_url() {
 }
 
 install_nerd_font() {
-    local $font = $1
-
-    # convert font name to lowercase, then check if it exists in the font_names array
-    if [[ -z ${font_names[${font,,}]} ]]; then
+    local font="$1"
+    local fonts_dir="$HOME/.local/share/fonts"
+    local font_dir="$fonts_dir/$font"
+    local font_version="v3.3.0"
+    local font_extension="zip"
+    # check if the font exists in the nerd_font_list array
+    if [[ ! " ${nerd_font_list[@]} " =~ " ${font} " ]]; then
         echo -e "${textred}Error: Invalid font name. Please choose from the following:${textreset}"
-        echo -e "${textyellow}${!font_names[*]}${textreset}"
+        echo -e "${textyellow}${nerd_font_list[*]}${textreset}"
         return 1
     fi
 
-    # Ask if the user wants to install the font as zip or tar.xz
-    echo -e "${textgreen}Do you want to install the font as a zip or tar.xz file?${textreset}"
-    echo -e "${textyellow}1) zip${textreset}"
-    echo -e "${textyellow}2) tar.xz${textreset}"
-    read -p "" answer
-    if [[ $answer == "1" ]]; then
-        font_extension="zip"
-    elif [[ $answer == "2" ]]; then
-        font_extension="tar.xz"
+    # Let user know what's happening
+    echo -e "${textgreen}Installing font $font...${textreset}"
+    # check if -d flag is set
+    if [[ $2 == "-d" ]]; then
+        auto_install=true
     else
-        font_extension="tar.xz"
+        # Ask if the user wants to install the font as zip or tar.xz
+        echo -e "${textgreen}Do you want to install the font as a zip or tar.xz file (Default is zip)?${textreset}"
+        echo -e "${textyellow}1) zip${textreset}"
+        echo -e "${textyellow}2) tar.xz${textreset}"
+        read -p "" answer
+        if [[ $answer == "1" ]]; then
+            font_extension="zip"
+        elif [[ $answer == "2" ]]; then
+            font_extension="tar.xz"
+        fi
     fi
 
-    font_dir="$HOME/.local/share/fonts"
-    font_version="v3.3.0"
-    font_name="3270"
-    font_url="https://github.com/ryanoasis/nerd-fonts/releases/download/$font_version/$font_slug.$font_extension"
+    font_url="https://github.com/ryanoasis/nerd-fonts/releases/download/$font_version/$font.$font_extension"
+    # Create a temporary directory to download the font
+    temp_dir=$(mktemp -d)
+    # Create the font directory if it doesn't exist
+    mkdir -p "$font_dir"
+    # Download the font
+    echo -e "${textgreen}Downloading $font...${textreset}"
+    wget -q --show-progress -P "$temp_dir" "$font_url"
+    # Extract the font files from the ZIP archive
+    echo -e "${textgreen}Extracting $font...${textreset}"
+    if [[ $font_extension == "zip" ]]; then
+        unzip -q "$temp_dir/$font.$font_extension" -d "$temp_dir"
+    elif [[ $font_extension == "tar.xz" ]]; then
+        tar -xf "$temp_dir/$font.$font_extension" -C "$temp_dir"
+    fi
+
+    # Install the font
+    echo -e "${textgreen}Installing $font...${textreset}"
+    # copy all files from temp dir to fonts directory
+    find "$temp_dir" -name '*.ttf' -exec cp {} "$font_dir" \;
+    # cleanup
+    ls -la "$temp_dir"
+    rm -rf "$temp_dir"
+    echo -e "${textgreen}$font installed.${textreset}"
+    return 0
     
 }
 
@@ -195,7 +224,7 @@ install_nerd_fonts() {
     selected_fonts=()
     available_fonts=(
         "All" 
-        "${!nerd_font_list[@]}" 
+        "${nerd_font_list[@]}" 
         "Done"
     )
 
@@ -206,7 +235,7 @@ install_nerd_fonts() {
             if [[ "$opt" == "Done" ]]; then
                 break 2  # Exit both loops
             elif [[ "$opt" == "All" ]]; then
-                selected_fonts=("${!nerd_font_list[@]}")
+                selected_fonts=("${nerd_font_list[@]}")
                 break 2  # Exit both loops
             elif [[ -n "$opt" ]]; then
                 if [[ ! " ${selected_fonts[@]} " =~ " ${opt} " ]]; then
@@ -225,7 +254,7 @@ install_nerd_fonts() {
     # Execute installations
     echo -e "${textblue}Starting installation process...${textreset}"
     for font in "${selected_fonts[@]}"; do
-        install_nerd_font "$font"
+        install_nerd_font "$font" -d
     done
 }
 
