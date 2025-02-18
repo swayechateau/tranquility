@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 
 # Colors
 declare -A colors=(
@@ -827,9 +826,9 @@ install_nvchad() {
 }
 install_customization_theming() {
     print_color "blue" "Installing Customization Tools..."
-    install_oh_my_zsh
-
-    install_nvchad
+    user_install_prompt "Oh My ZSH" install_oh_my_zsh
+    user_install_prompt "powerlevel10k" install_powerlevel10k
+    user_install_prompt "NVChad" install_nvchad
 }
 
 # Install all available software
