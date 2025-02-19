@@ -116,15 +116,22 @@ user_install_prompt() {
 # Function to install packages using dnf on Fedora 22+ and RHEL 8+
 install_package() {
     local package=$1
-    local manager=$2
-    sudo $manager update -y
     if command -v $package &>/dev/null; then
         print_color "green" "$package is already installed."
         return 0
     fi
     print_color "green" "Installing $package using $manager..."
-    sudo $manager install -y $package
+    sudo dnf update -y
+    sudo dnf install -y $package
 }
+
+install_packages() {
+    local packages=("$@")
+    for package in "${packages[@]}"; do
+        install_package "$package"
+    done
+}
+
 install_with_nix() {
     install_nix
     for package in "$@"; do
@@ -416,55 +423,92 @@ install_wget() {
     install_package wget dnf
 }
 install_curl() {
-    install_package curl dnf
+    install_package curl
 }
 install_git() {
-    install_package git dnf
-}
-install_jq() {
-    install_package jq dnf
+    # Version control system
+    install_package git
 }
 install_nvim() {
-    install_package neovim dnf
+    # Modern Vim-based text editor
+    install_package neovim
+}
+install_jq() {
+    # Command-line JSON processor
+    install_package jq
+}
+install_ripgrep() {
+    # Faster grep alternative
+    install_package ripgrep
 }
 install_cli_tools() {
     print_color "blue" "Installing CLI tools..."
 
     # Development Tools
-    install_package git dnf             # Version control system
-    install_package neovim dnf          # Modern Vim-based text editor
-    install_package jq dnf              # Command-line JSON processor
-    install_package ripgrep dnf         # Faster grep alternative
-    install_package fd-find dnf         # User-friendly find alternative
-    install_package bat dnf             # cat clone with syntax highlighting
-    install_package exa dnf             # Modern ls replacement
-    install_package fzf dnf             # Fuzzy finder for interactive filtering
-    install_package tig dnf             # Text-mode interface for Git
-    install_package lazygit dnf         # Terminal UI for Git commands
-    install_package diff-so-fancy dnf   # Better git diff output
+    install_git             
+    install_nvim            
+    install_jq              
+    install_ripgrep         
+    install_package fd-find         # User-friendly find alternative
+    install_package bat             # cat clone with syntax highlighting
+    install_package exa             # Modern ls replacement
+    install_package fzf             # Fuzzy finder for interactive filtering
+    install_package tig             # Text-mode interface for Git
+    install_package lazygit         # Terminal UI for Git commands
+    install_package diff-so-fancy   # Better git diff output
 
     # Productivity Tools
-    install_package tmux dnf            # Terminal multiplexer
-    install_package zsh dnf             # Powerful shell with advanced features
-    install_package neofetch dnf        # Display system information
-    install_package taskwarrior dnf     # Command-line task manager
-    install_package ranger dnf          # Terminal file manager
-    install_package entr dnf            # Run commands when files change
-    install_package asciinema dnf       # Record and share terminal sessions
-    install_package glow dnf            # Render markdown in the terminal
+    install_package tmux            # Terminal multiplexer
+    install_package zsh             # Powerful shell with advanced features
+    install_package fastfetch        # Display system information
+    install_package taskwarrior     # Command-line task manager
+    install_package ranger          # Terminal file manager
+    install_package entr            # Run commands when files change
+    install_package asciinema       # Record and share terminal sessions
+    install_package glow            # Render markdown in the terminal
 
     # Miscellaneous Tools
-    install_package cowsay dnf          # Generate ASCII art of a cow with a message
-    install_package figlet dnf          # Create large text banners
-    install_package lolcat dnf          # Rainbow-colored terminal output
-    install_package fortune dnf         # Display random quotes or fortunes
-    install_package cmatrix dnf         # Simulate the Matrix movie's falling code
-    install_package sl dnf              # Steam Locomotive (fun command for typos)
+    install_package cowsay          # Generate ASCII art of a cow with a message
+    install_package figlet          # Create large text banners
+    install_package lolcat          # Rainbow-colored terminal output
+    install_package fortune         # Display random quotes or fortunes
+    install_package cmatrix         # Simulate the Matrix movie's falling code
+    install_package sl              # Steam Locomotive (fun command for typos)
 }
 
+install_kombrei() {
+    install_packages cmake valac libgtk-3-dev libgee-0.8-dev libclutter-gtk-1.0-dev libclutter-1.0-dev libwebkit2gtk-4.0-dev libclutter-gst-3.0-dev
+    git clone https://github.com/cheesecakeufo/komorebi.git
+    cd komorebi
+    mkdir build && cd build
+    cmake .. && sudo make install && ./komorebi
+}
+install_kde_wallpaper_engine() {
+    # Please add "RPM Fusion" repo first
+    install_packages vulkan-headers plasma-workspace-devel kf5-plasma-devel gstreamer1-libav \
+    lz4-devel mpv-libs-devel python3-websockets qt5-qtbase-private-devel libplasma-devel \
+    qt5-qtx11extras-devel qt5-qtwebchannel-devel qt5-qtwebsockets-devel cmake
+    
+    # Download source
+    git clone https://github.com/catsout/wallpaper-engine-kde-plugin.git
+    cd wallpaper-engine-kde-plugin
+
+    # Download submodule
+    git submodule update --init --force --recursive
+
+    # Configure, build and install
+    # 'USE_PLASMAPKG=ON': using kpackagetool tool to install plugin
+    cmake -B build -S . -GNinja -DUSE_PLASMAPKG=ON
+    cmake --build build
+    cmake --install build
+
+    # Install package (ignore if USE_PLASMAPKG=OFF for system-wide installation)
+    cmake --build build --target install_pkg
+}
 install_customization() {
     print_color "blue" "Installing customization tools..."
     # Check if KDE or Gnome
+    install_kde_wallpaper_engine
 }
 
 # Communication
@@ -567,8 +611,7 @@ install_creative_tools() {
 
 # podman, docker, github desktop
 install_podman() {
-    install_package podman dnf
-    install_package podman-compose dnf
+    install_packages podman podman-compose
 }
 install_docker() {
     if check_command -v docker; then
@@ -578,7 +621,7 @@ install_docker() {
     # Add Docker repository
     sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
     # Install Docker
-    sudo dnf install -y docker-ce docker-ce-cli containerd.io
+    install_packages docker-ce docker-ce-cli containerd.io
     # Start and enable Docker service
     sudo systemctl start docker
     sudo systemctl enable docker
@@ -589,14 +632,14 @@ install_docker() {
 install_github_cli() {
     if command -v gh &>/dev/null; then
         print_color "green" "GitHub CLI is already installed."
-    else
-        print_color "green" "Installing GitHub CLI..."
-        # Add GitHub CLI repository
-        sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-        # Install GitHub CLI
-        sudo dnf install -y gh
-        print_color "green" "GitHub CLI installed successfully."
+        return 0
     fi
+    print_color "green" "Installing GitHub CLI..."
+    # Add GitHub CLI repository
+    sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+    # Install GitHub CLI
+    sudo dnf install -y gh
+    print_color "green" "GitHub CLI installed successfully."
 }
 install_github_desktop() {
     if flatpak list | grep -q io.github.shiftey.Desktop; then
@@ -710,19 +753,19 @@ install_networking() {
     print_color "blue" "Installing networking tools..."
 
     # Network Analysis and Debugging
-    install_package nmap dnf            # Network exploration and security auditing
-    install_package nmap-ncat dnf       # Netcat utility for networking tasks
-    install_package httpie dnf          # User-friendly HTTP client
-    install_package wget2 dnf           # Next-generation wget with improved performance
-    install_package curl dnf            # Command-line tool for transferring data
-    install_package openssh dnf         # SSH client and server
-    install_package mtr dnf             # Network diagnostic tool (combines ping and traceroute)
-    install_package iperf3 dnf          # Network performance testing tool
-    install_package tcpdump dnf         # Packet analyzer for network troubleshooting
-    install_package wireshark dnf       # Network protocol analyzer (GUI and CLI)
-    install_package net-tools dnf       # Basic networking tools (ifconfig, netstat, etc.)
-    install_package iputils dnf         # Utilities like ping and traceroute
-    install_package bind-utils dnf      # DNS troubleshooting tools (dig, nslookup)
+    install_package nmap            # Network exploration and security auditing
+    install_package nmap-ncat       # Netcat utility for networking tasks
+    install_package httpie          # User-friendly HTTP client
+    install_package wget2           # Next-generation wget with improved performance
+    install_package curl            # Command-line tool for transferring data
+    install_package openssh         # SSH client and server
+    install_package mtr             # Network diagnostic tool (combines ping and traceroute)
+    install_package iperf3          # Network performance testing tool
+    install_package tcpdump         # Packet analyzer for network troubleshooting
+    install_package wireshark       # Network protocol analyzer (GUI and CLI)
+    install_package net-tools       # Basic networking tools (ifconfig, netstat, etc.)
+    install_package iputils         # Utilities like ping and traceroute
+    install_package bind-utils      # DNS troubleshooting tools (dig, nslookup)
 }
 install_unity() {
     install_with_flatpak com.unity.UnityHub
@@ -737,12 +780,13 @@ install_godot() {
     # Godot (Standard Version)
     install_with_flatpak org.godotengine.Godot
     # Godot Mono (C# Support)
-    install_with_flatpak org.godotengine.Godot.Mono
+    install_with_flatpak org.godotengine.GodotSharp
 }
 install_pico8() {
     install_with_flatpak com.lexaloffle.Pico8
 }
 install_steam() {
+    install_package steam-devices
     install_with_flatpak com.valvesoftware.Steam
 }
 install_lutris() {
@@ -762,11 +806,11 @@ install_gaming_game_development() {
 install_security_privacy() {
     print_color "blue" "Installing security and privacy tools..."
     # Password Management
-    install_with_dnf keepassxc          # Password manager
-    install_with_dnf bitwarden          # Open-source password manager (CLI)
+    install_package keepassxc          # Password manager
+    install_package bitwarden          # Open-source password manager (CLI)
     # Encryption Tools
-    install_with_dnf gnupg              # GNU Privacy Guard for encryption
-    install_with_dnf veracrypt          # Disk encryption software
+    install_package gnupg              # GNU Privacy Guard for encryption
+    install_package veracrypt          # Disk encryption software
 }
 
 install_streaming_recording() {
@@ -777,29 +821,29 @@ install_streaming_recording() {
 install_utilities() {
     print_color "blue" "Installing system utilities..."
     # File and Text Manipulation
-    install_package ripgrep dnf         # Faster grep alternative
-    install_package fd-find dnf         # User-friendly find alternative
-    install_package bat dnf             # cat clone with syntax highlighting
-    install_package exa dnf             # Modern ls replacement
-    install_package fzf dnf             # Fuzzy finder for interactive filtering
-    install_package tree dnf            # Display directory structures as a tree
-    install_package unzip dnf           # Extract .zip files
-    install_package rsync dnf           # Fast and versatile file copying
+    install_package ripgrep         # Faster grep alternative
+    install_package fd-find         # User-friendly find alternative
+    install_package bat             # cat clone with syntax highlighting
+    install_package exa             # Modern ls replacement
+    install_package fzf             # Fuzzy finder for interactive filtering
+    install_package tree            # Display directory structures as a tree
+    install_package unzip           # Extract .zip files
+    install_package rsync           # Fast and versatile file copying
 
     # System Monitoring and Debugging
-    install_package htop dnf            # Interactive process viewer
-    install_package btop dnf            # Modern system monitor
-    install_package glances dnf         # Cross-platform system monitoring
-    install_package ncdu dnf            # Disk usage analyzer
-    install_package lsof dnf            # List open files and processes
+    install_package htop            # Interactive process viewer
+    install_package btop            # Modern system monitor
+    install_package glances         # Cross-platform system monitoring
+    install_package ncdu            # Disk usage analyzer
+    install_package lsof            # List open files and processes
 
     # Miscellaneous Utilities
-    install_package tmux dnf            # Terminal multiplexer
-    install_package zsh dnf             # Powerful shell with advanced features
-    install_package fastfetch dnf        # Display system information
-    install_package tig dnf             # Text-mode interface for Git
-    install_package lazygit dnf         # Terminal UI for Git commands
-    install_package diff-so-fancy dnf   # Better git diff output
+    install_package tmux            # Terminal multiplexer
+    install_package zsh             # Powerful shell with advanced features
+    install_package fastfetch        # Display system information
+    install_package tig             # Text-mode interface for Git
+    install_package lazygit         # Terminal UI for Git commands
+    install_package diff-so-fancy   # Better git diff output
 }
 
 # Themes
@@ -885,8 +929,13 @@ install_category() {
         *) print_color "red" "Invalid category: $1" ;;
     esac
 }
-
+update() {
+    yes | install_packages \
+    https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+}
 start() {
+    update
     PS3="Select a category (or choose 'Done' to start installation): "
     selected_categories=()
 
