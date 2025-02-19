@@ -15,7 +15,6 @@ declare -A colors=(
 
 # Variables
 categories=(
-    "All"
     "Fonts"
     "Package Managers"
     "Shells"
@@ -37,7 +36,6 @@ categories=(
     "Streaming & Recording"
     "Utilities"
     "Customization & Theming"
-    "Done"
 )
 
 nerd_font_list=(
@@ -121,7 +119,6 @@ install_package() {
         return 0
     fi
     print_color "green" "Installing $package using $manager..."
-    sudo dnf update -y
     sudo dnf install -y $package
 }
 
@@ -245,7 +242,7 @@ install_flatpak() {
         return 0
     fi
     print_color "green" "Installing Flatpak..."
-    install_package flatpak dnf
+    install_package flatpak
     flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     print_color "green" "Flatpak installed."
 }
@@ -257,10 +254,11 @@ install_package_managers() {
 
 # Shells
 install_fish() {
-    install_package fish dnf
+    install_package fish
 }
 install_zsh() {
-    install_package zsh dnf
+    # Powerful shell with advanced features
+    install_package zsh
 }
 install_shells() {
     print_color "blue" "Installing alternative shells..."
@@ -273,10 +271,10 @@ install_go() {
     if check_command go; then
         return 0
     fi
-    install_package golang dnf
+    install_package golang
 }
 install_php() {
-    install_package php dnf
+    install_package php
 
     if check_command composer; then
         return 0
@@ -313,15 +311,13 @@ install_dotnet() {
     fi
     sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
     sudo dnf config-manager --add-repo https://packages.microsoft.com/fedora/$(rpm -E %fedora)/prod/
-    install_package dotnet-sdk-9.0 dnf
+    install_package dotnet-sdk-9.0
 }
 install_python() {
-    install_package python3 dnf
+    install_package python3
 }
 install_nodejs() {
-    install_package nodejs dnf
-    install_package npm dnf
-    install_package yarn dnf
+    install_packages nodejs npm yarn
     if ! check_command bun; then
         print_color "green" "Installing Bun..."
         curl -fsSL https://bun.sh/install | bash
@@ -329,8 +325,8 @@ install_nodejs() {
     fi
 }
 install_elixir() {
-    install_package erlang dnf
-    install_package elixir dnf
+    install_package erlang
+    install_package elixir
 }
 install_cpp() {
     if check_command g++; then
@@ -341,7 +337,7 @@ install_cpp() {
     print_color "green" "C++ compiler installed successfully."
 }
 install_c() {
-    install_package gcc dnf
+    install_package gcc
 }
 install_programming_languages() {
     print_color "blue" "Installing programming languages..."
@@ -361,7 +357,7 @@ install_zenbrowser() {
     install_with_flatpak app.zen_browser.zen
 }
 install_firefox() {
-    install_package firefox dnf
+    install_package firefox
 }
 install_bravebrowser() {
     install_with_flatpak com.brave.Browser
@@ -420,7 +416,7 @@ install_browsers() {
 
 # CLI Tools
 install_wget() {
-    install_package wget dnf
+    install_package wget
 }
 install_curl() {
     install_package curl
@@ -729,14 +725,14 @@ install_productivity() {
 install_virtualization_containers() {
     print_color "blue" "Installing virtualization software..."
     # Virtualization Tools
-    install_with_dnf virtualbox                         # VirtualBox
-    install_with_dnf virt-manager                       # Virt-Manager (KVM/QEMU GUI)
-    install_with_dnf qemu-kvm                           # QEMU/KVM (hypervisor)
-    install_with_dnf libvirt                            # Libvirt (virtualization API)
+    install_package virtualbox                         # VirtualBox
+    install_package virt-manager                       # Virt-Manager (KVM/QEMU GUI)
+    install_package qemu-kvm                           # QEMU/KVM (hypervisor)
+    install_package libvirt                            # Libvirt (virtualization API)
 
     # Containerization Tools
-    install_with_dnf podman                             # Podman (container runtime)
-    install_with_dnf docker                             # Docker (container runtime)
+    install_podman                             # Podman (container runtime)
+    install_docker                             # Docker (container runtime)
     install_with_dnf buildah                            # Buildah (container image builder)
     install_with_dnf skopeo                             # Skopeo (container image management)
 
@@ -771,8 +767,80 @@ install_unity() {
     install_with_flatpak com.unity.UnityHub
 }
 install_renpy() {
-    install_with_flatpak org.renpy.RenPy
+    local version="8.3.4"
+    local url="https://www.renpy.org/dl/$version/renpy-$version-sdk.tar.bz2"
+    local install_dir="$HOME/.local/share/renpy"
+    local install_path="$install_dir/$version"
+    local desktop_file="$HOME/.local/share/applications/renpy.desktop"
+
+    # Check if Ren'Py is already installed
+    if [ -d "$install_path" ]; then
+        print_color "yellow" "Ren'Py $version is already installed at $install_path."
+
+        # Ask user if they want to reinstall
+        read -p "Do you want to reinstall? (y/N): " choice
+        choice=${choice,,} # Convert to lowercase
+
+        if [[ "$choice" != "y" && "$choice" != "yes" ]]; then
+            print_color "green" "Installation aborted. Ren'Py is already installed."
+            return 0
+        fi
+
+        print_color "red" "Reinstalling Ren'Py $version..."
+        rm -rf "$install_path"
+        rm -f $desktop_file
+    fi
+
+    # Create install directory if it doesn't exist
+    mkdir -p "$install_dir"
+
+    # Download Ren'Py
+    print_color "purple" "Downloading Ren'Py version $version..."
+    curl -L -o "$install_dir/renpy-$version-sdk.tar.bz2" "$url"
+
+    # Extract the archive
+    print_color "purple" "Extracting Ren'Py..."
+    tar -xvf "$install_dir/renpy-$version-sdk.tar.bz2" -C "$install_dir"
+
+    # Cleanup downloaded archive
+    rm "$install_dir/renpy-$version-sdk.tar.bz2"
+
+    # Rename extracted folder to version number
+    mv "$install_dir/renpy-$version-sdk" $install_path
+
+    # Add Ren'Py to PATH if not already added
+    if ! grep -q "$install_path" ~/.profile; then
+        echo 'export PATH="'"$install_path"':$PATH"' >> ~/.profile
+        source ~/.profile
+    fi
+
+    # Create a .desktop file to add Ren'Py to the application menu
+    print_color "blue" "Creating Ren'Py desktop entry..."
+    cat <<EOF > "$desktop_file"
+[Desktop Entry]
+Name=Ren'Py
+Description=Visual Novel Game Engine
+Comment=Multi-platform visual novel game engine
+Exec=$install_path/renpy.sh
+Icon=$install_path/launcher/icon.icns
+Terminal=false
+Type=Application
+Categories=Development;
+StartupNotify=true
+EOF
+
+    # Ensure the .desktop file is executable
+    chmod +x "$desktop_file"
+
+    # Refresh application database
+    update-desktop-database ~/.local/share/applications
+
+    # Final success message
+    print_color "green" "Ren'Py $version installed successfully!"
+    print_color "green" "You can now find it in the application menu or run it with:"
+    print_color "green" "cd $install_path && ./renpy.sh"
 }
+
 install_unreal_engine() {
     install_with_flatpak com.epicgames.UnrealEngine
 }
@@ -782,9 +850,7 @@ install_godot() {
     # Godot Mono (C# Support)
     install_with_flatpak org.godotengine.GodotSharp
 }
-install_pico8() {
-    install_with_flatpak com.lexaloffle.Pico8
-}
+
 install_steam() {
     install_package steam-devices
     install_with_flatpak com.valvesoftware.Steam
@@ -794,13 +860,14 @@ install_lutris() {
 }
 install_gaming_game_development() {
     print_color "blue" "Installing game development software..."
+    # Gaming Apps
     user_install_prompt "Steam" install_steam
     user_install_prompt "Lutris" install_lutris
-    user_install_prompt "Unity Hub" install_unity
-    user_install_prompt "Ren'Py" install_renpy
-    user_install_prompt "Unreal Engine" install_unreal_engine
+    # Game Development Tools
     user_install_prompt "Godot" install_godot
-    user_install_prompt "Pico-8" install_pico8
+    user_install_prompt "Ren'Py" install_renpy
+    user_install_prompt "Unity Hub" install_unity
+    user_install_prompt "Unreal Engine" install_unreal_engine
 }
 
 install_security_privacy() {
@@ -818,32 +885,99 @@ install_streaming_recording() {
     install_with_flatpak com.obsproject.Studio
 }
 
+install_tmux() {
+    # Terminal multiplexer
+    install_package tmux
+}
+install_fastfetch() {
+    # Display system information
+    install_package fastfetch
+}
+install_tig() {
+    # Text-mode interface for Git
+    install_package tig
+}
+install_lazygit() {
+    # Terminal UI for Git commands
+    install_package lazygit
+}
+install_diff_so_fancy() {
+    # Better git diff output
+    install_package diff-so-fancy
+}
+install_htop() {
+    # Interactive process viewer
+    install_package htop
+}
+install_btop() {
+    # Modern system monitor
+    install_package btop
+}
+install_glances() {
+    # Cross-platform system monitoring
+    install_package glances
+}
+install_ncdu() {
+    # Disk usage analyzer
+    install_package ncdu
+}
+install_lsof() {
+    # List open files and processes
+    install_package lsof
+}
+install_fd_find(){
+    # User-friendly find alternative
+    install_package fd-find
+}
+install_bat() {
+    # cat clone with syntax highlighting
+    install_package bat
+}
+install_exa() {
+    # Modern ls replacement
+    install_package exa
+}
+install_fzf() {
+    # Fuzzy finder for interactive filtering
+    install_package fzf
+}
+install_tree() {
+    # Display directory structures as a tree
+    install_package tree
+}
+install_unzip() {
+    # Extract .zip files
+    install_package unzip
+}
+install_rsync() {
+    # Fast and versatile file copying
+    install_package rsync
+}
 install_utilities() {
     print_color "blue" "Installing system utilities..."
     # File and Text Manipulation
-    install_package ripgrep         # Faster grep alternative
-    install_package fd-find         # User-friendly find alternative
-    install_package bat             # cat clone with syntax highlighting
-    install_package exa             # Modern ls replacement
-    install_package fzf             # Fuzzy finder for interactive filtering
-    install_package tree            # Display directory structures as a tree
-    install_package unzip           # Extract .zip files
-    install_package rsync           # Fast and versatile file copying
+    install_ripgrep
+    install_fd-find
+    install_bat
+    install_exa
+    install_fzf
+    install_tree
+    install_unzip
+    install_rsync
 
     # System Monitoring and Debugging
-    install_package htop            # Interactive process viewer
-    install_package btop            # Modern system monitor
-    install_package glances         # Cross-platform system monitoring
-    install_package ncdu            # Disk usage analyzer
-    install_package lsof            # List open files and processes
+    install_htop
+    install_btop
+    install_glances
+    install_ncdu
+    install_lsof
 
     # Miscellaneous Utilities
-    install_package tmux            # Terminal multiplexer
-    install_package zsh             # Powerful shell with advanced features
-    install_package fastfetch        # Display system information
-    install_package tig             # Text-mode interface for Git
-    install_package lazygit         # Terminal UI for Git commands
-    install_package diff-so-fancy   # Better git diff output
+    install_tmux
+    install_fastfetch
+    install_tig
+    install_lazygit
+    install_diff-so-fancy
 }
 
 # Themes
@@ -875,35 +1009,9 @@ install_customization_theming() {
     user_install_prompt "NVChad" install_nvchad
 }
 
-# Install all available software
-install_all() {
-    print_color "blue" "Installing all available software..."
-    install_fonts
-    install_package_managers
-    install_shells
-    install_programming_languages
-    install_browsers
-    install_cli_tools
-    install_customization
-    install_communication
-    install_creative_tools
-    install_dev_tools
-    install_ides
-    install_video_players
-    install_audio_tools
-    install_productivity
-    install_virtualization_containers
-    install_networking
-    install_gaming_game_development
-    install_security_privacy
-    install_streaming_recording
-    install_utilities
-    install_customization_theming
-}
-
+# Install available software categories
 install_category() {
     case "$1" in
-        "All") install_all ;;
         "Fonts") install_fonts ;;
         "Package Managers") install_package_managers ;;
         "Shells") install_shells ;;
@@ -925,45 +1033,79 @@ install_category() {
         "Streaming & Recording") install_streaming_recording ;;
         "Utilities") install_utilities ;;
         "Customization & Theming") install_customization_theming ;;
-        "Done") return 1 ;;
         *) print_color "red" "Invalid category: $1" ;;
     esac
 }
 update() {
-    yes | install_packages \
-    https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-    https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+    local free_pkg="rpmfusion-free-release"
+    local nonfree_pkg="rpmfusion-nonfree-release"
+
+    # Check if RPM Fusion is already installed
+    if ! rpm -q "$free_pkg" &>/dev/null && rpm -q "$nonfree_pkg" &>/dev/null; then
+        print_color "green" "Installing RPM Fusion free."
+        yes | install_packages \
+        https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+    fi
+
+    if ! rpm -q "$nonfree_pkg" &>/dev/null; then
+        print_color "green" "Installing RPM Fusion non-free."
+        yes | install_packages \
+        https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+    fi
+
+    print_color "purple" "Running System Update..."
+    # Update system packages
+    sudo dnf update -y
 }
 start() {
-    update
     PS3="Select a category (or choose 'Done' to start installation): "
+    declare -A selected_categories_map
     selected_categories=()
 
     while true; do
         echo "Available Categories:"
-        select opt in "${categories[@]}"; do
-            if [[ "$opt" == "Done" || "$opt" == "All" ]]; then
-                break 2
-            elif [[ -n "$opt" ]]; then
-                if [[ ! " ${selected_categories[@]} " =~ " ${opt} " ]]; then
-                    selected_categories+=("$opt")
-                    print_color "green" "✔ Added: $opt"
-                else
-                    print_color "yellow" "⚠ $opt is already selected!"
-                fi
-                break
-            else
-                print_color "red" "❌ Invalid choice, please try again."
-            fi
+        select opt in "${categories[@]}" "Done" "All"; do
+            case "$opt" in
+                "Done")
+                    # if no categories selected except done set exit to true
+                    if [[ ${#selected_categories[@]} -eq 0 ]]; then
+                        print_color "yellow" "⚠ No categories selected. Exiting..."
+                        return 0  # Exit the function early
+                    fi
+                    break 2
+                    ;;
+                "All")
+                    selected_categories=("${categories[@]}")
+                    print_color "blue" "Installing all available software..."
+                    break 2
+                    ;;
+                "")
+                    print_color "red" "❌ Invalid choice, please try again."
+                    ;;
+                *)
+                    if [[ -z "${selected_categories_map[$opt]}" ]]; then
+                        selected_categories_map[$opt]=1
+                        selected_categories+=("$opt")
+                        print_color "green" "✔ Added: $opt"
+                    else
+                        print_color "yellow" "⚠ $opt is already selected!"
+                    fi
+                    ;;
+            esac
         done
     done
 
     print_color "blue" "Starting installation process..."
+    # Run system update
+    update
+    # Install selected Categories
     for category in "${selected_categories[@]}"; do
         install_category "$category"
     done
 
     print_color "green" "✅ Installation completed for: ${selected_categories[*]}"
 }
+
+
 
 start
