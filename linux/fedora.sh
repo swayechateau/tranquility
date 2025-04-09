@@ -386,8 +386,7 @@ install_rpmfusion() {
 }
 install_system_improvements() {
     print_color "blue" "Installing system improvements..."
-
-    install_media_codecs()
+    install_media_codecs
 }
 
 # Desktop Environments
