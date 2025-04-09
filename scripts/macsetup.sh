@@ -20,29 +20,8 @@ fi
 
 echo "$pkg_man deteced, using for package installation."
 
-if [[ "$os" == "MacOS" ]]; then
-    # Install Xcode Cli
-    read -p "Do you want to install xcode command line tools? [Y/n] " answer
-    if answer_default_y "$answer"; then
-        echo "After installing the command line tools, please install xcode from the app store."
-        xcode-select --install
-    fi
-
-    read -p "Do you want to add fonts to homebrew? [Y/n] " answer
-    if answer_default_y "$answer"; then
-        brew tap homebrew/cask-fonts
-    fi
-fi
-
 # Install shell
-read -p "Do you want to install an additional shell? [Y/n] " answer
-if answer_default_y "$answer"; then
-    read -p "Do you want to install the fish shell? [Y/n] " answer
-    if answer_default_y "$answer"; then
-        echo "Installing fish..."
-        brew install fish
-    fi
-fi
+
 
 # CLI Tools
 read -p "Do you want to install CLI tools? [Y/n] " answer
