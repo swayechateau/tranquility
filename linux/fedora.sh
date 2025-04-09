@@ -1151,6 +1151,8 @@ update() {
         https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
     fi
 
+    install_system_improvements
+    
     print_color "purple" "Running System Update..."
     # Update system packages
     sudo dnf update -y
