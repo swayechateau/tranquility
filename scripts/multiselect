@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Customize with your own options.
+options=("AAA" "BBB" "CCC" "DDD")
+choices=()
+cursor=0
+
+print_options() {
+    for i in ${!options[@]}; do
+        if [[ $i -eq $cursor ]]; then
+            tput setaf 2; tput bold
+        fi
+        if [[ "${choices[i]}" ]]; then
+            printf "%3d [x] %s\n" $((i+1)) "${options[i]}"
+        else
+            printf "%3d [ ] %s\n" $((i+1)) "${options[i]}"
+        fi
+        tput sgr0
+    done
+}
+
+menu() {
+    tput clear
+    tput cup 0 0
+    echo "Available options (use arrow keys to navigate, space to select, ENTER when done):"
+    print_options
+}
+
+while true; do
+    menu
+    read -rsn1 input
+    case $input in
+        $'\x1b')  # ESC sequence
+            read -rsn1 -t 0.1 input
+            if [[ $input == "[" ]]; then
+                read -rsn1 -t 0.1 input
+                input="[$input"
+            fi
+            case $input in
+                '[A')  # Up arrow
+                    ((cursor--))
+                    if [ $cursor -lt 0 ]; then cursor=$((${#options[@]} - 1)); fi
+                    ;;
+                '[B')  # Down arrow
+                    ((cursor++))
+                    if [ $cursor -ge ${#options[@]} ]; then cursor=0; fi
+                    ;;
+            esac
+            ;;
+        ' ')  # Space
+            if [[ "${choices[cursor]}" ]]; then
+                choices[cursor]=""
+            else
+                choices[cursor]="+"
+            fi
+            ;;
+        '')  # Enter
+            break
+            ;;
+    esac
+done
+
+printf "You selected"; msg=" nothing"
+for i in ${!options[@]}; do 
+    [[ "${choices[i]}" ]] && { printf " %s" "${options[i]}"; msg=""; }
+done
+echo "$msg"

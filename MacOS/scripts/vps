@@ -1,0 +1,69 @@
+#!/bin/zsh
+
+# Define colors (zsh compatible)
+RED=$'\e[0;31m'
+GREEN=$'\e[0;32m'
+YELLOW=$'\e[0;33m'
+NC=$'\e[0m'
+
+# Define variables
+declare -A VM_MAP
+USERNAME=$USER
+SSH_KEY=""
+
+# Define VMs and their addresses
+VM_MAP=(
+  ["example1"]="vps.example.com"
+  ["example2"]="vps.example2.com"
+  ["example3"]="vps3.example.com"
+)
+
+# Check if the VM_MAP is empty
+if [[ ${#VM_MAP} -eq 0 ]]; then
+  echo -e "${RED}Error: No VMs defined.${NC}"
+  exit 1
+fi
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -u)
+      USERNAME="$2"
+      echo -e "${GREEN}Username: $2${NC}"
+      shift 2
+      ;;
+    -i)
+      SSH_KEY="-i $2"
+      echo -e "${GREEN}SSH Key: $2${NC}"
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [[ -z "$USERNAME" ]]; then
+  echo -e "${YELLOW}No username provided. Using default: $USER${NC}"
+fi
+
+# Manual numbering and input
+echo -e "${GREEN}Select a VM to connect to:${NC}"
+local vm_names=()
+local i=1
+for key in "${(k)VM_MAP}"; do
+  echo "$i) $key"
+  vm_names+=("$key")
+  ((i++))
+done
+
+read -p "?# " choice
+
+if [[ "$choice" -ge 1 && "$choice" -le ${#vm_names} ]]; then
+  VM="${vm_names[$((choice - 1))]}"
+  VM_ADDRESS="${VM_MAP[$VM]}"
+  echo -e "${GREEN}Connecting to $VM ($VM_ADDRESS)...${NC}"
+  ssh $SSH_KEY "$USERNAME@$VM_ADDRESS"
+else
+  echo -e "${RED}Invalid selection.${NC}"
+fi

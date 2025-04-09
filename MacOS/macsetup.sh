@@ -1,5 +1,181 @@
 #!/bin/sh
-source ./functions.sh
+
+# Define colors
+textblack='\033[0;30m' # Black - Regular
+textred="\033[0;31m" # Red
+textgreen='\033[0;32m' # Green
+textyellow='\033[0;33m' # Yellow
+textblue='\033[0;34m' # Blue
+textpurple='\033[0;35m' # Purple
+textcyan='\033[0;36m' # Cyan
+textwhite="\033[0;37m" # White
+textreset='\033[0m'
+
+cleanup_temp() {
+    # Clean up temporary directories
+    rm -rf "$1"
+}
+
+
+check_package_man() {
+    # Check for common package managers
+    if command -v brew > /dev/null; then
+        echo "homebrew installed"
+        return 0
+    fi
+
+    return 1
+}
+
+
+# Function to install packages using Homebrew on macOS
+install_with_brew() {
+    for package in "$@"; do
+        echo -e "${textgreen}Installing $package using Homebrew...${textreset}"
+        brew install "$package"
+    done
+}
+
+install_homebrew() {
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+}
+
+install_chocolatey() {
+    echo "Installing Chocolatey"
+    powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+}
+
+install_yay() {
+    install_with_pacman git
+    cd /opt
+    sudo git clone https://aur.archlinux.org/yay-git.git
+    sudo chown -R $USER:$USER ./yay-git
+    cd yay-git
+    makepkg -si
+    sudo yay -Syu
+}
+
+install_package_manager() {
+  os=$(check_os)
+  if [[ $os == "Windows" ]]; then
+    # If os is windows and pkg is null then install Chocolatey
+    echo "No package manager detected. Installing Chocolatey."
+    install_chocolatey
+    return 0
+  elif [[ $os == "macOS" ]]; then
+    # If os is mac and pkg is null then install Homebrew
+    echo "No package manager detected. Installing Homebrew."
+    install_homebrew
+    return 0
+  elif [[ $os == "Linux" ]]; then
+    # If os is linux and pkg is null then install Homebrew
+    echo "No package manager detected. Installing Homebrew."
+    install_homebrew
+    return 0
+  fi
+
+  echo "Error: Unable to assertain Operating System."
+  return 1
+
+}
+
+pkg_man_install() {
+    pkg_man=$(check_package_man)
+    
+    if ! $pkg_man; then
+        echo -e "${textred}No package manager found.${textreset}"
+        exit 1
+    fi
+
+    for package in "$@"; do
+        echo -e "${textgreen}Installing $package using $pkg_man...${textreset}"
+        if [[ $pkg_man == "chocolatey" ]]; then
+            install_with_choco "$package"
+        elif [[ $pkg_man == "homebrew" ]]; then
+            install_with_brew "$package"
+        elif [[ $pkg_man == "apt-get" ]]; then
+            install_with_apt "$package"
+        elif [[ $pkg_man == "pacman" ]]; then
+            install_with_pacman "$package"
+        elif [[ $pkg_man == "dnf" ]]; then
+            install_with_dnf "$package"
+        elif [[ $pkg_manager == "yum" ]]; then
+            install_with_yum "$package"
+        elif [[ $pkg_manager == "zypper" ]]; then
+            install_with_zypper "$package"
+        fi
+    done
+}
+
+answer_default_n() {
+    answer="$1"
+    if [[ $answer == "Y" || $answer == "y" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+answer_default_y() {
+    answer="$1"
+    if answer_default_n "$answer" || [[ $answer == "" ]]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+
+# Function to open a URL in the default browser
+open_url() {
+  local url=$1
+  # Check if xdg-open is available
+  if command -v xdg-open >/dev/null; then
+    xdg-open "$url"
+    return 0
+  # Check if macOS open command is available
+  elif command -v open >/dev/null; then
+    open "$url"
+    return 0
+  # Check if Windows start command is available through WSL
+  elif command -v cmd.exe >/dev/null; then
+    cmd.exe /C "start $url"
+    return 0
+  fi
+
+  echo "Error: Unable to open URL. No supported command found."
+  return 1
+
+}
+
+add_nerd_font() {
+    fontName=$1
+    # Define the download URL for the Nerd Font ZIP file
+    fontUrl="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/$fontName.zip"
+    # Create a temporary directory to extract the font files
+    tempDir=$(mktemp -d)
+
+    trap 'cleanup_temp "$tempDir"' EXIT
+
+    # Download the Nerd Font ZIP file
+    curl -L -o "$tempDir/$fontName.zip" "$fontUrl"
+
+    # Extract the font files from the ZIP archive
+    unzip -q "$tempDir/$fontName.zip" -d "$tempDir"
+
+    # Install the Nerd Font
+    find "$tempDir" -name '*.ttf' -exec cp {} ~/.local/share/fonts/ \;
+
+    # Refresh the font cache
+    fc-cache -f -v
+
+    echo "Nerd Font '$fontName' installed successfully."
+
+}
+
+
 
 os=$(check_os)
 pkg_man=$(check_package_man)
@@ -19,6 +195,39 @@ else
 fi
 
 echo "$pkg_man deteced, using for package installation."
+
+if [[ "$os" == "MacOS" ]]; then
+    # Install Xcode Cli
+    read -p "Do you want to install xcode command line tools? [Y/n] " answer
+    if answer_default_y "$answer"; then
+        echo "After installing the command line tools, please install xcode from the app store."
+        xcode-select --install
+    fi
+
+    read -p "Do you want to add fonts to homebrew? [Y/n] " answer
+    if answer_default_y "$answer"; then
+        brew tap homebrew/cask-fonts
+    fi
+fi
+
+if [[ "$os" == "MacOS" ]]; then
+  # Install Xcode Cli
+  read -p "Do you want to install xcode command line tools? [Y/n] " answer
+  if answer_default_y "$answer"; then
+    echo "After installing the command line tools, please install xcode from the app store."
+    xcode-select --install
+  fi
+
+  read -p "Do you want to add fonts to homebrew? [Y/n] " answer
+  if answer_default_y "$answer"; then
+    brew tap homebrew/cask-fonts
+  fi
+
+  read -p "Do you want to install rectangle? [Y/n] " answer
+  if answer_default_y "$answer"; then
+    brew install rectangle
+  fi
+fi
 
 # Install shell
 
