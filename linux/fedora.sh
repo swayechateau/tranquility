@@ -67,6 +67,17 @@ is_sudo() {
     sudo -n true 2>/dev/null
 }
 
+check_cpu_brand() {
+    #check if intel or amd
+    if grep -qi "intel" /proc/cpuinfo; then
+        echo "Intel"
+    elif grep -qi "amd" /proc/cpuinfo; then
+        echo "AMD"
+    else
+        echo "Unknown"
+    fi
+}
+
 open_url() {
     local url=$1
     # Check if xdg-open is available (Linux only)
@@ -350,6 +361,79 @@ install_programming_languages() {
     user_install_prompt "Elixir" install_elixir
     user_install_prompt "C++" install_cpp
     user_install_prompt "C" install_c
+}
+
+install_intel_media_driver() {
+    sudo dnf install libavcodec-freeworld --allowerasing -y
+    sudo dnf install intel-media-driver --allowerasing -y
+}
+
+install_amd_media_driver() {
+    sudo dnf install libavcodec-freeworld --allowerasing -y
+    sudo dnf install mesa-va-drivers-freeworld --allowerasing -y
+}
+install_media_codecs() {
+    print_color "blue" "Installing media codecs..."
+    if check_cpu_brand | grep -q "Intel"; then
+        install_intel_media_driver
+    elif check_cpu_brand | grep -q "AMD"; then
+        install_amd_media_driver
+    fi
+}
+install_rpmfusion() {
+    sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm -y
+    sudo dnf install https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
+}
+install_system_improvements() {
+    print_color "blue" "Installing system improvements..."
+    install_media_codecs
+}
+
+# Desktop Environments
+install_gnome_minimal() {
+    # Install Minimal Gnome DE
+    sudo dnf install @base-x gnome-shell gnome-terminal firefox nautilus -y
+}
+install_gnome() {
+    # Install Full Gnome DE
+    sudo dnf install @workstation-product-environment -y
+}
+install_kde() {
+    # Install KDE Plasma DE
+    sudo dnf install @kde-desktop-environment -y
+}
+
+install_desktop_environment() {
+    print_color "blue" "Installing desktop environments..."
+    user_install_prompt "Gnome" install_gnome
+    user_install_prompt "KDE" install_kde
+    user_install_prompt "Minimal Gnome" install_gnome_minimal
+}
+
+# Window Managers
+install_i3() {
+    # Install i3 Window Manager
+    sudo dnf install i3 i3status dmenu i3lock xbacklight feh -y
+}
+install_sway() {
+    # Install Sway Window Manager
+    sudo dnf install sway waybar mako grim slurp kanshi swaylock -y
+}
+install_xmonad() {
+    # Install Xmonad Window Manager
+    sudo dnf install xmonad xmonad-contrib xmobar dmenu -y
+}
+install_bspwm() {
+    # Install BSPWM Window Manager
+    sudo dnf install bspwm sxhkd polybar -y
+}
+
+install_window_manager() {
+    print_color "blue" "Installing window managers..."
+    user_install_prompt "i3" install_i3
+    user_install_prompt "Sway" install_sway
+    user_install_prompt "Xmonad" install_xmonad
+    user_install_prompt "BSPWM" install_bspwm
 }
 
 # Browsers
@@ -664,9 +748,23 @@ install_dev_tools() {
     user_install_prompt "DevBox" install_devbox
 }
 
+install_vscode() {
+    install_with_flatpak com.visualstudio.code
+}
+install_vscodium() {
+    # Install vscodium
+    sudo rpmkeys --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg
+    printf "[gitlab.com_paulcarroty_vscodium_repo]\nname=download.vscodium.com\nbaseurl=https://download.vscodium.com/rpms/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg\nmetadata_expire=1h" | sudo tee -a /etc/yum.repos.d/vscodium.repo
+    sudo dnf install codium -y
+}
+install_kate() {
+    sudo dnf install kate -y
+}
 install_ides() {
     print_color "blue" "Installing IDEs..."
-    install_with_flatpak com.visualstudio.code
+    install_vscode
+    install_vscodium
+    install_kate
 }
 
 install_video_players() {
@@ -1053,59 +1151,78 @@ update() {
         https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
     fi
 
+    install_system_improvements
+    
     print_color "purple" "Running System Update..."
     # Update system packages
     sudo dnf update -y
 }
+
 start() {
-    PS3="Select a category (or choose 'Done' to start installation): "
-    declare -A selected_categories_map
-    selected_categories=()
+    local selected_categories=()
+    local input=""
+    
+    echo "Available Categories:"
+    for i in "${!categories[@]}"; do
+        echo "$((i + 1)). ${categories[i]}"
+    done
+    echo "$(( ${#categories[@]} + 1 )). All"
 
     while true; do
-        echo "Available Categories:"
-        select opt in "${categories[@]}" "Done" "All"; do
-            case "$opt" in
-                "Done")
-                    # if no categories selected except done set exit to true
-                    if [[ ${#selected_categories[@]} -eq 0 ]]; then
-                        print_color "yellow" "⚠ No categories selected. Exiting..."
-                        return 0  # Exit the function early
-                    fi
-                    break 2
-                    ;;
-                "All")
-                    selected_categories=("${categories[@]}")
-                    print_color "blue" "Installing all available software..."
-                    break 2
-                    ;;
-                "")
-                    print_color "red" "❌ Invalid choice, please try again."
-                    ;;
-                *)
-                    if [[ -z "${selected_categories_map[$opt]}" ]]; then
-                        selected_categories_map[$opt]=1
-                        selected_categories+=("$opt")
-                        print_color "green" "✔ Added: $opt"
-                    else
-                        print_color "yellow" "⚠ $opt is already selected!"
-                    fi
-                    ;;
-            esac
+        read -p "Enter numbers separated by commas (e.g., 1,3,5) or 'All' (Press Enter to continue): " input
+
+        # Trim spaces and convert to lowercase
+        input=$(echo "$input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+
+        if [[ "$input" == "all" ]]; then
+            selected_categories=("${categories[@]}")
+            print_color "blue" "Installing all available software..."
+            break
+        elif [[ -z "$input" ]]; then
+            if [[ ${#selected_categories[@]} -eq 0 ]]; then
+                print_color "yellow" "⚠ No categories selected. Exiting..."
+                return 0
+            fi
+            break
+        fi
+
+        # Convert user input into an array
+        IFS=',' read -r -a selections <<< "$input"
+
+        # Validate user input
+        for choice in "${selections[@]}"; do
+            if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice > 0 && choice <= ${#categories[@]} )); then
+                category="${categories[choice-1]}"
+                if [[ ! " ${selected_categories[@]} " =~ " ${category} " ]]; then
+                    selected_categories+=("$category")
+                    print_color "green" "✔ Added: $category"
+                else
+                    print_color "yellow" "⚠ $category is already selected!"
+                fi
+            else
+                print_color "red" "❌ Invalid selection: $choice"
+            fi
         done
+
+        # Confirm selection and allow re-selection
+        read -p "Proceed with selected categories? (y/N): " confirm
+        confirm=${confirm,,} # Convert to lowercase
+        if [[ "$confirm" == "y" || "$confirm" == "yes" ]]; then
+            break
+        else
+            selected_categories=()
+        fi
     done
 
     print_color "blue" "Starting installation process..."
-    # Run system update
     update
-    # Install selected Categories
+
     for category in "${selected_categories[@]}"; do
         install_category "$category"
     done
 
     print_color "green" "✅ Installation completed for: ${selected_categories[*]}"
 }
-
 
 
 start

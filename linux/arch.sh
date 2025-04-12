@@ -1,4 +1,37 @@
-source ./colors.sh
+#!/bin/bash
+
+# Define colors
+textblack='\033[0;30m' # Black - Regular
+textred="\033[0;31m" # Red
+textgreen='\033[0;32m' # Green
+textyellow='\033[0;33m' # Yellow
+textblue='\033[0;34m' # Blue
+textpurple='\033[0;35m' # Purple
+textcyan='\033[0;36m' # Cyan
+textwhite="\033[0;37m" # White
+textreset='\033[0m'
+
+# Functions
+is_sudo() {
+    if sudo -n true 2>/dev/null; then
+        echo true
+    else
+        echo false
+    fi
+}
+
+check_arch() {
+    arch=$(uname -m)
+    if [[ "$arch" == "x86_64" ]]; then
+        arch="x64"
+    elif [[ "$arch" == *"arm"* ]]; then
+        arch="ARM"
+    else
+        arch="Unknown"
+    fi
+
+    echo $arch
+}
 
 cleanup_temp() {
     # Clean up temporary directories
@@ -34,7 +67,7 @@ check_distro() {
         . /etc/os-release
         echo $NAME
         return 0
-    fi
+     fi
 
     echo "Unknown"
     return 1
@@ -71,30 +104,6 @@ check_package_man() {
     return 1
 }
 
-# Function to install packages using Chocolatey on Windows
-install_with_choco() {
-    for package in "$@"; do
-        echo -e "${textgreen}Installing $package using Chocolatey...${textreset}"
-        choco install -y "$package"
-    done
-}
-
-# Function to install packages using Homebrew on macOS
-install_with_brew() {
-    for package in "$@"; do
-        echo -e "${textgreen}Installing $package using Homebrew...${textreset}"
-        brew install "$package"
-    done
-}
-
-# Function to install packages using apt-get on Ubuntu
-install_with_apt() {
-    for package in "$@"; do
-        echo -e "${textgreen}Installing $package using apt-get...${textreset}"
-        sudo apt-get install -y "$package"
-    done
-}
-
 # Function to install packages using yay on Arch Linux
 install_with_yay() {
     for package in "$@"; do
@@ -111,27 +120,30 @@ install_with_pacman() {
     done
 }
 
-# Function to install packages using dnf on Fedora 22+ and RHEL 8+
-install_with_dnf() {
+install_nix() {
+    echo -e "${textgreen}Installing Nix...${textreset}"
+    sh <(curl -L https://nixos.org/nix/install) --daemon
+    echo -e "${textgreen}Nix installed.${textreset}"
+}
+
+install_with_nix() {
     for package in "$@"; do
-        echo -e "${textgreen}Installing $package using dnf...${textreset}"
-        sudo dnf install -y "$package"
+        echo -e "${textgreen}Installing $package using nix...${textreset}"
+        nix-env -i "$package"
     done
 }
 
-# Function to install packages using yum on Fedora 21, RHEL 7 and below
-install_with_yum() {
-    for package in "$@"; do
-        echo -e "${textgreen}Installing $package using yum...${textreset}"
-        sudo yum install -y "$package"
-    done
+install_flatpak() {
+    echo -e "${textgreen}Installing Flatpak...${textreset}"
+    install_with_pacman flatpak
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    echo -e "${textgreen}Flatpak installed.${textreset}"
 }
 
-# Function to install packages using zypper on openSUSE
-install_with_zypper() {
+install_with_flatpak() {
     for package in "$@"; do
-        echo -e "${textgreen}Installing $package using zypper...${textreset}"
-        sudo zypper install -y "$package"
+        echo -e "${textgreen}Installing $package using flatpak...${textreset}"
+        flatpak install flathub "$package"
     done
 }
 
@@ -139,11 +151,6 @@ install_homebrew() {
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
     eval "$(/opt/homebrew/bin/brew shellenv)"
-}
-
-install_chocolatey() {
-    echo "Installing Chocolatey"
-    powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
 }
 
 install_yay() {
@@ -154,58 +161,6 @@ install_yay() {
     cd yay-git
     makepkg -si
     sudo yay -Syu
-}
-
-install_package_manager() {
-  os=$(check_os)
-  if [[ $os == "Windows" ]]; then
-    # If os is windows and pkg is null then install Chocolatey
-    echo "No package manager detected. Installing Chocolatey."
-    install_chocolatey
-    return 0
-  elif [[ $os == "macOS" ]]; then
-    # If os is mac and pkg is null then install Homebrew
-    echo "No package manager detected. Installing Homebrew."
-    install_homebrew
-    return 0
-  elif [[ $os == "Linux" ]]; then
-    # If os is linux and pkg is null then install Homebrew
-    echo "No package manager detected. Installing Homebrew."
-    install_homebrew
-    return 0
-  fi
-
-  echo "Error: Unable to assertain Operating System."
-  return 1
-
-}
-
-pkg_man_install() {
-    pkg_man=$(check_package_man)
-    
-    if ! $pkg_man; then
-        echo -e "${textred}No package manager found.${textreset}"
-        exit 1
-    fi
-
-    for package in "$@"; do
-        echo -e "${textgreen}Installing $package using $pkg_man...${textreset}"
-        if [[ $pkg_man == "chocolatey" ]]; then
-            install_with_choco "$package"
-        elif [[ $pkg_man == "homebrew" ]]; then
-            install_with_brew "$package"
-        elif [[ $pkg_man == "apt-get" ]]; then
-            install_with_apt "$package"
-        elif [[ $pkg_man == "pacman" ]]; then
-            install_with_pacman "$package"
-        elif [[ $pkg_man == "dnf" ]]; then
-            install_with_dnf "$package"
-        elif [[ $pkg_manager == "yum" ]]; then
-            install_with_yum "$package"
-        elif [[ $pkg_manager == "zypper" ]]; then
-            install_with_zypper "$package"
-        fi
-    done
 }
 
 answer_default_n() {
@@ -234,19 +189,10 @@ open_url() {
   if command -v xdg-open >/dev/null; then
     xdg-open "$url"
     return 0
-  # Check if macOS open command is available
-  elif command -v open >/dev/null; then
-    open "$url"
-    return 0
-  # Check if Windows start command is available through WSL
-  elif command -v cmd.exe >/dev/null; then
-    cmd.exe /C "start $url"
-    return 0
   fi
 
   echo "Error: Unable to open URL. No supported command found."
   return 1
-
 }
 
 add_nerd_font() {
@@ -274,3 +220,13 @@ add_nerd_font() {
 
 }
 
+
+# install shells
+install_with_pacman zsh fish neovim git gnome xorg xorg-server
+
+install_yay
+
+sudo systemctl start gdm
+sudo systemctl enable gdm4r
+
+sudo pacman -S gnome-tweaks
