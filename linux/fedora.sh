@@ -303,7 +303,7 @@ install_php() {
     fi
 
     # Install Composer globally
-    php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    sudo php composer-setup.php --install-dir=/usr/local/bin --filename=composer
     rm composer-setup.php
     print_color "green" "Composer installed successfully."
 }
@@ -631,6 +631,7 @@ install_krita() {
     install_with_flatpak org.kde.krita
 }
 install_davinciresolve() {
+    # issue with flatpak not found
     install_with_flatpak com.blackmagicdesign.DaVinciResolve
 }
 install_blender() {
