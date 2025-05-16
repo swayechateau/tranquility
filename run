@@ -1,13 +1,13 @@
 #!/bin/bash
-DEV_SETUP=./cli/target/release/devsetup
-devsetup() {
-  echo "Running devsetup..."
+DEV_SETUP=./cli/target/release/tranquility
+tranquility() {
+  echo "Running tranquility..."
     $DEV_SETUP
 }
-# Check if the devsetup executable exists
+# Check if the tranquility executable exists
 if [ ! -f $DEV_SETUP ]; then
-  echo "Error: devsetup executable not found. Please run './build' first."
+  echo "Error: tranquility executable not found. Please run './build' first."
   exit 1
 fi
 
-devsetup
+tranquility
