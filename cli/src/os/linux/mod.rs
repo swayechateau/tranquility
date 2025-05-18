@@ -31,7 +31,7 @@ pub fn install() {
 
     // check if shell is installed
     install_shell();
-    
+
     // Check the distribution
     let distro = determine_distro();
     match distro.as_str() {
@@ -131,7 +131,6 @@ fn install_flatpak() {
 }
 
 fn install_shell() {
-    let disto = determine_distro();
     // check if zsh is installed
     if Command::new("zsh").arg("--version").status().is_ok() {
         println!("✅ zsh is installed.");
@@ -158,16 +157,16 @@ fn install_zsh() {
         .unwrap();
     
     if install_zsh {
-        let disto = determine_distro();
+        let distro = determine_distro();
         // check package manager and install zsh
-        if disto.contains("Ubuntu") || disto.contains("Debian") {
+        if distro.contains("Ubuntu") || distro.contains("Debian") {
             run_shell_command("sudo apt update && sudo apt install zsh -y");
-        } else if disto.contains("Fedora") {
+        } else if distro.contains("Fedora") {
             run_shell_command("sudo dnf install zsh -y");
-        } else if disto.contains("Arch") {
+        } else if distro.contains("Arch") {
             run_shell_command("sudo pacman -S zsh -y");
         } else {
-            println!("❌ Unsupported distribution: {}", disto);
+            println!("❌ Unsupported distribution: {}", distro);
             std::process::exit(1);
         }
     }
@@ -182,16 +181,16 @@ fn install_fish() {
         .unwrap();
     
     if install_fish {
-        let disto = determine_distro();
+        let distro = determine_distro();
         // check package manager and install fish
-        if disto.contains("Ubuntu") || disto.contains("Debian") {
+        if distro.contains("Ubuntu") || distro.contains("Debian") {
             run_shell_command("sudo apt update && sudo apt install fish -y");
-        } else if disto.contains("Fedora") {
+        } else if distro.contains("Fedora") {
             run_shell_command("sudo dnf install fish -y");
-        } else if disto.contains("Arch") {
+        } else if distro.contains("Arch") {
             run_shell_command("sudo pacman -S fish -y");
         } else {
-            println!("❌ Unsupported distribution: {}", disto);
+            println!("❌ Unsupported distribution: {}", distro);
             std::process::exit(1);
         }
     }
