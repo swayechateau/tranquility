@@ -65,8 +65,19 @@ pub fn check_default_pm() -> &'static str {
     }
 
     // check if package manager is installed
+    let mut installed = false;
     if package_manager != "unknown" {
-        check_command(package_manager, package_manager, true);
+        installed = check_command(package_manager, package_manager, true);
+    }
+
+    // if package manager is not installed, inform the user to install it
+    if !installed && package_manager != "brew" {
+        println!("❌ Please install the default package manager for your system.");
+        std::process::exit(1);
+    }
+
+    if !installed && package_manager == "brew" {
+        install_brew();
     }
 
     return package_manager;
@@ -87,10 +98,8 @@ pub fn check_command(cmd: &str, friendly_name: &str, check_version: bool) -> boo
         return true;
     }
     
-    println!("❌ {} is not installed, please install to continue.", friendly_name);
-    if cmd == "brew" {
-        install_brew();
-    }
+    println!("❌ {} is not installed.", friendly_name);
+
     return false;
 }
 
@@ -266,7 +275,6 @@ pub fn install_programming_languages() {
     }
 
     // check if elixir is installed
-
     if !check_command("elixir", "Elixir", true) {
         install_elixir();
     }
