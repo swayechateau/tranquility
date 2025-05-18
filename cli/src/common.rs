@@ -2,6 +2,7 @@
 use dialoguer::Confirm;
 use std::process::Command;
 
+// installs additional package managers
 pub fn install_package_manager() {
     // Check if Nix is installed
     if Command::new("nix").arg("--version").status().is_ok() {
@@ -9,16 +10,6 @@ pub fn install_package_manager() {
     } else {
         println!("❌ Nix is not installed.");
         install_nix();
-    }
-
-    if cfg!(target_os = "macos") {
-        // check if brew is installed
-        if Command::new("brew").arg("--version").status().is_ok() {
-            println!("✅ brew is installed.");
-        } else {
-            println!("❌ brew is not installed.");
-            install_brew();
-        }
     }
 
     // check if os is linux
@@ -41,7 +32,7 @@ pub fn install_package_manager() {
     }
 }
 
-// default package managers
+// checks for default package managers
 pub fn check_default_pm() -> &'static str {
     let mut package_manager = "unknown";
     if cfg!(target_os = "linux") {
@@ -81,11 +72,13 @@ fn check_command_version(cmd: &str) -> bool {
     if Command::new(cmd).arg("--version").status().is_ok() {
         println!("✅ {} is installed.", cmd);
         return true;
-    } else {
-        println!("❌ {} is not installed, please install to continue.", cmd);
-        return false;
     }
-
+    
+    println!("❌ {} is not installed, please install to continue.", cmd);
+    if cmd == "brew" {
+        install_brew();
+    }
+    return false;
 }
 
 pub fn install_brew() {
