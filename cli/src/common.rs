@@ -41,6 +41,53 @@ pub fn install_package_manager() {
     }
 }
 
+// default package managers
+pub fn check_default_pm() -> &'static str {
+    let mut package_manager = "unknown";
+    if cfg!(target_os = "linux") {
+        let distro = determine_distro();
+
+        if distro.contains("Ubuntu") || distro.contains("Debian") {
+            package_manager = "apt";
+        }
+
+        if distro.contains("Fedora") {
+            package_manager = "dnf";
+        }
+        if distro.contains("Arch") {
+            package_manager = "pacman";
+        }
+    }
+
+    // check for macos
+    if cfg!(target_os = "macos") {
+        package_manager = "brew";
+    }
+
+    // check for windows
+    if cfg!(target_os = "windows") {
+        package_manager = "winget";
+    }
+
+    // check if package manager is installed
+    if package_manager != "unknown" {
+        check_command_version(package_manager);
+    }
+
+    return package_manager;
+}
+
+fn check_command_version(cmd: &str) -> bool {
+    if Command::new(cmd).arg("--version").status().is_ok() {
+        println!("✅ {} is installed.", cmd);
+        return true;
+    } else {
+        println!("❌ {} is not installed, please install to continue.", cmd);
+        return false;
+    }
+
+}
+
 pub fn install_brew() {
     let cmd = "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"";
     run_shell_command(cmd);

@@ -1,12 +1,8 @@
 // src/os/linux/arch.rs
 
-use std::process::Command;
+use crate::common::check_default_pm;
 
 pub fn install() {
     // check if pacman is installed
-    if Command::new("pacman").arg("--version").status().is_ok() {
-        println!("✅ pacman is installed.");
-    } else {
-        println!("❌ pacman is not installed, please install to continue.");
-    }
+    check_default_pm();
 }
