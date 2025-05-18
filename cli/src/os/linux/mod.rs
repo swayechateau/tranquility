@@ -1,4 +1,4 @@
-use crate::common::{determine_distro, install_package_manager, install_shell};
+use crate::common::{determine_distro};
 
 pub mod fedora;
 pub mod ubuntu;
@@ -7,11 +7,6 @@ pub mod arch;
 
 // ────────────── Linux ──────────────
 pub fn install() {
-    // check package managers are installed
-    install_package_manager();
-    // check if shell is installed
-    install_shell();
-
     // Check the distribution
     let distro = determine_distro();
     match distro.as_str() {

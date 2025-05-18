@@ -2,7 +2,7 @@
 mod os;
 mod common;
 
-use common::{check_default_pm, determine_arch, determine_os, install_package_manager, install_shell};
+use common::{check_default_pm, determine_arch, determine_os, install_package_manager, install_shell, install_programming_languages};
 use os::linux;
 use os::macos;
 use os::windows;
@@ -23,8 +23,7 @@ fn install(os: &str) {
     // recommended checks before proceeding
     check_default_pm();
     install_package_manager();
-    install_shell();
-
+    
     match os {
         "Linux" => linux::install(),
         "macOS" => macos::install(),
@@ -34,4 +33,7 @@ fn install(os: &str) {
             std::process::exit(1);
         }
     }
+
+    install_shell();
+    install_programming_languages();
 }
