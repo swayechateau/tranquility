@@ -1,6 +1,7 @@
 use std::env;
 
 mod os;
+mod common;
 
 use os::linux;
 use os::macos;
@@ -16,7 +17,6 @@ fn main() {
 
     // proceed with installation
     install(&os);
-
 }
 
 fn install(os: &str) {

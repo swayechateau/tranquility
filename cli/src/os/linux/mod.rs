@@ -1,6 +1,8 @@
 use std::process::Command;
 use dialoguer::Confirm;
 
+pub mod fedora;
+
 // ────────────── Linux ──────────────
 pub fn install() {
     // Check if Nix is installed
@@ -88,6 +90,7 @@ fn install_debian() {
 }
 fn install_fedora() {
     println!("📦 Detected Fedora.");
+    fedora::install();
 }
 fn install_arch() {
     println!("📦 Detected Arch.");
