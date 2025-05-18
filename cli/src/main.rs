@@ -1,8 +1,8 @@
-use std::env;
-
+// src/main.rs
 mod os;
 mod common;
 
+use common::{check_default_pm, determine_arch, determine_os, install_package_manager, install_shell};
 use os::linux;
 use os::macos;
 use os::windows;
@@ -20,6 +20,11 @@ fn main() {
 }
 
 fn install(os: &str) {
+    // recommended checks before proceeding
+    check_default_pm();
+    install_package_manager();
+    install_shell();
+
     match os {
         "Linux" => linux::install(),
         "macOS" => macos::install(),
@@ -29,20 +34,4 @@ fn install(os: &str) {
             std::process::exit(1);
         }
     }
-}
-
-fn determine_os() -> String {
-    if cfg!(target_os = "windows") {
-        "Windows".to_string()
-    } else if cfg!(target_os = "macos") {
-        "macOS".to_string()
-    } else if cfg!(target_os = "linux") {
-        "Linux".to_string()
-    } else {
-        "Unknown".to_string()
-    }
-}
-
-fn determine_arch() -> String {
-    env::consts::ARCH.to_string()
 }

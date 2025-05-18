@@ -1,33 +1,37 @@
 // src/common.rs
 use dialoguer::Confirm;
-use std::process::Command;
+use std::{env, process::Command};
 
 // installs additional package managers
 pub fn install_package_manager() {
     // Check if Nix is installed
-    if Command::new("nix").arg("--version").status().is_ok() {
-        println!("✅ Nix is installed.");
-    } else {
-        println!("❌ Nix is not installed.");
+    if !check_command_version("nix") {
         install_nix();
     }
 
     // check if os is linux
     if cfg!(target_os = "linux") {
         // check if snap is installed
-        if Command::new("snap").arg("--version").status().is_ok() {
-            println!("✅ snap is installed.");
-        } else {
-            println!("❌ snap is not installed.");
+        if !check_command_version("snap") {
             install_snap();
         }
 
         // check if flatpak is installed
-        if Command::new("flatpak").arg("--version").status().is_ok() {
-            println!("✅ flatpak is installed.");
-        } else {
-            println!("❌ flatpak is not installed.");
+        if !check_command_version("flatpak") {
             install_flatpak();
+        }
+    }
+
+    // check if os is windows
+    if cfg!(target_os = "windows") {
+        // check if choco is installed
+        if !check_command_version("choco") {
+            install_choco();
+        }
+
+        // check if scoop is installed
+        if !check_command_version("scoop") {
+            install_scoop();
         }
     }
 }
@@ -84,6 +88,17 @@ fn check_command_version(cmd: &str) -> bool {
 pub fn install_brew() {
     let cmd = "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"";
     run_shell_command(cmd);
+}
+
+pub fn install_choco() {
+    let cmd = "Set-ExecutionPolicy Bypass -Scope Process -Force; \
+               iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))";
+    run_powershell_command(cmd);
+}
+
+pub fn install_scoop() {
+    let cmd = "iwr -useb get.scoop.sh | iex";
+    run_powershell_command(cmd);
 }
 
 pub fn install_nix() {
@@ -210,6 +225,34 @@ pub fn run_shell_command(command: &str) {
         eprintln!("❌ Failed to execute command: {}\n{}", command, err);
         std::process::exit(1);
     }
+}
+
+pub fn run_powershell_command(command: &str) {
+    if let Err(err) = Command::new("powershell")
+        .arg("-Command")
+        .arg(command)
+        .status()
+    {
+        eprintln!("❌ PowerShell command failed: {}\n{}", command, err);
+        std::process::exit(1);
+    }
+}
+
+
+pub fn determine_os() -> String {
+    if cfg!(target_os = "windows") {
+        "Windows".to_string()
+    } else if cfg!(target_os = "macos") {
+        "macOS".to_string()
+    } else if cfg!(target_os = "linux") {
+        "Linux".to_string()
+    } else {
+        "Unknown".to_string()
+    }
+}
+
+pub fn determine_arch() -> String {
+    env::consts::ARCH.to_string()
 }
 
 pub fn determine_distro() -> String {
