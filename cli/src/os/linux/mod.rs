@@ -29,6 +29,9 @@ pub fn install() {
         install_flatpak();
     }
 
+    // check if shell is installed
+    install_shell();
+    
     // Check the distribution
     let distro = determine_distro();
     match distro.as_str() {
@@ -127,6 +130,74 @@ fn install_flatpak() {
     }
 }
 
+fn install_shell() {
+    let disto = determine_distro();
+    // check if zsh is installed
+    if Command::new("zsh").arg("--version").status().is_ok() {
+        println!("✅ zsh is installed.");
+    } else {
+        println!("❌ zsh is not installed.");
+        install_zsh();
+    }
+
+    // check if fish is installed
+    if Command::new("fish").arg("--version").status().is_ok() {
+        println!("✅ fish is installed.");
+    } else {
+        println!("❌ fish is not installed.");
+        install_fish();
+    }
+}
+
+fn install_zsh() {
+    // ask user if they want to install zsh
+    let install_zsh = Confirm::new()
+        .with_prompt("Do you want to install zsh?")
+        .default(true)
+        .interact()
+        .unwrap();
+    
+    if install_zsh {
+        let disto = determine_distro();
+        // check package manager and install zsh
+        if disto.contains("Ubuntu") || disto.contains("Debian") {
+            run_shell_command("sudo apt update && sudo apt install zsh -y");
+        } else if disto.contains("Fedora") {
+            run_shell_command("sudo dnf install zsh -y");
+        } else if disto.contains("Arch") {
+            run_shell_command("sudo pacman -S zsh -y");
+        } else {
+            println!("❌ Unsupported distribution: {}", disto);
+            std::process::exit(1);
+        }
+    }
+}
+
+fn install_fish() {
+    // ask user if they want to install fish
+    let install_fish = Confirm::new()
+        .with_prompt("Do you want to install fish?")
+        .default(true)
+        .interact()
+        .unwrap();
+    
+    if install_fish {
+        let disto = determine_distro();
+        // check package manager and install fish
+        if disto.contains("Ubuntu") || disto.contains("Debian") {
+            run_shell_command("sudo apt update && sudo apt install fish -y");
+        } else if disto.contains("Fedora") {
+            run_shell_command("sudo dnf install fish -y");
+        } else if disto.contains("Arch") {
+            run_shell_command("sudo pacman -S fish -y");
+        } else {
+            println!("❌ Unsupported distribution: {}", disto);
+            std::process::exit(1);
+        }
+    }
+}
+
+// ────────────── Distro Specific ──────────────
 fn install_ubuntu() {
     println!("📦 Detected Ubuntu. You could install something here...");
     // Add real install logic here
