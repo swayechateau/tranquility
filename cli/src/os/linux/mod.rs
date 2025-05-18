@@ -7,7 +7,7 @@ pub mod fedora;
 pub fn install() {
     // Check if Nix is installed
     if Command::new("nix").arg("--version").status().is_ok() {
-        println!("✅ Nix is already installed.");
+        println!("✅ Nix is installed.");
     } else {
         println!("❌ Nix is not installed.");
         install_nix();

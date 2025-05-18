@@ -4,7 +4,7 @@ use std::process::Command;
 pub fn install() {
     // check if Homebrew is installed
     if Command::new("brew").arg("--version").status().is_ok() {
-        println!("✅ Homebrew is already installed.");
+        println!("✅ Homebrew is installed.");
     } else {
         println!("❌ Homebrew is not installed.");
         install_brew();
