@@ -6,8 +6,8 @@ tranquility() {
 }
 # Check if the tranquility executable exists
 if [ ! -f $DEV_SETUP ]; then
-  echo "Error: tranquility executable not found. Please run './build' first."
-  exit 1
+  echo "Error: tranquility executable not found. Runing the './build' command."
+  ./build
 fi
 
 tranquility
