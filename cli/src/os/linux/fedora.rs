@@ -1,4 +1,5 @@
 // src/os/linux/fedora.rs
+use std::process::Command;
 
 pub fn install() {
     // check if dnf is installed
