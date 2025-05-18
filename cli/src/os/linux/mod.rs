@@ -13,6 +13,22 @@ pub fn install() {
         install_nix();
     }
 
+    // check if snap is installed
+    if Command::new("snap").arg("--version").status().is_ok() {
+        println!("✅ snap is installed.");
+    } else {
+        println!("❌ snap is not installed.");
+        install_snap();
+    }
+
+    // check if flatpak is installed
+    if Command::new("flatpak").arg("--version").status().is_ok() {
+        println!("✅ flatpak is installed.");
+    } else {
+        println!("❌ flatpak is not installed.");
+        install_flatpak();
+    }
+
     // Check the distribution
     let distro = determine_distro();
     match distro.as_str() {
@@ -79,6 +95,36 @@ fn install_nix() {
     }
 
     run_shell_command(&cmd);
+}
+
+fn install_snap() {
+    let disto = determine_distro();
+    // check package manager and install snap
+    if disto.contains("Ubuntu") || disto.contains("Debian") {
+        run_shell_command("sudo apt update && sudo apt install snapd -y");
+    } else if disto.contains("Fedora") {
+        run_shell_command("sudo dnf install snapd -y");
+    } else if disto.contains("Arch") {
+        run_shell_command("sudo pacman -S snapd -y");
+    } else {
+        println!("❌ Unsupported distribution: {}", disto);
+        std::process::exit(1);
+    }
+}
+
+fn install_flatpak() {
+    let disto = determine_distro();
+    // check package manager and install flatpak
+    if disto.contains("Ubuntu") || disto.contains("Debian") {
+        run_shell_command("sudo apt update && sudo apt install flatpak -y");
+    } else if disto.contains("Fedora") {
+        run_shell_command("sudo dnf install flatpak -y");
+    } else if disto.contains("Arch") {
+        run_shell_command("sudo pacman -S flatpak -y");
+    } else {
+        println!("❌ Unsupported distribution: {}", disto);
+        std::process::exit(1);
+    }
 }
 
 fn install_ubuntu() {

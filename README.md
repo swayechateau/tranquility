@@ -13,12 +13,14 @@ Tranquility as it's name suggests is a project to give you peace of mind to auto
 
 Currently the project is focused on the client/server systems I use:
 
-- Windows 10/11
-- Mac Os
+- Windows 11
+- MacOS
 - Fedora
 - Debian
 - Arch
-- Rocky OS (Centos Successor)
+- Ubuntu
+
+Discontinued/Dropped support for `centos` and `rocky linux`
 
 ## Current apps to install
 
