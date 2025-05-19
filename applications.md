@@ -70,6 +70,11 @@
   * VictorMono
   * ZedMono
 
+* **Servers**
+
+  * Nginx
+  * Caddy
+
 * **Package Managers**
 
   * Nix (cross)
@@ -99,10 +104,11 @@
 
 * **Utilities**
 
-  * **Security & Privacy**
+  * **Password Managers**
 
     * KeePassXC
     * Bitwarden (CLI)
+  * **Encryption**
     * GnuPG
     * VeraCrypt
   
@@ -118,11 +124,11 @@
     * OpenVPN
     * SurfShark
 
-  * **Media Downloader**
+  * **Download Manager**
 
     * JDownloader 2
 
-  * **Image Burner**
+  * **Imaging**
 
     * balenaEtcher
     * rufus
@@ -181,7 +187,6 @@
     * fortune / cmatrix / sl
     * htop / btop / glances / ncdu / lsof
     * tree
-
 
 * **Customization**
 
@@ -258,7 +263,7 @@
 
   * Steam
   * Lutris
-  * PS Remote Play
+  * PS Remote Play (WinMac)
   * Xbox App (Windows)
   * RPCS3
   * PCSX2

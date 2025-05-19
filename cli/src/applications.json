@@ -1,0 +1,476 @@
+[
+    {
+        "name": "nerd-fonts",
+        "display_name": "Nerd Fonts (Nerd Fonts)",
+        "categories": [
+            "Fonts"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "nginx",
+        "display_name": "Nginx (Nginx.org)",
+        "categories": [
+            "Servers"
+        ],
+        "supported": [
+            "Linux"
+        ],
+        "is_server_app": true
+    },
+    {
+        "name": "caddy",
+        "display_name": "Caddy (Caddyserver)",
+        "categories": [
+            "Servers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": true
+    },
+    {
+        "name": "nix",
+        "display_name": "Nix (Nixpkgs)",
+        "categories": [
+            "Package Managers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "snap",
+        "display_name": "Snap (Snapcraft)",
+        "categories": [
+            "Package Managers"
+        ],
+        "supported": [
+            "Linux"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "flatpak",
+        "display_name": "Flatpak (Flathub)",
+        "categories": [
+            "Package Managers"
+        ],
+        "supported": [
+            "Linux"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "yay",
+        "display_name": "yay (AUR)",
+        "categories": [
+            "Package Managers"
+        ],
+        "supported": [
+            "Linux"
+        ],
+        "distribution": "Arch",
+        "is_server_app": false
+    },
+    {
+        "name": "brew",
+        "display_name": "Homebrew (Homebrew)",
+        "categories": [
+            "Package Managers"
+        ],
+        "supported": [
+            "Mac"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "scoop",
+        "display_name": "Scoop (Scoop)",
+        "categories": [
+            "Package Managers"
+        ],
+        "supported": [
+            "Windows"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "choco",
+        "display_name": "Chocolatey (Chocolatey)",
+        "categories": [
+            "Package Managers"
+        ],
+        "supported": [
+            "Windows"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "docker",
+        "display_name": "Docker (Docker)",
+        "categories": [
+            "Development/Containerization"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "kubernetes",
+        "display_name": "Kubernetes (Kubernetes)",
+        "categories": [
+            "Development/Containerization"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "zsh",
+        "display_name": "Zsh (Zsh.org)",
+        "categories": [
+            "Shells"
+        ],
+        "supported": [
+            "MacLin"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "fish",
+        "display_name": "Fish (Fish)",
+        "categories": [
+            "Shells"
+        ],
+        "supported": [
+            "MacLin"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "firefox",
+        "display_name": "Firefox (Mozilla)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "firefox-developer",
+        "display_name": "Firefox Developer (Mozilla)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "chrome",
+        "display_name": "Chrome (Google)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "orion",
+        "display_name": "Orion (Browser)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "MacOS"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "brave",
+        "display_name": "Brave (Brave)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "vivaldi",
+        "display_name": "Vivaldi (Vivaldi)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "opera",
+        "display_name": "Opera (Opera)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "opera-developer",
+        "display_name": "Opera Developer (Opera)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "opera-gx",
+        "display_name": "Opera GX (Opera)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "WinMac"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "edge",
+        "display_name": "Edge (Microsoft)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "thorium",
+        "display_name": "Thorium (Browser)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "tor-browser",
+        "display_name": "Tor Browser (Tor)",
+        "categories": [
+            "Browsers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "tor",
+        "display_name": "Tor (Tor)",
+        "categories": [
+            "Utilities/VPN"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "keepassxc",
+        "display_name": "KeePassXC (KeePassXC)",
+        "categories": [
+            "Utilities/Password Managers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "bitwarden",
+        "display_name": "Bitwarden (Bitwarden)",
+        "categories": [
+            "Utilities/Password Managers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "gnupg",
+        "display_name": "GnuPG (GnuPG)",
+        "categories": [
+            "Utilities/Encryption"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": true
+    },
+    {
+        "name": "veracrypt",
+        "display_name": "VeraCrypt (VeraCrypt)",
+        "categories": [
+            "Utilities/Encryption"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": true
+    },
+    {
+        "name": "tightvnc",
+        "display_name": "TightVNC (TightVNC)",
+        "categories": [
+            "Utilities/Remote Desktop"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "vnc-viewer",
+        "display_name": "VNC Viewer (RealVNC)",
+        "categories": [
+            "Utilities/Remote Desktop"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "TeamViewer",
+        "display_name": "TeamViewer (TeamViewer)",
+        "categories": [
+            "Utilities/Remote Desktop"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "windows-remote-desktop",
+        "display_name": "Windows Remote Desktop (Microsoft)",
+        "categories": [
+            "Utilities/Remote Desktop"
+        ],
+        "supported": [
+            "WinMac"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "wireguard",
+        "display_name": "WireGuard (WireGuard)",
+        "categories": [
+            "Utilities/VPN"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": true
+    },
+    {
+        "name": "openvpn",
+        "display_name": "OpenVPN (OpenVPN)",
+        "categories": [
+            "Utilities/VPN"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": true
+    },
+    {
+        "name": "surfshark",
+        "display_name": "Surfshark (Surfshark)",
+        "categories": [
+            "Utilities/VPN"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "jdownloader",
+        "display_name": "JDownloader (JDownloader)",
+        "categories": [
+            "Utilities/DownloadManagers"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "balena-etcher",
+        "display_name": "Balena Etcher (Balena)",
+        "categories": [
+            "Utilities/Imaging"
+        ],
+        "supported": [
+            "Cross"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "rufus",
+        "display_name": "Rufus (Pete Batard)",
+        "categories": [
+            "Utilities/Imaging"
+        ],
+        "supported": [
+            "WinMac"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "rectangle-mac",
+        "display_name": "Rectangle (Rectangle)",
+        "categories": [
+            "Utilities/WindowManagement"
+        ],
+        "supported": [
+            "Mac"
+        ],
+        "is_server_app": false
+    },
+    {
+        "name": "magnet-mac",
+        "display_name": "Magnet (Magnet)",
+        "categories": [
+            "Utilities/WindowManagement"
+        ],
+        "supported": [
+            "Mac"
+        ],
+        "is_server_app": false
+    }
+]
