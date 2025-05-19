@@ -1,23 +1,37 @@
 name: Rust Build, Lint, and Artifact Deployment
 
 on:
+  workflow_dispatch:
+    inputs:
+      # JSON array of targets to build
+      targets:
+        description: 'JSON array of compilation targets'
+        required: false
+        default: '[
+          "x86_64-unknown-linux-gnu",
+          "aarch64-unknown-linux-gnu",
+          "x86_64-apple-darwin",
+          "aarch64-apple-darwin",
+          "x86_64-pc-windows-msvc",
+          "aarch64-pc-windows-msvc"]'
   push:
-    branches: [ rust-app ]
+    branches:
+      - rust-app
   release:
     types: [ published ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        target: [ "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu" ]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        target: ${{ fromJson(github.event.inputs.targets) }}
     steps:
-      # Check out the repository code
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Set up the Rust toolchain along with rustfmt and clippy for linting
       - name: Set up Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -25,11 +39,9 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      # Add the target for cross-compilation
       - name: Add target ${{ matrix.target }}
         run: rustup target add ${{ matrix.target }}
 
-      # Cache Cargo registry to speed up dependency downloads
       - name: Cache Cargo registry
         uses: actions/cache@v3
         with:
@@ -38,7 +50,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      # Cache Cargo Git index
       - name: Cache Cargo git index
         uses: actions/cache@v3
         with:
@@ -47,32 +58,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-git-
 
-      # Linting: Check code formatting with rustfmt (runs on the default host target)
       - name: Check formatting
         run: cargo fmt -- --check
 
-      # Linting: Run clippy to catch common mistakes and enforce warnings as errors
       - name: Run clippy
         run: cargo clippy --all-targets -- -D warnings
 
-      # Build the project in debug mode for the target
-      - name: Build (Debug) for ${{ matrix.target }}
-        run: cargo build --verbose --target ${{ matrix.target }}
+      - name: Build & test (Debug) for ${{ matrix.target }}
+        run: |
+          cargo build --verbose --target ${{ matrix.target }}
+          cargo test  --verbose --target ${{ matrix.target }}
 
-      # Run tests (note: cross-compiled tests may require an emulator or might be skipped)
-      - name: Run tests for ${{ matrix.target }}
-        run: cargo test --verbose --target ${{ matrix.target }}
-        # You may need to add conditions or configurations if tests cannot run under cross-compilation
-
-      # Build the project in release mode for artifact deployment on release events
       - name: Build (Release) for ${{ matrix.target }}
         if: github.event_name == 'release'
         run: cargo build --release --verbose --target ${{ matrix.target }}
 
-      # Upload the release build artifact when a new release is published
       - name: Upload release artifact for ${{ matrix.target }}
         if: github.event_name == 'release'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: release-binary-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/
+          name: release-${{ matrix.os }}-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/*
