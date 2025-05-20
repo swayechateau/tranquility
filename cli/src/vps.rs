@@ -225,3 +225,31 @@ pub fn prompt_and_add_vps(
     println!("✅ VPS entry saved to {}", path.display());
     Ok(())
 }
+
+pub fn confirm_and_delete_vps_config() -> io::Result<()> {
+    let config = TranquilityConfig::load_or_init()?;
+    let vps_path = config.vps_file;
+
+    if !vps_path.exists() {
+        println!("⚠️  VPS config does not exist at {}", vps_path.display());
+        return Ok(());
+    }
+
+    let confirm = Confirm::new()
+        .with_prompt(format!(
+            "Are you sure you want to permanently delete {}?",
+            vps_path.display()
+        ))
+        .default(false)
+        .interact()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?;
+
+    if confirm {
+        fs::remove_file(&vps_path)?;
+        println!("🗑️  Deleted VPS config: {}", vps_path.display());
+    } else {
+        println!("❌ Deletion canceled.");
+    }
+
+    Ok(())
+}

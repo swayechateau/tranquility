@@ -7,9 +7,10 @@ use crate::categories::{list_categories, Category};
 use crate::config::TranquilityConfig;
 use crate::installer::{install_apps, uninstall_apps};
 use crate::system::SystemInfo;
-use crate::vps::{prompt_and_add_vps, connect_to_vps, json_schema_example};
+use crate::vps::{
+    confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
+};
 use crate::{print_info, print_success};
-
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -76,6 +77,9 @@ pub enum Commands {
         /// List the vps entries from vps.json config
         #[arg(long)]
         list: bool,
+        /// Delete the vps.json config file
+        #[arg(long)]
+        delete: bool,
     },
 }
 
@@ -136,6 +140,7 @@ pub fn handle_args(args: TranquilityArgs) {
         Some(Commands::Vps {
             list,
             schema,
+            delete,
             action,
         }) => {
             if schema {
@@ -143,6 +148,12 @@ pub fn handle_args(args: TranquilityArgs) {
                     "{}",
                     serde_json::to_string_pretty(&json_schema_example()).unwrap()
                 );
+                return;
+            }
+            if delete {
+                if let Err(e) = confirm_and_delete_vps_config() {
+                    eprintln!("❌ Failed to delete VPS config: {e}");
+                }
                 return;
             }
             match action {
