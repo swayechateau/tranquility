@@ -61,7 +61,6 @@ pub fn filter_apps(server_only: bool, categories: Vec<Category>) -> Vec<Applicat
         .into_iter()
         .filter(|app| {
             let os_match = app.supported_os.iter().any(|s| s.flags().contains(os_flag));
-            let is_server = app.server_compatible;
             let server_match = !server_only || app.server_compatible;
             let matches_category = if categories.is_empty() {
                 true
