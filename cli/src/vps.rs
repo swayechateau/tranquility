@@ -151,9 +151,9 @@ pub fn prompt_and_add_vps(
 ) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
     let path = &config.vps_file;
+    let is_full_interactive = host.is_none() || host.is_none(); 
     let mut vps_entries = load_vps_entries(path).unwrap_or_default();
 
-    // Prompt only if value is None
     let name = match name {
         Some(v) => v,
         None => Input::new()
@@ -180,28 +180,43 @@ pub fn prompt_and_add_vps(
     };
 
     let port = match port {
-        Some(v) => v,
-        None => Input::new()
-            .with_prompt("Port")
-            .default("22".into())
-            .interact_text()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?,
+        Some(v) if !v.trim().is_empty() => v,
+        Some(_) => "22".to_string(),
+        None => {
+            if is_full_interactive {
+                // Only prompt if name wasn't passed (full interactive mode)
+                Input::new()
+                    .with_prompt("Port")
+                    .default("22".into())
+                    .interact_text()
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?
+            } else {
+                "22".to_string()
+            }
+        }
     };
 
     let private_key = match private_key {
-        Some(v) => Some(PathBuf::from(tilde(&v).to_string())),
+        Some(v) if !v.trim().is_empty() => Some(PathBuf::from(tilde(&v).to_string())),
+        Some(_) => None,
         None => {
-            let input: String = Input::new()
-                .with_prompt("Private key path (leave blank for none)")
-                .allow_empty(true)
-                .default("".into())
-                .interact_text()
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?;
+            if is_full_interactive {
+                let input: String = Input::new()
+                    .with_prompt("Private key path (leave blank for none)")
+                    .allow_empty(true)
+                    .default("".into())
+                    .interact_text()
+                    .map_err(|e| {
+                        io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}"))
+                    })?;
 
-            if input.trim().is_empty() {
-                None
+                if input.trim().is_empty() {
+                    None
+                } else {
+                    Some(PathBuf::from(tilde(&input).to_string()))
+                }
             } else {
-                Some(PathBuf::from(tilde(&input).to_string()))
+                None
             }
         }
     };
