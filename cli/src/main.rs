@@ -2,7 +2,9 @@ mod args;
 mod models;
 mod applications;
 mod categories;
+mod common;
 mod system;
+mod package_manager;
 #[macro_use]
 mod print;
 mod config;

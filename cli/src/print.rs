@@ -9,26 +9,6 @@ pub enum PrefixColor {
     NORMAL,
 }
 
-/// Prints an error message to stderr with a red "error" prefix
-pub fn print_error(message: String) {
-    print_with_prefix(PrefixColor::RED, "error", message);
-}
-
-/// Prints a success message with a green "success" prefix
-pub fn print_success(message: String) {
-    print_with_prefix(PrefixColor::GREEN, "success", message);
-}
-
-/// Prints an info message with a blue "info" prefix
-pub fn print_info(message: String) {
-    print_with_prefix(PrefixColor::BLUE, "info", message);
-}
-
-/// Prints a warning message with a yellow "warn" prefix
-pub fn print_warn(message: String) {
-    print_with_prefix(PrefixColor::YELLOW, "warn", message);
-}
-
 /// Prints a message with a color-coded prefix
 pub fn print_with_prefix(color: PrefixColor, prefix: &'static str, message: String) {
     let message_prefix = prefix.bold();

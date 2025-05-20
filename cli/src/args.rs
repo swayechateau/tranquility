@@ -6,8 +6,7 @@ use crate::applications::list_supported_applications;
 use crate::categories::{list_categories, Category};
 use crate::config::TranquilityConfig;
 use crate::installer::{install_apps, uninstall_apps};
-use crate::print::print_info;
-use crate::print_success;
+use crate::{print_info, print_success};
 use crate::system::SystemInfo;
 
 #[derive(Parser, Debug)]
@@ -90,11 +89,11 @@ pub fn handle_args(args: TranquilityArgs) {
             }
         }
         Some(Commands::Install {all, server}) => {
-            print_info("Installing...".to_string());
+            print_info!("Installing...");
             install_apps(all, server);
         }
         Some(Commands::Uninstall {all, server}) => {
-            print_info("Uninstalling...".to_string());
+            print_info!("Uninstalling...");
             uninstall_apps(all, server);
         }
         Some(Commands::Categories {  }) => {

@@ -1,6 +1,6 @@
-use crate::categories::{self, Category};
+use crate::categories::{Category};
 use crate::config::TranquilityConfig;
-use crate::print::{print_error, print_info};
+use crate::{print_error, print_info};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
 use crate::models::{Application,ApplicationList};
 use os_info::Type as OSType;
@@ -52,7 +52,7 @@ pub fn filter_apps(server_only: bool, categories: Vec<Category>) -> Vec<Applicat
         OSType::Windows => OsSupport::WINDOWS,
         OSType::Macos => OsSupport::MACOS,
         _ => {
-            print_error(format!("Unsupported OS: {:?}", system.os_type()));
+            print_error!("Unsupported OS: {:?}", system.os_type());
             return vec![];
         }
     };
@@ -86,18 +86,18 @@ pub fn list_supported_applications(
             .map(|c| format!("{:?}", c))
             .collect::<Vec<_>>()
             .join(", ");
-        print_info(format!(
+        print_info!(
             "{} applications supported on {:?} in categories: {}",
             if server_only { "Server" } else { "All" },
             system.os_type(),
             joined
-        ));
+        );
     } else {
-        print_info(format!(
+        print_info!(
             "{} applications supported on {:?}",
             if server_only { "Server" } else { "All" },
             system.os_type()
-        ));
+        );
     }
 
     let rows: Vec<DisplayApp> = filtered_apps
