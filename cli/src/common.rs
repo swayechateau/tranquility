@@ -204,10 +204,51 @@ pub fn determine_distro() -> String {
     "Unknown".into()
 }
 
-{
-    "name": "swaye.dev",
-    "username": "swaye",
-    "host": "swaye.dev",
-    "port": 22,
-    "privateKey_location": "/home/kevin/.ssh/swaye.dev_ed25519",
+/// Run a shell command under `sh -c` (Unix) or via PowerShell (Windows).
+/// Exits on error.
+pub fn run_shell_command(command: &str) {
+    println!("🚀 Running: {}", command);
+
+    // Spawn via PowerShell on Windows, `sh -c` elsewhere
+    let status_res = if cfg!(target_os = "windows") {
+        Command::new("powershell")
+            .args(&["-Command", command])
+            .status()
+    } else {
+        Command::new("sh")
+            .args(&["-c", command])
+            .status()
+    };
+
+    match status_res {
+        // Everything succeeded
+        Ok(status) if status.success() => return,
+
+        // The command ran but exited with a non-zero code
+        Ok(status) => {
+            let code = status.code().map_or(-1, |c| c);
+            eprintln!(
+                "❌ Command `{}` exited with non-zero status code: {}",
+                command, code
+            );
+            std::process::exit(1);
+        }
+
+        // Failed to spawn / execute at all
+        Err(error) => {
+            eprintln!("❌ Failed to execute `{}`: {}", command, error);
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Convenience for calling PowerShell directly.
+pub fn run_powershell_command(command: &str) {
+    if let Err(err) = Command::new("powershell")
+        .args(&["-Command", command])
+        .status()
+    {
+        eprintln!("❌ PowerShell command failed `{}`: {}", command, err);
+        std::process::exit(1);
+    }
 }

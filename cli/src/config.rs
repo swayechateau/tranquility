@@ -1,25 +1,28 @@
-use std::fs;
-use std::io::{self};
-use std::path::{PathBuf};
 use dirs::config_dir;
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::io::{self};
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TranquilityConfig {
     pub applications_file: PathBuf,
+    pub vps_file: PathBuf,
 }
 
 impl TranquilityConfig {
     pub fn config_dir() -> io::Result<PathBuf> {
-        config_dir()
-            .map(|p| p.join("tranquility"))
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Could not locate config directory"))
+        config_dir().map(|p| p.join("tranquility")).ok_or_else(|| {
+            io::Error::new(io::ErrorKind::NotFound, "Could not locate config directory")
+        })
     }
 
     pub fn default() -> Self {
         let apps_file = Self::config_dir().unwrap().join("applications.json");
+        let vps_file = Self::config_dir().unwrap().join("vps.json");
         TranquilityConfig {
             applications_file: apps_file,
+            vps_file: vps_file,
         }
     }
 
@@ -50,17 +53,29 @@ impl TranquilityConfig {
     }
 
     pub fn validate_schema(content: &str) -> io::Result<()> {
-    let parsed: Result<TranquilityConfig, _> = serde_json::from_str(content);
+        let parsed: Result<TranquilityConfig, _> = serde_json::from_str(content);
 
-    match parsed {
-        Ok(cfg) => {
-            // Perform additional validation checks manually
-            if cfg.applications_file.as_os_str().is_empty() {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, "applications_file path is missing"));
+        match parsed {
+            Ok(cfg) => {
+                // Perform additional validation checks manually
+                if cfg.applications_file.as_os_str().is_empty() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "applications_file path is missing",
+                    ));
+                }
+                if cfg.vps_file.as_os_str().is_empty() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "vps_file path is missing",
+                    ));
+                }
+                Ok(())
             }
-            Ok(())
+            Err(e) => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Invalid config format: {e}"),
+            )),
         }
-        Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, format!("Invalid config format: {e}"))),
     }
-}
 }

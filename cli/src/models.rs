@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 // src/models.rs
 use serde::Deserialize;
 use crate::categories::Category;
@@ -61,4 +63,13 @@ pub struct Uninstall {
     pub command: Option<String>,
     #[serde(default)]
     pub steps: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VPSConfig {
+    name: Option<String>,
+    username: Option<String>,
+    host: String,
+    port: Option<String>,
+    private_key: Option<PathBuf>,
 }

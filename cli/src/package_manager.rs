@@ -1,5 +1,5 @@
-
 // src/packagemaners.rs
+use dialoguer::Confirm;
 
 /// Represents supported package managers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,19 +61,29 @@ impl PackageManager {
 
 // check if packagemanager exist - if not tell user then ask if they want to install
 fn check_for_package_manader(pm: PackageManager) {
-
+    if command_exists(pm.name) {
+        return;
+    }
+    pm.install();
 }
+
 // packagemanager installer
 fn install_homebrew() {
-
+    let cmd = "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"";
+    run_shell_command(cmd);
 }
+
+fn install_choco() {
+    let cmd = "Set-ExecutionPolicy Bypass -Scope Process -Force; \
+               iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))";
+    run_powershell_command(cmd);
+}
+
 fn install_scoop() {
-
+    let cmd = "iwr -useb get.scoop.sh | iex";
+    run_powershell_command(cmd);
 }
 
-fn install_chco() {
-
-}
 fn install_yay() {
     // check if yay is installed
     if !check_command("yay", "Yay", false) {
@@ -85,15 +95,55 @@ fn install_yay() {
 }
 
 fn install_nix() {
+    let mut cmd =
+        "sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)".to_string();
 
+    // if the target is linux
+    if cfg!(target_os = "linux") {
+        let daemon = Confirm::new()
+            .with_prompt("Do you want to install the Nix daemon?")
+            .default(true)
+            .interact()
+            .unwrap();
+
+        if daemon {
+            cmd.push_str(" --daemon");
+        } else {
+            cmd.push_str(" --no-daemon");
+        }
+    }
+
+    run_shell_command(&cmd);
 }
 
 fn install_snap() {
-
+    let disto = determine_distro();
+    // check package manager and install snap
+    if disto.contains("Ubuntu") || disto.contains("Debian") {
+        run_shell_command("sudo apt update && sudo apt install snapd -y");
+    } else if disto.contains("Fedora") {
+        run_shell_command("sudo dnf install snapd -y");
+    } else if disto.contains("Arch") {
+        run_shell_command("sudo pacman -S snapd -y");
+    } else {
+        println!("❌ Unsupported distribution: {}", disto);
+        std::process::exit(1);
+    }
 }
 
 fn install_flatpak() {
-
+    let disto = determine_distro();
+    // check package manager and install flatpak
+    if disto.contains("Ubuntu") || disto.contains("Debian") {
+        run_shell_command("sudo apt update && sudo apt install flatpak -y");
+    } else if disto.contains("Fedora") {
+        run_shell_command("sudo dnf install flatpak -y");
+    } else if disto.contains("Arch") {
+        run_shell_command("sudo pacman -S flatpak -y");
+    } else {
+        println!("❌ Unsupported distribution: {}", disto);
+        std::process::exit(1);
+    }
 }
 
 // install with package manager
@@ -127,16 +177,19 @@ fn scoop_installed() -> bool {
 }
 
 fn chco_installed() -> bool {
-
+    if command_exists("choco") {
+        return true;
+    }
+    // to install
 }
 
-
-
-// src/features/package_managers.rs
-
-use dialoguer::Confirm;
-
-use crate::common::{run_shell_command, run_powershell_command, determine_os, determine_distro, check_command};
+fn command_exists(cmd: &str) -> bool {
+    Command::new(cmd)
+        .args(&args)
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+}
 
 // get default package manager
 pub fn get_default_pm() -> &'static str {
@@ -225,74 +278,6 @@ pub fn install_package_manager() {
     }
 }
 
-pub fn install_brew() {
-    let cmd = "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"";
-    run_shell_command(cmd);
-}
-
-pub fn install_choco() {
-    let cmd = "Set-ExecutionPolicy Bypass -Scope Process -Force; \
-               iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))";
-    run_powershell_command(cmd);
-}
-
-pub fn install_scoop() {
-    let cmd = "iwr -useb get.scoop.sh | iex";
-    run_powershell_command(cmd);
-}
-
-pub fn install_nix() {
-    let mut cmd =
-        "sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)".to_string();
-
-    // if the target is linux
-    if cfg!(target_os = "linux") {
-        let daemon = Confirm::new()
-            .with_prompt("Do you want to install the Nix daemon?")
-            .default(true)
-            .interact()
-            .unwrap();
-
-        if daemon {
-            cmd.push_str(" --daemon");
-        } else {
-            cmd.push_str(" --no-daemon");
-        }
-    }
-
-    run_shell_command(&cmd);
-}
-
-pub fn install_snap() {
-    let disto = determine_distro();
-    // check package manager and install snap
-    if disto.contains("Ubuntu") || disto.contains("Debian") {
-        run_shell_command("sudo apt update && sudo apt install snapd -y");
-    } else if disto.contains("Fedora") {
-        run_shell_command("sudo dnf install snapd -y");
-    } else if disto.contains("Arch") {
-        run_shell_command("sudo pacman -S snapd -y");
-    } else {
-        println!("❌ Unsupported distribution: {}", disto);
-        std::process::exit(1);
-    }
-}
-
-pub fn install_flatpak() {
-    let disto = determine_distro();
-    // check package manager and install flatpak
-    if disto.contains("Ubuntu") || disto.contains("Debian") {
-        run_shell_command("sudo apt update && sudo apt install flatpak -y");
-    } else if disto.contains("Fedora") {
-        run_shell_command("sudo dnf install flatpak -y");
-    } else if disto.contains("Arch") {
-        run_shell_command("sudo pacman -S flatpak -y");
-    } else {
-        println!("❌ Unsupported distribution: {}", disto);
-        std::process::exit(1);
-    }
-}
-
 pub fn install_aur_helper() {
     // check if yay is installed
     if !check_command("yay", "Yay", true) {
@@ -323,6 +308,7 @@ pub fn install_with(pm: &str, cmd: &str, cask: bool) {
         }
     }
 }
+
 pub fn install_with_apt(cmd: &str) {
     run_shell_command(&format!("sudo apt update && sudo apt install {} -y", cmd));
 }
