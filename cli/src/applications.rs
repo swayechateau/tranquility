@@ -1,4 +1,4 @@
-use crate::categories::Category;
+use crate::categories::{self, Category};
 use crate::config::TranquilityConfig;
 use crate::print::{print_error, print_info};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
@@ -44,11 +44,7 @@ pub fn get_apps() -> ApplicationList {
     ApplicationList { applications: apps }
 }
 
-/// Dynamically loaded list, not static!
-pub fn list_supported_applications(
-    server_only: bool,
-    category_filter: Vec<Category>,
-) {
+pub fn filter_apps(server_only: bool, categories: Vec<Category>) -> Vec<Application> {
     let apps = get_apps();
     let system = SystemInfo::new();
     let os_flag = match system.os_type() {
@@ -57,9 +53,33 @@ pub fn list_supported_applications(
         OSType::Macos => OsSupport::MACOS,
         _ => {
             print_error(format!("Unsupported OS: {:?}", system.os_type()));
-            return;
+            return vec![];
         }
     };
+
+    apps.applications
+        .into_iter()
+        .filter(|app| {
+            let os_match = app.supported_os.iter().any(|s| s.flags().contains(os_flag));
+            let is_server = app.server_compatible;
+            let server_match = !server_only || app.server_compatible;
+            let matches_category = if categories.is_empty() {
+                true
+            } else {
+                app.categories.iter().any(|c| categories.contains(c))
+            };
+            os_match && server_match && matches_category
+        })
+        .collect()
+}
+
+/// Dynamically loaded list, not static!
+pub fn list_supported_applications(
+    server_only: bool,
+    category_filter: Vec<Category>,
+) {
+    let filtered_apps = filter_apps(server_only, category_filter.clone());
+    let system = SystemInfo::new();
 
     if !category_filter.is_empty() {
         let joined = category_filter
@@ -81,32 +101,19 @@ pub fn list_supported_applications(
         ));
     }
 
-    let mut rows = vec![];
-
-    for app in apps.applications.iter() {
-        let os_match = app.supported_os.iter().any(|s| s.flags().contains(os_flag));
-
-        let is_server = app.server_compatible;
-
-        let matches_category = if category_filter.is_empty() {
-            true
-        } else {
-            app.categories.iter().any(|c| category_filter.contains(c))
-        };
-
-        if os_match && (!server_only || is_server) && matches_category {
-            rows.push(DisplayApp {
-                name: &app.name,
-                categories: app
-                    .categories
-                    .iter()
-                    .map(|c| format!("{:?}", c))
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                server: is_server,
-            });
-        }
-    }
+    let rows: Vec<DisplayApp> = filtered_apps
+        .iter()
+        .map(|app| DisplayApp {
+            name: &app.name,
+            categories: app
+                .categories
+                .iter()
+                .map(|c| format!("{:?}", c))
+                .collect::<Vec<_>>()
+                .join(", "),
+            server: app.server_compatible,
+        })
+        .collect();
 
     let mut table = Table::new(rows);
     table.with(Style::modern_rounded());
