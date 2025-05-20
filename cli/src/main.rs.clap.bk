@@ -1,0 +1,132 @@
+
+mod system;
+
+use clap::CommandFactory;
+use clap::{Parser};
+use os_info::Type as OSType;
+use once_cell::sync::Lazy;
+use bitflags::bitflags;
+
+
+
+// one‐time, shared instance:
+static SYS: Lazy<SystemInfo> = Lazy::new(SystemInfo::new);
+
+#[derive(Parser, Debug)]
+#[command(
+    name = "Tranquility",
+    version = "0.1.0", 
+    about = "A simple package manager for installing and managing applications.", 
+    long_about = None
+)]
+struct Cli {
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
+    #[arg(long)] version: bool,
+    #[arg(long)] list: bool,
+    #[command(subcommand)] command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Install one or more apps
+    Install {
+        /// Include server-only apps
+        #[arg(long)]
+        server: bool,
+
+        /// Install *all* available apps
+        #[arg(long)]
+        all: bool,
+
+        /// Just list what would be installed
+        #[arg(long)]
+        list: bool,
+    },
+
+    /// Uninstall one or more apps
+    Uninstall {
+        /// Include server-only apps
+        #[arg(long)]
+        server: bool,
+
+        /// Uninstall *all* installed apps
+        #[arg(long)]
+        all: bool,
+
+        /// Just list what would be uninstalled
+        #[arg(long)]
+        list: bool,
+    },
+}
+
+struct Install {
+
+}
+
+struct Uninstall {
+
+}
+
+fn main() {
+    let cli = Cli::parse();
+    let sys = &*SYS;
+    let this_os = match sys.os {
+        OSType::Linux   => OsSupport::LINUX,
+        OSType::Windows => OsSupport::WINDOWS,
+        OSType::Macos   => OsSupport::MACOS,
+        _               => OsSupport::empty(),
+    };
+
+    if cli.version {
+        println!("Tranquilty Version {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+
+    // Filter the apps by OS support:
+    let mut candidates: Vec<&Application> = APPS.iter()
+        .filter(|app| {
+            // does app support this OS?
+            app.supported.iter().any(|&sys| sys.flags().contains(this_os))
+        })
+        .collect();
+
+    // If --server, also filter by is_server and distro check:
+    if cli.server {
+        let ok_distro = match sys.os {
+            OSType::Linux => {
+                if let Some(ref d) = sys.distro {
+                    // crude substring match
+                    d.eq_ignore_ascii_case("Fedora") || 
+                    d.eq_ignore_ascii_case("Debian")
+                } else { false }
+            }
+            _ => false
+        };
+        if !ok_distro {
+            eprintln!("Server mode only supported on Fedora or Debian.");
+            std::process::exit(1);
+        }
+        candidates.retain(|app| app.is_server);
+    }
+
+    if cli.list {
+        println!("Apps available for your system ({:?}/{:?}):", sys.os, sys.arch);
+        for app in candidates {
+            println!("- {}", app.name);
+        }
+        return;
+    }
+
+    if cli.all {
+        // install everything in candidates
+        for app in candidates {
+            println!("→ installing {}", app.name);
+            // … your install logic here …
+        }
+        return;
+    }
+
+    // no flags: show help
+    println!("{}", Cli::command().render_long_help());
+}
