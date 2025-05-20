@@ -1,6 +1,7 @@
 // src/applications.rs
 
 use os_info::Type as OSType;
+use tabled::{Table, Tabled};
 use crate::categories::Category; 
 use crate::print::{print_error, print_info};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
@@ -12,6 +13,12 @@ struct Application {
     is_server_app: bool,
 }
 
+#[derive(Tabled)]
+struct DisplayApp<'a> {
+    Name: &'a str,
+    Categories: String,
+    Server: bool,
+}
 static APPS: &[Application] = &[
     Application { 
         name: "nerd-fonts", 
@@ -74,7 +81,7 @@ pub fn list_supported_application_for_current_os(
     };
 
     if !category_filter.is_empty() {
-        let cats = category_filter
+        let joined = category_filter
             .iter()
             .map(|c| format!("{:?}", c))
             .collect::<Vec<_>>()
@@ -83,7 +90,7 @@ pub fn list_supported_application_for_current_os(
             "{} applications supported on {:?} in categories: {}",
             if server_only { "Server" } else { "All" },
             system.os_type(),
-            cats
+            joined
         ));
     } else {
         print_info(format!(
@@ -93,6 +100,8 @@ pub fn list_supported_application_for_current_os(
         ));
     }
 
+    let mut rows = vec![];
+
     for app in APPS.iter() {
         let is_supported = app.supported.iter().any(|s| s.flags().contains(os_flag));
         let is_server = app.is_server_app;
@@ -100,13 +109,23 @@ pub fn list_supported_application_for_current_os(
         let matches_category = if category_filter.is_empty() {
             true
         } else {
-            app.categories
-                .iter()
-                .any(|cat| category_filter.contains(cat))
+            app.categories.iter().any(|cat| category_filter.contains(cat))
         };
 
         if is_supported && (!server_only || is_server) && matches_category {
-            println!("- {}", app.display_name);
+            rows.push(DisplayApp {
+                Name: app.display_name,
+                Categories: app
+                    .categories
+                    .iter()
+                    .map(|c| format!("{:?}", c))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                Server: is_server,
+            });
         }
     }
+
+    let table = Table::new(rows);
+    println!("{}", table);
 }
