@@ -2,43 +2,30 @@ mod args;
 mod applications;
 mod categories;
 mod system;
+#[macro_use]
 mod print;
 
-use print::error;
+use clap::{Parser};
+use args::{handle_arg_errors, handle_args, TranquilityArgs};
+use figlet_rs::FIGfont;
 
 fn main() {
-    let cli = Tranquility::parse();
+    tranquility_figlet();
 
-    // You can check the value provided by positional arguments, or option arguments
-    if let Some(name) = cli.name.as_deref() {
-        error(name.into());
-    }
-
-    if let Some(config_path) = cli.config.as_deref() {
-        println!("Value for config: {}", config_path.display());
-    }
-
-    // You can see how many times a particular flag or argument occurred
-    // Note, only flags can have multiple occurrences
-    match cli.debug {
-        0 => println!("Debug mode is off"),
-        1 => println!("Debug mode is kind of on"),
-        2 => println!("Debug mode is on"),
-        _ => println!("Don't be crazy"),
-    }
-
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
-    match &cli.command {
-        Some(Commands::Test { list }) => {
-            if *list {
-                println!("Printing testing lists...");
-            } else {
-                println!("Not printing testing lists...");
-            }
+    match TranquilityArgs::try_parse() {
+        Ok(args) => {
+            handle_args(args);
         }
-        None => {}
+        Err(err) => {
+            handle_arg_errors(err);
+        }
     }
+}
 
-    // Continued program logic goes here...
+
+fn tranquility_figlet() {
+    let standard_font = FIGfont::standard().unwrap();
+    let figure_1 = standard_font.convert("TRANQULITY");
+    assert!(figure_1.is_some());
+    println!("{}", figure_1.unwrap());
 }

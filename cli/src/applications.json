@@ -36,7 +36,7 @@
         "name": "nix",
         "display_name": "Nix (Nixpkgs)",
         "categories": [
-            "Package Managers"
+            "PackageManagement"
         ],
         "supported": [
             "Cross"
@@ -47,7 +47,7 @@
         "name": "snap",
         "display_name": "Snap (Snapcraft)",
         "categories": [
-            "Package Managers"
+            "PackageManagement"
         ],
         "supported": [
             "Linux"
@@ -58,7 +58,7 @@
         "name": "flatpak",
         "display_name": "Flatpak (Flathub)",
         "categories": [
-            "Package Managers"
+            "PackageManagement"
         ],
         "supported": [
             "Linux"
@@ -69,7 +69,7 @@
         "name": "yay",
         "display_name": "yay (AUR)",
         "categories": [
-            "Package Managers"
+            "PackageManagement"
         ],
         "supported": [
             "Linux"
@@ -81,7 +81,7 @@
         "name": "brew",
         "display_name": "Homebrew (Homebrew)",
         "categories": [
-            "Package Managers"
+            "PackageManagement"
         ],
         "supported": [
             "Mac"
@@ -92,7 +92,7 @@
         "name": "scoop",
         "display_name": "Scoop (Scoop)",
         "categories": [
-            "Package Managers"
+            "PackageManagement"
         ],
         "supported": [
             "Windows"
@@ -103,7 +103,7 @@
         "name": "choco",
         "display_name": "Chocolatey (Chocolatey)",
         "categories": [
-            "Package Managers"
+            "PackageManagement"
         ],
         "supported": [
             "Windows"
@@ -114,7 +114,7 @@
         "name": "docker",
         "display_name": "Docker (Docker)",
         "categories": [
-            "Development/Containerization"
+            "Development","Containerization"
         ],
         "supported": [
             "Cross"
@@ -125,7 +125,7 @@
         "name": "kubernetes",
         "display_name": "Kubernetes (Kubernetes)",
         "categories": [
-            "Development/Containerization"
+            "Development","Containerization"
         ],
         "supported": [
             "Cross"
@@ -290,7 +290,7 @@
         "name": "tor",
         "display_name": "Tor (Tor)",
         "categories": [
-            "Utilities/VPN"
+            "Utilities","VPN"
         ],
         "supported": [
             "Cross"
@@ -301,7 +301,7 @@
         "name": "keepassxc",
         "display_name": "KeePassXC (KeePassXC)",
         "categories": [
-            "Utilities/Password Managers"
+            "Utilities","PasswordManagement"
         ],
         "supported": [
             "Cross"
@@ -312,7 +312,7 @@
         "name": "bitwarden",
         "display_name": "Bitwarden (Bitwarden)",
         "categories": [
-            "Utilities/Password Managers"
+            "Utilities","PasswordManagement"
         ],
         "supported": [
             "Cross"
@@ -323,7 +323,7 @@
         "name": "gnupg",
         "display_name": "GnuPG (GnuPG)",
         "categories": [
-            "Utilities/Encryption"
+            "Utilities","Encryption"
         ],
         "supported": [
             "Cross"
@@ -334,7 +334,7 @@
         "name": "veracrypt",
         "display_name": "VeraCrypt (VeraCrypt)",
         "categories": [
-            "Utilities/Encryption"
+            "Utilities","Encryption"
         ],
         "supported": [
             "Cross"
@@ -345,7 +345,7 @@
         "name": "tightvnc",
         "display_name": "TightVNC (TightVNC)",
         "categories": [
-            "Utilities/Remote Desktop"
+            "Utilities","RemoteDesktop"
         ],
         "supported": [
             "Cross"
@@ -356,7 +356,7 @@
         "name": "vnc-viewer",
         "display_name": "VNC Viewer (RealVNC)",
         "categories": [
-            "Utilities/Remote Desktop"
+            "Utilities","RemoteDesktop"
         ],
         "supported": [
             "Cross"
@@ -367,7 +367,7 @@
         "name": "TeamViewer",
         "display_name": "TeamViewer (TeamViewer)",
         "categories": [
-            "Utilities/Remote Desktop"
+            "Utilities","RemoteDesktop"
         ],
         "supported": [
             "Cross"
@@ -378,7 +378,7 @@
         "name": "windows-remote-desktop",
         "display_name": "Windows Remote Desktop (Microsoft)",
         "categories": [
-            "Utilities/Remote Desktop"
+            "Utilities","RemoteDesktop"
         ],
         "supported": [
             "WinMac"
@@ -389,7 +389,7 @@
         "name": "wireguard",
         "display_name": "WireGuard (WireGuard)",
         "categories": [
-            "Utilities/VPN"
+            "Utilities","VPN"
         ],
         "supported": [
             "Cross"
@@ -400,7 +400,7 @@
         "name": "openvpn",
         "display_name": "OpenVPN (OpenVPN)",
         "categories": [
-            "Utilities/VPN"
+            "Utilities","VPN"
         ],
         "supported": [
             "Cross"
@@ -411,7 +411,7 @@
         "name": "surfshark",
         "display_name": "Surfshark (Surfshark)",
         "categories": [
-            "Utilities/VPN"
+            "Utilities","VPN"
         ],
         "supported": [
             "Cross"
@@ -422,7 +422,7 @@
         "name": "jdownloader",
         "display_name": "JDownloader (JDownloader)",
         "categories": [
-            "Utilities/DownloadManagers"
+            "Utilities","DownloadManagement"
         ],
         "supported": [
             "Cross"
@@ -433,7 +433,7 @@
         "name": "balena-etcher",
         "display_name": "Balena Etcher (Balena)",
         "categories": [
-            "Utilities/Imaging"
+            "Utilities","Imaging"
         ],
         "supported": [
             "Cross"
@@ -444,7 +444,7 @@
         "name": "rufus",
         "display_name": "Rufus (Pete Batard)",
         "categories": [
-            "Utilities/Imaging"
+            "Utilities","Imaging"
         ],
         "supported": [
             "WinMac"
@@ -455,7 +455,7 @@
         "name": "rectangle-mac",
         "display_name": "Rectangle (Rectangle)",
         "categories": [
-            "Utilities/WindowManagement"
+            "Utilities","WindowManagement"
         ],
         "supported": [
             "Mac"
@@ -466,7 +466,7 @@
         "name": "magnet-mac",
         "display_name": "Magnet (Magnet)",
         "categories": [
-            "Utilities/WindowManagement"
+            "Utilities","WindowManagement"
         ],
         "supported": [
             "Mac"

@@ -1,61 +1,40 @@
 // src/categories.rs
-// Software categories
-#[derive(Copy, Clone, Debug)]
+
+use clap::ValueEnum;
+
+/// Software categories
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
 pub enum Category {
     Fonts,
-    PackageManagers,
+    PackageManagement,
     Shells,
     Browsers,
     Servers,
-    Utilities(UtilitiesCategory),
-    CLI(CliCategory),
-    Customization(CustomizationCategory),
-    Communication,
-    Creative,
-    Productivity(ProductivityCategory),
-    Virtualization,
-    Gaming,
-    Development(DevelopmentCategory),
-    Recording,
-    Streaming,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum UtilitiesCategory {
-    PasswordManager,
+    TerminalEmmulators,
+    PasswordManagement,
+    Encyption,
     RemoteDesktop,
     VPN,
-    MediaDownloader,
-    ImageBurner,
-    WindowManager,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CliCategory {
-    Emulators,
-    Development,
+    DownloadMangement,
+    Imaging,
+    WindowManagement,
+    CLITools,
+    Customization,
+    Communication,
+    Creative,
     Productivity,
-    Networking,
-    Essential,
-    Miscellaneous,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CustomizationCategory {
-    Theming,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum ProductivityCategory {
+    Utilities,
     Office,
     OfficeAddons,
     NoteTaking,
     TaskManagement,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum DevelopmentCategory {
-    Emulators,
+    Virtualization,
+    Gaming,
+    Networking,
+    Essential,
+    Development,
+    Recording,
+    Streaming,
     DatabasesManagement,
     ProgrammingLanguages,
     Editors,

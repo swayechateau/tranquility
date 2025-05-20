@@ -1,9 +1,12 @@
 // src/applications.rs
 
-use crate::categories::{Category, DevelopmentCategory}; 
-use crate::system::SystemSupport;
+use os_info::Type as OSType;
+use crate::categories::Category; 
+use crate::print::{print_error, print_info};
+use crate::system::{OsSupport, SystemInfo, SystemSupport};
 struct Application {
     name: &'static str,
+    display_name: &'static str,
     supported: &'static [SystemSupport],
     categories: &'static [Category],
     is_server_app: bool,
@@ -12,39 +15,98 @@ struct Application {
 static APPS: &[Application] = &[
     Application { 
         name: "nerd-fonts", 
+        display_name: "Nerd Fonts",
         categories: &[Category::Fonts],  
         supported: &[SystemSupport::Cross], 
         is_server_app: true
     },
     Application { 
-        name: "nginx", 
+        name: "nginx",
+        display_name: "Nginx",
         categories: &[Category::Servers],  
         supported: &[SystemSupport::Linux], 
         is_server_app: true 
     },
     Application { 
-        name: "docker", 
-        categories: &[Category::Development(DevelopmentCategory::Containerization)], 
+        name: "docker",
+        display_name: "Docker",
+        categories: &[Category::Development, Category::Containerization], 
         supported: &[SystemSupport::Cross], 
         is_server_app: false 
     },
     Application { 
         name: "podman",
-        categories: &[Category::Development(DevelopmentCategory::Containerization)],
+        display_name: "Podman",
+        categories: &[Category::Development, Category::Containerization],
         supported: &[SystemSupport::Cross],
         is_server_app: true
     },
     Application { 
         name: "kubernetes",
-        categories: &[Category::Development(DevelopmentCategory::Containerization)],
+        display_name: "Kubernetes",
+        categories: &[Category::Development, Category::Containerization],
         supported: &[SystemSupport::Cross],
         is_server_app: true
     },
     Application { 
         name: "vagrant",
-        categories: &[Category::Development(DevelopmentCategory::Containerization)],
+        display_name: "Vagrant",
+        categories: &[Category::Development, Category::Containerization],
         supported: &[SystemSupport::Cross],
         is_server_app: false
     },
 
 ];
+
+pub fn list_supported_application_for_current_os(
+    server_only: bool,
+    category_filter: Vec<Category>,
+) {
+    let system = SystemInfo::new();
+    let os_flag = match system.os_type() {
+        OSType::Linux => OsSupport::LINUX,
+        OSType::Windows => OsSupport::WINDOWS,
+        OSType::Macos => OsSupport::MACOS,
+        _ => {
+            print_error(format!("Unsupported OS: {:?}", system.os_type()));
+            return;
+        }
+    };
+
+    if !category_filter.is_empty() {
+        let cats = category_filter
+            .iter()
+            .map(|c| format!("{:?}", c))
+            .collect::<Vec<_>>()
+            .join(", ");
+        print_info(format!(
+            "{} applications supported on {:?} in categories: {}",
+            if server_only { "Server" } else { "All" },
+            system.os_type(),
+            cats
+        ));
+    } else {
+        print_info(format!(
+            "{} applications supported on {:?}",
+            if server_only { "Server" } else { "All" },
+            system.os_type()
+        ));
+    }
+
+    for app in APPS.iter() {
+        let is_supported = app.supported.iter().any(|s| s.flags().contains(os_flag));
+        let is_server = app.is_server_app;
+
+        let matches_category = if category_filter.is_empty() {
+            true
+        } else {
+            app.categories
+                .iter()
+                .any(|cat| category_filter.contains(cat))
+        };
+
+        if is_supported && (!server_only || is_server) && matches_category {
+            println!("- {}", app.display_name);
+        }
+    }
+}
