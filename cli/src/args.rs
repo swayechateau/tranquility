@@ -1,14 +1,15 @@
 // src/args.rs
+use crate::applications::list_supported_applications;
 use clap::{error::ErrorKind, CommandFactory, Error, Parser, Subcommand};
 use std::path::PathBuf;
-use crate::applications::list_supported_applications;
 
 use crate::categories::{list_categories, Category};
 use crate::config::TranquilityConfig;
 use crate::installer::{install_apps, uninstall_apps};
-use crate::vps::connect_to_vps;
-use crate::{print_info, print_success};
 use crate::system::SystemInfo;
+use crate::vps::{prompt_and_add_vps, connect_to_vps, json_schema_example};
+use crate::{print_info, print_success};
+
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -32,7 +33,7 @@ pub enum Commands {
         #[arg(long)]
         reset: bool,
     },
-    /// Install something
+    /// Install default applications and from applications.json
     Install {
         /// Install Everything
         #[arg(long)]
@@ -42,7 +43,7 @@ pub enum Commands {
         server: bool,
     },
 
-    /// Uninstall something
+    /// Uninstall default applications and from applications.json
     Uninstall {
         /// Uninstall Everything
         #[arg(long)]
@@ -55,7 +56,7 @@ pub enum Commands {
     /// List all categories
     Categories {},
 
-    /// List installed items
+    /// List available application
     List {
         /// Show only server applications
         #[arg(long)]
@@ -66,14 +67,39 @@ pub enum Commands {
         category: Vec<Category>,
     },
     Vps {
+        /// Add a new VPS entry to the config
+        #[command(subcommand)]
+        action: Option<VpsAction>,
+        /// Show Example vps.json schema
+        #[arg(long)]
+        schema: bool,
+        /// List the vps entries from vps.json config
         #[arg(long)]
         list: bool,
-    }
+    },
 }
 
+#[derive(Subcommand, Debug)]
+pub enum VpsAction {
+    Add {
+        #[arg(long)]
+        name: Option<String>,
+
+        #[arg(long)]
+        host: Option<String>,
+
+        #[arg(long)]
+        username: Option<String>,
+
+        #[arg(long)]
+        port: Option<String>,
+
+        #[arg(long = "private-key")]
+        private_key: Option<String>,
+    },
+}
 pub fn handle_args(args: TranquilityArgs) {
-    let config_path = TranquilityConfig::config_dir()
-      .unwrap().join("config.json");
+    let config_path = TranquilityConfig::config_dir().unwrap().join("config.json");
     let sys = SystemInfo::new();
     // If no subcommand, show help (optional)
     if args.command.is_none() {
@@ -93,22 +119,50 @@ pub fn handle_args(args: TranquilityArgs) {
                 print_success!("✅ Config initialized at {}", config_path.display());
             }
         }
-        Some(Commands::Install {all, server}) => {
+        Some(Commands::Install { all, server }) => {
             print_info!("Installing...");
             install_apps(all, server);
         }
-        Some(Commands::Uninstall {all, server}) => {
+        Some(Commands::Uninstall { all, server }) => {
             print_info!("Uninstalling...");
             uninstall_apps(all, server);
         }
-        Some(Commands::Categories {  }) => {
+        Some(Commands::Categories {}) => {
             list_categories();
         }
-        Some(Commands::List { server, category}) => {
+        Some(Commands::List { server, category }) => {
             list_supported_applications(server, category);
         }
-        Some(Commands::Vps { list }) => {
-            let _ =connect_to_vps(list);
+        Some(Commands::Vps {
+            list,
+            schema,
+            action,
+        }) => {
+            if schema {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json_schema_example()).unwrap()
+                );
+                return;
+            }
+            match action {
+                Some(VpsAction::Add {
+                    name,
+                    host,
+                    username,
+                    port,
+                    private_key,
+                }) => {
+                    if let Err(e) = prompt_and_add_vps(name, host, username, port, private_key) {
+                        eprintln!("❌ Failed to add VPS entry: {e}");
+                    }
+                }
+                None => {
+                    if let Err(e) = connect_to_vps(list) {
+                        eprintln!("❌ VPS command failed: {e}");
+                    }
+                }
+            }
         }
         None => {}
     }

@@ -17,25 +17,26 @@ impl TranquilityConfig {
         })
     }
 
-    pub fn default() -> Self {
-        let apps_file = Self::config_dir().unwrap().join("applications.json");
-        let vps_file = Self::config_dir().unwrap().join("vps.json");
-        TranquilityConfig {
-            applications_file: apps_file,
-            vps_file: vps_file,
-        }
+    pub fn default() -> io::Result<Self> {
+        let base_dir = Self::config_dir()?;
+        Ok(TranquilityConfig {
+            applications_file: base_dir.join("applications.json"),
+            vps_file: base_dir.join("vps.json"),
+        })
     }
 
     pub fn load_or_init() -> io::Result<Self> {
         let path = Self::config_dir()?.join("config.json");
 
         if path.exists() {
+            print_success!("✅ Config file exists.");
             let content = fs::read_to_string(&path)?;
             Self::validate_schema(&content)?;
             let cfg: Self = serde_json::from_str(&content)?;
             Ok(cfg)
         } else {
-            let default = Self::default();
+            print_warn!("⚠️  Config file not found. Creating default config.");
+            let default = Self::default()?;
             let json = serde_json::to_string_pretty(&default)?;
             fs::create_dir_all(path.parent().unwrap())?;
             fs::write(&path, json)?;
@@ -45,7 +46,7 @@ impl TranquilityConfig {
 
     pub fn reset() -> io::Result<()> {
         let path = Self::config_dir()?.join("config.json");
-        let default = Self::default();
+        let default = Self::default()?;
         let json = serde_json::to_string_pretty(&default)?;
         fs::create_dir_all(path.parent().unwrap())?;
         fs::write(&path, json)?;

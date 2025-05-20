@@ -65,7 +65,7 @@ pub struct Uninstall {
     pub steps: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, serde::Serialize)]
 pub struct VPSConfig {
     pub name: Option<String>,
     pub username: Option<String>,
