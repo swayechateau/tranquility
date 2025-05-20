@@ -24,7 +24,6 @@ fn main() {
     }
 }
 
-
 fn tranquility_figlet() {
     let standard_font = FIGfont::standard().unwrap();
     let figure_1 = standard_font.convert("TRANQULITY");

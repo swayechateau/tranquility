@@ -28,7 +28,6 @@ pub fn get_apps() -> ApplicationList {
             server_compatible: true,
             dependencies: vec![],
             install_methods: vec![]
-
         }
     ];
 
