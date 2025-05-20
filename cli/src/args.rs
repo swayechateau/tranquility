@@ -1,9 +1,9 @@
 // src/args.rs
 use clap::{error::ErrorKind, CommandFactory, Error, Parser, Subcommand};
 use std::path::PathBuf;
-use crate::applications::list_supported_application_for_current_os;
+use crate::applications::list_supported_applications;
 
-use crate::categories::Category;
+use crate::categories::{list_categories, Category};
 use crate::print::print_info;
 
 #[derive(Parser, Debug)]
@@ -43,6 +43,9 @@ pub enum Commands {
         server: bool,
     },
 
+    /// List all categories
+    Categories {},
+
     /// List installed items
     List {
         /// Show only server applications
@@ -73,9 +76,11 @@ pub fn handle_args(args: TranquilityArgs) {
         Some(Commands::Uninstall {all, server}) => {
             print_info("Uninstalling...".to_string());
         }
+        Some(Commands::Categories {  }) => {
+            list_categories();
+        }
         Some(Commands::List { server, category}) => {
-            print_info("Listing...".to_string());
-            list_supported_application_for_current_os(server, category);
+            list_supported_applications(server, category);
         }
         None => {}
     }

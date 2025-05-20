@@ -1,6 +1,7 @@
 // src/system.rs
 use os_info::Type as OSType;
 use bitflags::bitflags;
+use serde::Deserialize;
 
 bitflags! {
     #[derive(Clone, Copy)]
@@ -49,7 +50,7 @@ impl SystemInfo {
     // }
 }
 
-#[derive(Copy, Clone, Debug, clap::ValueEnum)]
+#[derive(Copy, Clone, Debug, clap::ValueEnum, Deserialize)]
 pub enum SystemSupport {
     Cross,
     MacLin,
@@ -73,6 +74,23 @@ impl SystemSupport {
             SystemSupport::MacOS    => OsSupport::MACOS,
         }
     }
+}
+
+#[derive(Copy, Clone, Debug, clap::ValueEnum, PartialEq, Eq, Deserialize)]
+pub enum DistroSupport {
+    Debian,
+    Ubuntu,
+    Fedora,
+    Alpine,
+    Redhat,
+    Arch
+}
+
+#[derive(Copy, Clone, Debug, clap::ValueEnum, Deserialize)]
+pub enum ServerSupport {
+    Fedora,
+    Ubuntu,
+    Debian
 }
 
 // TODO: add Supported Servers (linux distros) Ubuntu, Debian, Fedora
