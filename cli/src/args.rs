@@ -6,6 +6,7 @@ use crate::applications::list_supported_applications;
 use crate::categories::{list_categories, Category};
 use crate::config::TranquilityConfig;
 use crate::installer::{install_apps, uninstall_apps};
+use crate::vps::connect_to_vps;
 use crate::{print_info, print_success};
 use crate::system::SystemInfo;
 
@@ -64,6 +65,10 @@ pub enum Commands {
         #[arg(long, value_enum)]
         category: Vec<Category>,
     },
+    Vps {
+        #[arg(long)]
+        list: bool,
+    }
 }
 
 pub fn handle_args(args: TranquilityArgs) {
@@ -101,6 +106,9 @@ pub fn handle_args(args: TranquilityArgs) {
         }
         Some(Commands::List { server, category}) => {
             list_supported_applications(server, category);
+        }
+        Some(Commands::Vps { list }) => {
+            let _ =connect_to_vps(list);
         }
         None => {}
     }

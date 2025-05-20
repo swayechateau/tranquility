@@ -67,9 +67,9 @@ pub struct Uninstall {
 
 #[derive(Debug, Deserialize)]
 pub struct VPSConfig {
-    name: Option<String>,
-    username: Option<String>,
-    host: String,
-    port: Option<String>,
-    private_key: Option<PathBuf>,
+    pub name: Option<String>,
+    pub username: Option<String>,
+    pub host: String,
+    pub port: Option<String>,
+    pub private_key: Option<PathBuf>,
 }
