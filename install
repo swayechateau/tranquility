@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 
-git pull && clear && ./build && ./run
+git pull && clear && ./build && ./run "$@"
