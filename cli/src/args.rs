@@ -4,7 +4,11 @@ use std::path::PathBuf;
 use crate::applications::list_supported_applications;
 
 use crate::categories::{list_categories, Category};
+use crate::config::TranquilityConfig;
+use crate::installer::{install_apps, uninstall_apps};
 use crate::print::print_info;
+use crate::print_success;
+use crate::system::SystemInfo;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -23,6 +27,11 @@ pub struct TranquilityArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Initialize or reset config
+    Init {
+        #[arg(long)]
+        reset: bool,
+    },
     /// Install something
     Install {
         /// Install Everything
@@ -59,22 +68,34 @@ pub enum Commands {
 }
 
 pub fn handle_args(args: TranquilityArgs) {
+    let config_path = TranquilityConfig::config_dir()
+      .unwrap().join("config.json");
+    let sys = SystemInfo::new();
     // If no subcommand, show help (optional)
     if args.command.is_none() {
-        TranquilityArgs::command()
-            .print_help()
-            .expect("Failed to print help");
+        println!("{}", sys.to_pretty_string());
         println!(); // newline after help
         return;
     }
 
     // Run logic based on subcommand
     match args.command {
+        Some(Commands::Init { reset }) => {
+            if reset {
+                TranquilityConfig::reset().expect("Failed to reset config");
+                print_success!("✅ Config reset to default at {}", config_path.display());
+            } else {
+                TranquilityConfig::load_or_init().expect("Failed to initialize config");
+                print_success!("✅ Config initialized at {}", config_path.display());
+            }
+        }
         Some(Commands::Install {all, server}) => {
             print_info("Installing...".to_string());
+            install_apps(all, server);
         }
         Some(Commands::Uninstall {all, server}) => {
             print_info("Uninstalling...".to_string());
+            uninstall_apps(all, server);
         }
         Some(Commands::Categories {  }) => {
             list_categories();

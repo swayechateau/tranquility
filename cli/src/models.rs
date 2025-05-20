@@ -1,8 +1,10 @@
 // src/models.rs
 use serde::Deserialize;
+use crate::categories::Category;
+use crate::system::{DistroSupport, SystemSupport};
 
 #[derive(Debug, Deserialize)]
-pub struct ApplicationConfig {
+pub struct ApplicationList {
     pub applications: Vec<Application>,
 }
 
@@ -10,9 +12,11 @@ pub struct ApplicationConfig {
 pub struct Application {
     pub id: String,
     pub name: String,
-    pub categories: Vec<String>,
-    pub supported_operating_systems: Vec<String>,
-    pub supported_distributions: Vec<String>,
+    pub categories: Vec<Category>,
+    #[serde(rename = "supported_os")]
+    pub supported_os: Vec<SystemSupport>,
+    #[serde(rename = "supported_distros")]
+    pub supported_distros: Vec<DistroSupport>,
     pub server_compatible: bool,
     #[serde(default)]
     pub dependencies: Vec<String>,
@@ -20,32 +24,41 @@ pub struct Application {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum InstallMethodType {
-    ShellScript,
-    PackageManager,
+#[serde(tag = "type")]
+pub enum InstallMethod {
+    #[serde(rename = "shell_script")]
+    ShellScript(InstallBlock),
+    #[serde(rename = "package_manager")]
+    PackageManager(InstallBlock),
 }
 
 #[derive(Debug, Deserialize)]
-pub struct InstallMethod {
-    #[serde(rename = "type")]
-    pub method_type: InstallMethodType,
+pub struct InstallBlock {
     pub package_manager: String,
+    #[serde(default)]
     pub command: Option<String>,
-    pub steps: Option<Vec<String>>,
-    pub conditions: Option<Conditions>,
+    #[serde(default)]
+    pub steps: Vec<String>,
+    #[serde(default)]
+    pub conditions: Option<InstallConditions>,
+    #[serde(default)]
     pub notes: Option<String>,
-    pub uninstall: Option<UninstallBlock>,
+    #[serde(default)]
+    pub uninstall: Option<Uninstall>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Conditions {
-    pub operating_systems: Option<Vec<String>>,
-    pub distributions: Option<Vec<String>>,
+pub struct InstallConditions {
+    #[serde(default, rename = "os")]
+    pub os: Vec<String>,
+    #[serde(default, rename = "distros")]
+    pub distros: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UninstallBlock {
+pub struct Uninstall {
+    #[serde(default)]
     pub command: Option<String>,
-    pub steps: Option<Vec<String>>,
+    #[serde(default)]
+    pub steps: Vec<String>,
 }

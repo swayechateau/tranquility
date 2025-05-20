@@ -1,5 +1,7 @@
+use colored::Colorize;
 // src/system.rs
 use os_info::Type as OSType;
+use sysinfo::{System};
 use bitflags::bitflags;
 use serde::Deserialize;
 
@@ -11,7 +13,8 @@ bitflags! {
         const MACOS   = 0b100;
     }
 }
-// #[derive(Debug)]
+
+#[derive(Debug)]
 pub struct SystemInfo {
     os: OSType,
     arch: String,
@@ -26,10 +29,12 @@ impl SystemInfo {
         let arch = std::env::consts::ARCH.to_string();
         let os = normalized_os_type(&info);
         // For distro we can pull from os_info’s version type if Linux
-         let distro = Some(info.os_type().to_string());
-        // For CPU you could shell out to /proc/cpuinfo on Linux, or
-        // use a crate like raw_cpuid. Here we leave as None.
-        let (cpu_vendor, cpu_brand) = (None, None);
+        let distro = Some(info.os_type().to_string());
+
+        let sys = System::new_all();
+
+        let cpu_brand = sys.cpus().get(0).map(|cpu| cpu.brand().to_string());
+        let cpu_vendor = sys.cpus().get(0).map(|cpu| cpu.vendor_id().to_string());
 
         SystemInfo {
             os,
@@ -42,12 +47,40 @@ impl SystemInfo {
     pub fn os_type(&self) -> OSType {
         self.os
     }
-    pub fn distro(&self) -> Option<&str> {
-        self.distro.as_deref()
+    pub fn distro(&self) -> String {
+        self.distro.as_deref().unwrap_or("Unknown").into()
     }
-    // pub fn arch(&self) -> String {
-    //     self.arch
-    // }
+    pub fn arch_type(&self) -> String {
+        self.arch.clone()
+    }
+    pub fn cpu_brand(&self) -> String {
+        self.cpu_brand.as_deref().unwrap_or("Unknown").into()
+    }
+    pub fn cpu_vendor(&self) -> String {
+        self.cpu_vendor.as_deref().unwrap_or("Unknown").into()
+    }
+    pub fn to_pretty_string(&self) -> String {
+        format!(
+            "\n🧠 {} {}\n\
+            🖥  {} {}\n\
+            🧱  {} {}\n\
+            🐧  {} {}\n\
+            🏷  {} {}\n\
+            🧬  {} {}\n",
+            "System Info".bold().underline().cyan(),
+            "",
+            "OS:".bold().green(),
+            format!("{:?}", self.os_type()).white(),
+            "Arch:".bold().green(),
+            self.arch_type().white(),
+            "Distro:".bold().green(),
+            self.distro().white(),
+            "CPU Vendor:".bold().green(),
+            self.cpu_vendor().white(),
+            "CPU Brand:".bold().green(),
+            self.cpu_brand().white(),
+        )
+    }
 }
 
 #[derive(Copy, Clone, Debug, clap::ValueEnum, Deserialize)]

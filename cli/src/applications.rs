@@ -1,80 +1,18 @@
-use std::fs;
-use std::path::Path;
-
 use crate::categories::Category;
+use crate::config::TranquilityConfig;
 use crate::print::{print_error, print_info};
-use crate::system::{DistroSupport, OsSupport, SystemInfo, SystemSupport};
+use crate::system::{OsSupport, SystemInfo, SystemSupport};
+use crate::models::{Application,ApplicationList};
 use os_info::Type as OSType;
-use serde::Deserialize;
-use tabled::grid::records::vec_records::VecRecords;
+
 use tabled::settings::Style;
 use tabled::{Table, Tabled};
 
-#[derive(Debug, Deserialize)]
-pub struct ApplicationList {
-    pub applications: Vec<Application>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Application {
-    pub id: String,
-    pub name: String,
-    pub categories: Vec<Category>,
-    #[serde(rename = "supported_os")]
-    pub supported_os: Vec<SystemSupport>,
-    #[serde(rename = "supported_distros")]
-    pub supported_distros: Vec<DistroSupport>,
-    pub server_compatible: bool,
-    #[serde(default)]
-    pub dependencies: Vec<String>,
-    pub install_methods: Vec<InstallMethod>,
-}
-
 #[derive(Tabled)]
-pub struct DisplayApp<'a> {
-    pub Name: &'a str,
-    pub Categories: String,
-    pub Server: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type")]
-pub enum InstallMethod {
-    #[serde(rename = "shell_script")]
-    ShellScript(InstallBlock),
-    #[serde(rename = "package_manager")]
-    PackageManager(InstallBlock),
-}
-
-#[derive(Debug, Deserialize)]
-pub struct InstallBlock {
-    pub package_manager: String,
-    #[serde(default)]
-    pub command: Option<String>,
-    #[serde(default)]
-    pub steps: Vec<String>,
-    #[serde(default)]
-    pub conditions: Option<InstallConditions>,
-    #[serde(default)]
-    pub notes: Option<String>,
-    #[serde(default)]
-    pub uninstall: Option<Uninstall>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct InstallConditions {
-    #[serde(default, rename = "os")]
-    pub os: Vec<String>,
-    #[serde(default, rename = "distros")]
-    pub distros: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Uninstall {
-    #[serde(default)]
-    pub command: Option<String>,
-    #[serde(default)]
-    pub steps: Vec<String>,
+struct DisplayApp<'a> {
+    name: &'a str,
+    categories: String,
+    server: bool,
 }
 
 /// Gets a list of predefined applications and checks application.json if exists adds to the list and returns
@@ -94,19 +32,12 @@ pub fn get_apps() -> ApplicationList {
         }
     ];
 
-    let json_path = Path::new("application.json");
-    if json_path.exists() {
-        match fs::read_to_string(json_path) {
-            Ok(data) => match serde_json::from_str::<ApplicationList>(&data) {
-                Ok(external) => {
-                    apps.extend(external.applications);
+    if let Ok(config) = TranquilityConfig::load_or_init() {
+        if config.applications_file.exists() {
+            if let Ok(data) = std::fs::read_to_string(&config.applications_file) {
+                if let Ok(user_apps) = serde_json::from_str::<ApplicationList>(&data) {
+                    apps.extend(user_apps.applications);
                 }
-                Err(e) => {
-                    print_error(format!("❌ Failed to parse application.json: {e}"));
-                }
-            },
-            Err(e) => {
-                print_error(format!("❌ Could not read application.json: {e}"));
             }
         }
     }
@@ -166,14 +97,14 @@ pub fn list_supported_applications(
 
         if os_match && (!server_only || is_server) && matches_category {
             rows.push(DisplayApp {
-                Name: &app.name,
-                Categories: app
+                name: &app.name,
+                categories: app
                     .categories
                     .iter()
                     .map(|c| format!("{:?}", c))
                     .collect::<Vec<_>>()
                     .join(", "),
-                Server: is_server,
+                server: is_server,
             });
         }
     }

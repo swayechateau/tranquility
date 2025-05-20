@@ -1,9 +1,12 @@
 mod args;
+mod models;
 mod applications;
 mod categories;
 mod system;
 #[macro_use]
 mod print;
+mod config;
+mod installer;
 
 use clap::{Parser};
 use args::{handle_arg_errors, handle_args, TranquilityArgs};
@@ -11,7 +14,6 @@ use figlet_rs::FIGfont;
 
 fn main() {
     tranquility_figlet();
-
     match TranquilityArgs::try_parse() {
         Ok(args) => {
             handle_args(args);
