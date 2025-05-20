@@ -1,10 +1,12 @@
 // src/applications.rs
 
-use os_info::Type as OSType;
-use tabled::{Table, Tabled};
-use crate::categories::Category; 
+use crate::categories::Category;
 use crate::print::{print_error, print_info};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
+use colored::Colorize;
+use os_info::Type as OSType;
+use tabled::settings::{Style};
+use tabled::{Table, Tabled};
 struct Application {
     name: &'static str,
     display_name: &'static str,
@@ -20,49 +22,48 @@ struct DisplayApp<'a> {
     Server: bool,
 }
 static APPS: &[Application] = &[
-    Application { 
-        name: "nerd-fonts", 
+    Application {
+        name: "nerd-fonts",
         display_name: "Nerd Fonts",
-        categories: &[Category::Fonts],  
-        supported: &[SystemSupport::Cross], 
-        is_server_app: true
+        categories: &[Category::Fonts],
+        supported: &[SystemSupport::Cross],
+        is_server_app: true,
     },
-    Application { 
+    Application {
         name: "nginx",
         display_name: "Nginx",
-        categories: &[Category::Servers],  
-        supported: &[SystemSupport::Linux], 
-        is_server_app: true 
+        categories: &[Category::Servers],
+        supported: &[SystemSupport::Linux],
+        is_server_app: true,
     },
-    Application { 
+    Application {
         name: "docker",
         display_name: "Docker",
-        categories: &[Category::Development, Category::Containerization], 
-        supported: &[SystemSupport::Cross], 
-        is_server_app: false 
+        categories: &[Category::Development, Category::Containerization],
+        supported: &[SystemSupport::Cross],
+        is_server_app: false,
     },
-    Application { 
+    Application {
         name: "podman",
         display_name: "Podman",
         categories: &[Category::Development, Category::Containerization],
         supported: &[SystemSupport::Cross],
-        is_server_app: true
+        is_server_app: true,
     },
-    Application { 
+    Application {
         name: "kubernetes",
         display_name: "Kubernetes",
         categories: &[Category::Development, Category::Containerization],
         supported: &[SystemSupport::Cross],
-        is_server_app: true
+        is_server_app: true,
     },
-    Application { 
+    Application {
         name: "vagrant",
         display_name: "Vagrant",
         categories: &[Category::Development, Category::Containerization],
         supported: &[SystemSupport::Cross],
-        is_server_app: false
+        is_server_app: false,
     },
-
 ];
 
 pub fn list_supported_application_for_current_os(
@@ -109,7 +110,9 @@ pub fn list_supported_application_for_current_os(
         let matches_category = if category_filter.is_empty() {
             true
         } else {
-            app.categories.iter().any(|cat| category_filter.contains(cat))
+            app.categories
+                .iter()
+                .any(|cat| category_filter.contains(cat))
         };
 
         if is_supported && (!server_only || is_server) && matches_category {
@@ -126,6 +129,9 @@ pub fn list_supported_application_for_current_os(
         }
     }
 
-    let table = Table::new(rows);
+    let mut table = Table::new(rows);
+    table
+        .with(Style::modern_rounded());
+
     println!("{}", table);
 }
