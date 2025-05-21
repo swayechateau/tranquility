@@ -2,12 +2,13 @@
 use dialoguer::Confirm;
 use colored::Colorize;
 use os_info::Type;
+use serde::Deserialize;
 use crate::common::{check_command, command_exists, run_shell_command};
 use crate::{print_error, print_warn};
 use crate::system::SystemInfo;
 
 /// Represents supported package managers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum PackageManager {
     Apt,
     Snap,

@@ -5,6 +5,7 @@ use dialoguer::Confirm;
 use serde::Deserialize;
 use crate::categories::Category;
 use crate::common::command_exists;
+use crate::package_manager::PackageManager;
 use crate::system::{DistroSupport, SystemSupport};
 
 #[derive(Debug, Deserialize)]
@@ -71,15 +72,13 @@ pub enum InstallMethod {
 
 #[derive(Debug, Deserialize)]
 pub struct InstallBlock {
-    pub package_manager: String,
+    pub package_manager: Option<PackageManager>,
     #[serde(default)]
     pub command: Option<String>,
     #[serde(default)]
     pub steps: Vec<String>,
     #[serde(default)]
     pub conditions: Option<InstallConditions>,
-    #[serde(default)]
-    pub notes: Option<String>,
     #[serde(default)]
     pub uninstall: Option<Uninstall>,
 }

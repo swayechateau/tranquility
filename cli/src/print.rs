@@ -6,7 +6,6 @@ pub enum PrefixColor {
     GREEN,
     YELLOW,
     BLUE,
-    NORMAL,
 }
 
 /// Prints a message with a color-coded prefix
@@ -16,8 +15,7 @@ pub fn print_with_prefix(color: PrefixColor, prefix: &'static str, message: Stri
         PrefixColor::BLUE => message_prefix.blue(),
         PrefixColor::GREEN => message_prefix.green(),
         PrefixColor::RED => message_prefix.red(),
-        PrefixColor::YELLOW => message_prefix.yellow(),
-        PrefixColor::NORMAL => message_prefix,
+        PrefixColor::YELLOW => message_prefix.yellow()
     };
 
     if prefix == "error" {
