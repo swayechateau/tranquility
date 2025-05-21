@@ -1,9 +1,9 @@
 // src/applications.rs
-use crate::categories::{Category};
+use crate::categories::Category;
 use crate::config::TranquilityConfig;
-use crate::{print_error, print_info};
+use crate::models::{Application, ApplicationList};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
-use crate::models::{Application,ApplicationList};
+use crate::{print, print_error, print_info};
 use os_info::Type as OSType;
 
 use tabled::settings::Style;
@@ -18,11 +18,13 @@ struct DisplayApp<'a> {
 
 /// Gets a list of predefined applications and checks application.json if exists adds to the list and returns
 pub fn get_apps() -> ApplicationList {
-     // Static built-in apps
+    // Static built-in apps
     let mut apps: Vec<Application> = vec![
         Application {
             id: "nerd-fonts".into(),
             name: "Nerd Fonts".into(),
+            description: Some("Nerd Fonts is a collection of over 50 patched fonts (over 5,000 variations) with a high number of glyphs.".into()),
+            cli_command: None,
             categories: vec![Category::Fonts, Category::Customization],
             supported_os: vec![SystemSupport::Cross],
             supported_distros: vec![],
@@ -33,10 +35,32 @@ pub fn get_apps() -> ApplicationList {
     ];
 
     if let Ok(config) = TranquilityConfig::load_or_init() {
+        println!(
+            "📄 Applications file path: {}",
+            config.applications_file.display()
+        );
         if config.applications_file.exists() {
+            print_info!(
+                "📄 Loading applications from {}",
+                config.applications_file.display()
+            );
             if let Ok(data) = std::fs::read_to_string(&config.applications_file) {
-                if let Ok(user_apps) = serde_json::from_str::<ApplicationList>(&data) {
-                    apps.extend(user_apps.applications);
+                print_info!(
+                    "📄 Parsing applications from {}",
+                    config.applications_file.display()
+                );
+                match serde_json::from_str::<ApplicationList>(&data) {
+                    Ok(user_apps) => {
+                        print_info!(
+                            "📄 Loaded {} applications from {}",
+                            user_apps.applications.len(),
+                            config.applications_file.display()
+                        );
+                        apps.extend(user_apps.applications);
+                    }
+                    Err(e) => {
+                        print_error!("❌ Failed to parse applications.json: {e}");
+                    }
                 }
             }
         }
@@ -74,10 +98,7 @@ pub fn filter_apps(server_only: bool, categories: Vec<Category>) -> Vec<Applicat
 }
 
 /// Dynamically loaded list, not static!
-pub fn list_supported_applications(
-    server_only: bool,
-    category_filter: Vec<Category>,
-) {
+pub fn list_supported_applications(server_only: bool, category_filter: Vec<Category>) {
     let filtered_apps = filter_apps(server_only, category_filter.clone());
     let system = SystemInfo::new();
 

@@ -1,5 +1,11 @@
-// src/installer.rs
-use crate::{applications::{filter_apps}, common::run_shell_command, models::{Application, InstallMethod}, print_info, system::SystemInfo};
+use crate::{
+    applications::filter_apps,
+    common::run_shell_command,
+    models::{Application},
+    print_info,
+    print_warn,
+    system::SystemInfo,
+};
 
 pub fn install_apps_command(all: bool, server: bool) {
     let apps = filter_apps(server, vec![]);
@@ -8,7 +14,6 @@ pub fn install_apps_command(all: bool, server: bool) {
 
 pub fn uninstall_apps_command(all: bool, server: bool) {
     let apps = filter_apps(server, vec![]);
-
     uninstall_apps(apps, Some(all));
 }
 
@@ -20,91 +25,135 @@ fn install_apps(apps: Vec<Application>, auto: Option<bool>) {
     system.install_additional_pms();
 
     for app in apps {
-        // Check if the app is already installed
         if app.is_installed() {
             print_info!("Skipping {}: Already installed", app.name);
             continue;
         }
-        // If auto is true, skip user input
+
         if auto.is_some() {
             print_info!("Auto mode enabled: Skipping user input");
-        } else {
-            // Prompt the user to install the app
-            if !app.prompt_install() {
-                print_info!("Skipping installation of {}", app.name);
-                continue;
-            }
+        } else if !app.prompt_install() {
+            print_info!("Skipping installation of {}", app.name);
+            continue;
         }
+
         print_info!("Installing {}", app.name);
+        let mut installed = false;
 
         for method in &app.install_methods {
-            match method {
-                InstallMethod::PackageManager(block) | InstallMethod::ShellScript(block) => {
-                    // Check conditions (optional filtering)
-                    if let Some(conditions) = &block.conditions {
-                        if !conditions.os.is_empty()
-                            && !conditions.os.iter().any(|os| os == &current_os)
-                        {
-                            print_warn!("Skipping {}: OS condition mismatch", app.name);
-                            continue;
-                        }
-                        if !conditions.distros.is_empty()
-                            && !conditions.distros.iter().any(|d| current_distro.contains(d))
-                        {
-                            print_warn!("Skipping {}: Distro condition mismatch", app.name);
-                            continue;
-                        }
-                    }
+            if let Some(block) = method.get_validated_block(&current_os, &current_distro) {
+                // Pre-install
+                for step in &block.preinstall_steps {
+                    run_shell_command(step);
+                }
 
-                    // Run single command or step list
+                // If package manager + command = install via PM
+                if let Some(pm) = block.package_manager {
                     if let Some(cmd) = &block.command {
-                        run_shell_command(cmd);
-                    }
-
-                    for step in &block.steps {
-                        run_shell_command(step);
+                        if pm.check_install() {
+                            print_info!(
+                                "Installing {} using package manager: {}",
+                                app.name,
+                                pm.name()
+                            );
+                            pm.install(cmd, None);
+                            installed = true;
+                        } else {
+                            print_warn!(
+                                "Skipping {}: Required package manager '{}' is not available",
+                                app.name,
+                                pm.name()
+                            );
+                        }
                     }
                 }
+                // Else fallback to shell command
+                else if let Some(cmd) = &block.command {
+                    print_info!("Installing {} via custom shell command", app.name);
+                    run_shell_command(cmd);
+                    installed = true;
+                }
+
+                // Run additional steps
+                for step in &block.steps {
+                    run_shell_command(step);
+                    installed = true;
+                }
+
+                for step in &block.postinstall_steps {
+                    run_shell_command(step);
+                }
+
+                if installed {
+                    break;
+                }
             }
+        }
+
+        if !installed {
+            print_warn!("No valid install method worked for {}", app.name);
         }
     }
 }
 
-
 fn uninstall_apps(apps: Vec<Application>, auto: Option<bool>) {
+    let system = SystemInfo::new();
+    let current_os = system.os_type().to_string();
+    let current_distro = system.distro();
+
     for app in apps {
-        // Check if the app is already installed
         if !app.is_installed() {
             print_info!("Skipping {}: is not installed.", app.name);
             continue;
         }
-        // If auto is true, skip user input
+
         if auto.is_some() {
             print_info!("Auto mode enabled: Skipping user input");
-        } else {
-            // Prompt the user to install the app
-            if !app.prompt_uninstall() {
-                print_info!("Skipping installation of {}", app.name);
-                continue;
-            }
+        } else if !app.prompt_uninstall() {
+            print_info!("Skipping uninstall of {}", app.name);
+            continue;
         }
+
         print_info!("Uninstalling {}", app.name);
+        let mut uninstalled = false;
 
         for method in &app.install_methods {
-            match method {
-                InstallMethod::PackageManager(block) | InstallMethod::ShellScript(block) => {
-                    if let Some(uninstall) = &block.uninstall {
-                        if let Some(cmd) = &uninstall.command {
-                            run_shell_command(cmd);
-                        }
-                        for step in &uninstall.steps {
-                            run_shell_command(step);
-                        }
+            if let Some((block, uninstall)) =
+                method.get_validated_uninstall_block(&current_os, &current_distro)
+            {
+                if let Some(pm) = block.package_manager {
+                    if pm.check_install() {
+                        pm.uninstall(&app.id);
+                        uninstalled = true;
+                        break;
                     } else {
-                        print_warn!("No uninstall method defined for {}", app.name);
+                        print_warn!(
+                            "Package manager {} not available for uninstalling {}",
+                            pm.name(),
+                            app.name
+                        );
+                        continue;
                     }
                 }
+
+                if let Some(cmd) = &uninstall.command {
+                    run_shell_command(cmd);
+                    uninstalled = true;
+                }
+
+                for step in &uninstall.steps {
+                    run_shell_command(step);
+                    uninstalled = true;
+                }
+
+                if uninstalled {
+                    break;
+                }
             }
+        }
+
+        if !uninstalled {
+            print_warn!("No uninstall method worked for {}", app.name);
         }
     }
 }

@@ -1,12 +1,12 @@
 // src/models.rs
-use std::path::PathBuf;
-use colored::Colorize;
-use dialoguer::Confirm;
-use serde::Deserialize;
 use crate::categories::Category;
 use crate::common::command_exists;
 use crate::package_manager::PackageManager;
 use crate::system::{DistroSupport, SystemSupport};
+use colored::Colorize;
+use dialoguer::Confirm;
+use serde::Deserialize;
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 pub struct ApplicationList {
@@ -17,6 +17,9 @@ pub struct ApplicationList {
 pub struct Application {
     pub id: String,
     pub name: String,
+    pub description: Option<String>,
+    #[serde(rename = "cli_command")]
+    pub cli_command: Option<String>,
     pub categories: Vec<Category>,
     #[serde(rename = "supported_os")]
     pub supported_os: Vec<SystemSupport>,
@@ -30,35 +33,30 @@ pub struct Application {
 
 impl Application {
     pub fn is_installed(&self) -> bool {
-        command_exists(&self.id)
+        command_exists(&self.cli_command.as_deref().to_owned().unwrap_or(&self.id))
     }
 
     pub fn prompt_install(&self) -> bool {
-        if self.is_installed() {
-            return false;
-        }
-        
-        let prompt = format!("Do you want to install: {}?", self.name).purple().to_string();
+        let prompt = format!("Do you want to install: {}?", self.name)
+            .purple()
+            .to_string();
         Confirm::new()
-        .with_prompt(&prompt)
-        .default(true)
-        .interact()
-        .unwrap()
+            .with_prompt(&prompt)
+            .default(true)
+            .interact()
+            .unwrap()
     }
 
     pub fn prompt_uninstall(&self) -> bool {
-        if !self.is_installed() {
-            return false;
-        }
-        
-        let prompt = format!("Are you sure you want to uninstall: {}?", self.name).purple().to_string();
+        let prompt = format!("Are you sure you want to uninstall: {}?", self.name)
+            .purple()
+            .to_string();
         Confirm::new()
-        .with_prompt(&prompt)
-        .default(true)
-        .interact()
-        .unwrap()
+            .with_prompt(&prompt)
+            .default(true)
+            .interact()
+            .unwrap()
     }
-
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,11 +68,72 @@ pub enum InstallMethod {
     PackageManager(InstallBlock),
 }
 
+impl InstallMethod {
+    pub fn get_validated_block<'a>(
+        &'a self,
+        current_os: &str,
+        current_distro: &str,
+    ) -> Option<&'a InstallBlock> {
+        let block = match self {
+            InstallMethod::PackageManager(b) | InstallMethod::ShellScript(b) => b,
+        };
+
+        if let Some(conditions) = &block.conditions {
+            if !conditions.os.is_empty() && !conditions.os.iter().any(|os| os == current_os) {
+                return None;
+            }
+
+            if !conditions.distros.is_empty()
+                && !conditions
+                    .distros
+                    .iter()
+                    .any(|d| current_distro.contains(d))
+            {
+                return None;
+            }
+        }
+
+        Some(block)
+    }
+    pub fn get_validated_uninstall_block<'a>(
+        &'a self,
+        current_os: &str,
+        current_distro: &str,
+    ) -> Option<(&'a InstallBlock, &'a Uninstall)> {
+        let block = match self {
+            InstallMethod::PackageManager(b) | InstallMethod::ShellScript(b) => b,
+        };
+
+        if let Some(conditions) = &block.conditions {
+            if !conditions.os.is_empty() && !conditions.os.iter().any(|os| os == current_os) {
+                return None;
+            }
+
+            if !conditions.distros.is_empty()
+                && !conditions
+                    .distros
+                    .iter()
+                    .any(|d| current_distro.contains(d))
+            {
+                return None;
+            }
+        }
+
+        block.uninstall.as_ref().map(|u| (block, u))
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct InstallBlock {
     pub package_manager: Option<PackageManager>,
     #[serde(default)]
     pub command: Option<String>,
+    #[serde(default)]
+pub preinstall_steps: Vec<String>,
+
+#[serde(default)]
+pub postinstall_steps: Vec<String>,
+
     #[serde(default)]
     pub steps: Vec<String>,
     #[serde(default)]

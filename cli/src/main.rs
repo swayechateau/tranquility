@@ -5,6 +5,7 @@ mod categories;
 mod common;
 mod system;
 mod package_manager;
+mod fonts;
 mod vps;
 #[macro_use]
 mod print;
