@@ -1,5 +1,5 @@
 // src/common.rs
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, Output};
 use colored::Colorize;
 
 use crate::{print_error, print_info, print_warn};
@@ -101,3 +101,52 @@ pub fn run_shell_command(command: &str) {
     }
 }
 
+
+
+pub struct ShellCommand {
+    pub command: String,
+    pub args: Vec<String>,
+    pub use_sudo: bool,
+}
+
+impl ShellCommand {
+    pub fn new(command: &str) -> Self {
+        ShellCommand {
+            command: command.to_string(),
+            args: vec![],
+            use_sudo: false,
+        }
+    }
+
+    pub fn with_args(mut self, args: &[&str]) -> Self {
+        self.args = args.iter().map(|s| s.to_string()).collect();
+        self
+    }
+
+    pub fn with_sudo(mut self, enable: bool) -> Self {
+        self.use_sudo = enable;
+        self
+    }
+
+    pub fn execute(&self) -> std::io::Result<Output> {
+        let mut cmd = if cfg!(target_os = "windows") {
+            let mut c = Command::new("cmd");
+            c.arg("/C").arg(&self.command);
+            c
+        } else {
+            let mut full_cmd = if self.use_sudo {
+                vec!["sudo".to_string(), self.command.clone()]
+            } else {
+                vec![self.command.clone()]
+            };
+            full_cmd.extend(self.args.clone());
+            let mut c = Command::new(&full_cmd[0]);
+            for arg in &full_cmd[1..] {
+                c.arg(arg);
+            }
+            c
+        };
+
+        cmd.output()
+    }
+}

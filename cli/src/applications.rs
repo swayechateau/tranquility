@@ -1,9 +1,10 @@
 // src/applications.rs
 use crate::categories::Category;
 use crate::config::TranquilityConfig;
-use crate::models::{Application, ApplicationList};
+use crate::models::{Application, ApplicationList, InstallMethod};
+use crate::package_manager::PackageManager;
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
-use crate::{print, print_error, print_info};
+use crate::{print_error, print_info};
 use os_info::Type as OSType;
 
 use tabled::settings::Style;
@@ -27,6 +28,18 @@ pub fn get_apps() -> ApplicationList {
             cli_command: None,
             categories: vec![Category::Fonts, Category::Customization],
             supported_os: vec![SystemSupport::Cross],
+            supported_distros: vec![],
+            server_compatible: true,
+            dependencies: vec![],
+            install_methods: vec![]
+        },
+        Application {
+            id: "zsh".into(),
+            name: "ZSH".into(),
+            description: Some("".to_string()),
+            cli_command: Some("zsh".to_string()),
+            categories: vec![Category::Shells],
+            supported_os: vec![SystemSupport::MacLin],
             supported_distros: vec![],
             server_compatible: true,
             dependencies: vec![],

@@ -33,7 +33,8 @@ pub struct Application {
 
 impl Application {
     pub fn is_installed(&self) -> bool {
-        command_exists(&self.cli_command.as_deref().to_owned().unwrap_or(&self.id))
+        let cmd = self.cli_command.as_deref().unwrap_or(&self.id);
+        command_exists(cmd)
     }
 
     pub fn prompt_install(&self) -> bool {
@@ -44,7 +45,7 @@ impl Application {
             .with_prompt(&prompt)
             .default(true)
             .interact()
-            .unwrap()
+            .unwrap_or(false)
     }
 
     pub fn prompt_uninstall(&self) -> bool {
@@ -55,7 +56,7 @@ impl Application {
             .with_prompt(&prompt)
             .default(true)
             .interact()
-            .unwrap()
+            .unwrap_or(false)
     }
 }
 
@@ -125,7 +126,7 @@ impl InstallMethod {
 
 #[derive(Debug, Deserialize)]
 pub struct InstallBlock {
-    pub package_manager: Option<PackageManager>,
+    pub package_managers: Vec<PackageManager>,
     #[serde(default)]
     pub command: Option<String>,
     #[serde(default)]
