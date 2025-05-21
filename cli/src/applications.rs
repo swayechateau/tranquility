@@ -1,3 +1,4 @@
+// src/applications.rs
 use crate::categories::{Category};
 use crate::config::TranquilityConfig;
 use crate::{print_error, print_info};

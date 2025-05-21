@@ -5,12 +5,12 @@ use std::path::PathBuf;
 
 use crate::categories::{list_categories, Category};
 use crate::config::TranquilityConfig;
-use crate::installer::{install_apps, uninstall_apps};
+use crate::installer::{install_apps_command, uninstall_apps_command};
 use crate::system::SystemInfo;
 use crate::vps::{
     confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
 };
-use crate::{print_info, print_success};
+use crate::{print_error, print_info, print_success};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -125,11 +125,11 @@ pub fn handle_args(args: TranquilityArgs) {
         }
         Some(Commands::Install { all, server }) => {
             print_info!("Installing...");
-            install_apps(all, server);
+            install_apps_command(all, server);
         }
         Some(Commands::Uninstall { all, server }) => {
             print_info!("Uninstalling...");
-            uninstall_apps(all, server);
+            uninstall_apps_command(all, server);
         }
         Some(Commands::Categories {}) => {
             list_categories();
@@ -152,7 +152,7 @@ pub fn handle_args(args: TranquilityArgs) {
             }
             if delete {
                 if let Err(e) = confirm_and_delete_vps_config() {
-                    eprintln!("❌ Failed to delete VPS config: {e}");
+                    print_error!("❌ Failed to delete VPS config: {e}");
                 }
                 return;
             }
@@ -165,12 +165,12 @@ pub fn handle_args(args: TranquilityArgs) {
                     private_key,
                 }) => {
                     if let Err(e) = prompt_and_add_vps(name, host, username, port, private_key) {
-                        eprintln!("❌ Failed to add VPS entry: {e}");
+                        print_error!("❌ Failed to add VPS entry: {e}");
                     }
                 }
                 None => {
                     if let Err(e) = connect_to_vps(list) {
-                        eprintln!("❌ VPS command failed: {e}");
+                        print_error!("❌ VPS command failed: {e}");
                     }
                 }
             }

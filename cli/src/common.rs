@@ -1,14 +1,17 @@
+// src/common.rs
 use std::{process::Command};
 use colored::Colorize;
+
+use crate::{print_error, print_info, print_warn};
 
 /// ✅ Check whether `cmd` exists in PATH and print user-friendly feedback.
 pub fn check_command(cmd: &str, friendly_name: &str) -> bool {
     let ok = command_exists(cmd);
 
     if ok {
-        println!("✅ {} is installed.", friendly_name.green());
+        print_info!("✅ {} is installed.", friendly_name.green());
     } else {
-        println!("❌ {} is not installed.", friendly_name.red());
+        print_warn!("❌ {} is not installed.", friendly_name.red());
     }
 
     ok
@@ -59,7 +62,7 @@ pub fn open_url(url: &str) {
     };
 
     if let Err(err) = result {
-        eprintln!("❌ {}: {}", "Failed to open URL".red(), err);
+        print_error!("❌ {}: {}", "Failed to open URL".red(), err);
     }
 }
 
@@ -82,7 +85,7 @@ pub fn run_shell_command(command: &str) {
         Ok(s) if s.success() => {}
         Ok(s) => {
             let code = s.code().unwrap_or(-1);
-            eprintln!(
+            print_error!(
                 "❌ {}: exited with status code {}",
                 "Command failed".red(),
                 code
@@ -90,33 +93,9 @@ pub fn run_shell_command(command: &str) {
             std::process::exit(1);
         }
         Err(e) => {
-            eprintln!("❌ {}: {}", "Failed to execute command".red(), e);
+            print_error!("❌ {}: {}", "Failed to execute command".red(), e);
             std::process::exit(1);
         }
     }
 }
 
-/// 🪟 Run a command via PowerShell directly (Windows-only).
-pub fn run_powershell_command(command: &str) {
-    println!("💻 PowerShell: {}", command.cyan());
-
-    match Command::new("powershell")
-        .args(&["-Command", command])
-        .status()
-    {
-        Ok(s) if s.success() => {}
-        Ok(s) => {
-            let code = s.code().unwrap_or(-1);
-            eprintln!(
-                "❌ {}: exited with status code {}",
-                "PowerShell command failed".red(),
-                code
-            );
-            std::process::exit(1);
-        }
-        Err(e) => {
-            eprintln!("❌ {}: {}", "Failed to run PowerShell command".red(), e);
-            std::process::exit(1);
-        }
-    }
-}

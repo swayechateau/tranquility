@@ -1,3 +1,4 @@
+// src/vps.rs
 use std::{fs, io, path::PathBuf};
 
 use crate::{
@@ -77,12 +78,7 @@ pub fn connect_to_vps(list: bool) -> io::Result<()> {
     let items: Vec<String> = vps_entries
         .iter()
         .map(|vps| {
-            format!(
-                "{}@{}:{}",
-                vps.username.as_deref().unwrap_or("user"),
-                vps.host,
-                vps.port.as_deref().unwrap_or("22")
-            )
+            set_connetion_string(vps)
         })
         .collect();
 
@@ -102,6 +98,29 @@ pub fn connect_to_vps(list: bool) -> io::Result<()> {
 
     connect(selected)?;
     Ok(())
+}
+
+fn set_connetion_string(vps: &VPSConfig) -> String {
+
+    let name = vps.name.clone();
+
+    let mut conn = format!(
+        "{}@{}",
+        vps.username.as_deref().unwrap_or("user"),
+        vps.host
+    );
+
+    if let Some(port) = vps.port.as_deref() {
+        if port != "22" {
+            conn = format!("{}:{}", conn, port);
+        }
+    }
+
+    if name.is_some() {
+        conn = format!("{} ({})", name.unwrap(), conn);
+    }
+
+    conn
 }
 
 fn connect(vps: &VPSConfig) -> io::Result<()> {
@@ -229,7 +248,7 @@ pub fn prompt_and_add_vps(
         private_key,
     };
 
-    println!("\n📦 New VPS entry:");
+    print_info!("\n📦 New VPS entry:");
     println!("{}", serde_json::to_string_pretty(&new_vps).unwrap());
 
     vps_entries.push(new_vps);
@@ -237,7 +256,7 @@ pub fn prompt_and_add_vps(
     fs::create_dir_all(path.parent().unwrap())?;
     fs::write(path, json)?;
 
-    println!("✅ VPS entry saved to {}", path.display());
+    print_success!("✅ VPS entry saved to {}", path.display());
     Ok(())
 }
 

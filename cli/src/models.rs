@@ -1,8 +1,10 @@
-use std::path::PathBuf;
-
 // src/models.rs
+use std::path::PathBuf;
+use colored::Colorize;
+use dialoguer::Confirm;
 use serde::Deserialize;
 use crate::categories::Category;
+use crate::common::command_exists;
 use crate::system::{DistroSupport, SystemSupport};
 
 #[derive(Debug, Deserialize)]
@@ -23,6 +25,39 @@ pub struct Application {
     #[serde(default)]
     pub dependencies: Vec<String>,
     pub install_methods: Vec<InstallMethod>,
+}
+
+impl Application {
+    pub fn is_installed(&self) -> bool {
+        command_exists(&self.id)
+    }
+
+    pub fn prompt_install(&self) -> bool {
+        if self.is_installed() {
+            return false;
+        }
+        
+        let prompt = format!("Do you want to install: {}?", self.name).purple().to_string();
+        Confirm::new()
+        .with_prompt(&prompt)
+        .default(true)
+        .interact()
+        .unwrap()
+    }
+
+    pub fn prompt_uninstall(&self) -> bool {
+        if !self.is_installed() {
+            return false;
+        }
+        
+        let prompt = format!("Are you sure you want to uninstall: {}?", self.name).purple().to_string();
+        Confirm::new()
+        .with_prompt(&prompt)
+        .default(true)
+        .interact()
+        .unwrap()
+    }
+
 }
 
 #[derive(Debug, Deserialize)]
