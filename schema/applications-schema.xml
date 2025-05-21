@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="applications">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="application" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="name" type="xs:string"/>
+              <xs:element name="version" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="name" type="xs:string"/>
+                    <xs:element name="check_command" type="xs:string"/>
+                    <xs:element name="dependency" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+                    <xs:element name="install_method" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="os" type="xs:string"/>
+                          <xs:element name="distribution" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+                          <xs:element name="package_manager" type="xs:string" minOccurs="0"/>
+                          <xs:element name="package_name" type="xs:string" minOccurs="0"/>
+                          <xs:element name="is_cask" type="xs:boolean" minOccurs="0"/>
+                          <xs:element name="steps" minOccurs="0">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="install" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+                                <xs:element name="uninstall" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+                                <xs:element name="preinstall_steps" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+                                <xs:element name="postinstall_steps" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+                                <xs:element name="postuninstall_steps" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

@@ -1,7 +1,6 @@
+// src/shell/command.rs
 use std::process::{Command, Output};
-
 use colored::Colorize;
-use crate::print_error;
 
 #[derive(Debug)]
 pub struct ShellCommand {
@@ -73,9 +72,23 @@ impl ShellCommand {
         cmd.output()
     }
 
+    pub fn execute_with_dry_run(&self, dry_run: bool) -> Option<std::io::Result<Output>> {
+        if dry_run {
+            println!("💡 [Dry Run] Would run: {}", self.as_string().cyan());
+            return None;
+        }
+
+        Some(self.execute())
+    }
+
     /// Run the command and print stdout/stderr (with colors).
-    pub fn run_verbose(&self) {
+    pub fn run_verbose(&self, dry_run: bool) {
         println!("🚀 Running: {}", self.as_string().cyan());
+
+        if dry_run {
+            println!("💡 [Dry Run] Skipped execution.");
+            return;
+        }
 
         match self.execute() {
             Ok(output) => {
@@ -84,14 +97,49 @@ impl ShellCommand {
                     if !out.trim().is_empty() {
                         println!("{}", out.green());
                     }
+                    if !output.stderr.is_empty() {
+                        let err = String::from_utf8_lossy(&output.stderr);
+                        eprintln!("{}", err.yellow());
+                    }
                 } else {
                     let err = String::from_utf8_lossy(&output.stderr);
-                    print_error!("❌ Command failed:\n{}", err.red());
+                    eprintln!("{}", err.red());
                 }
             }
             Err(e) => {
-                print_error!("❌ Failed to execute: {}", e);
+                eprintln!("❌ Failed to execute: {}", e);
             }
+        }
+    }
+
+    /// Executes and returns just the status result
+    pub fn run_and_return_status(&self, dry_run: bool) -> Option<bool> {
+        if dry_run {
+            self.dry_run();
+            return Some(true);
+        }
+
+        match self.execute() {
+            Ok(output) => Some(output.status.success()),
+            Err(_) => Some(false),
+        }
+    }
+
+    /// For shell scripts or piped commands (`sh -c "echo foo && bar"`)
+    pub fn from_shell(script: &str, sudo: bool) -> Self {
+        ShellCommand {
+            command: "sh".to_string(),
+            args: vec!["-c".to_string(), script.to_string()],
+            use_sudo: sudo,
+        }
+    }
+
+    /// For PowerShell commands on Windows
+    pub fn from_powershell(script: &str, sudo: bool) -> Self {
+        ShellCommand {
+            command: "powershell".to_string(),
+            args: vec!["-Command".to_string(), script.to_string()],
+            use_sudo: sudo,
         }
     }
 }

@@ -1,15 +1,14 @@
 // src/args.rs
-use crate::applications::list_supported_applications;
 use clap::{error::ErrorKind, CommandFactory, Error, Parser, Subcommand};
 use std::path::PathBuf;
 
 use crate::categories::{list_categories, Category};
+use crate::command::apps::install::install_apps_command;
+use crate::command::apps::uninstall::uninstall_apps_command;
+use crate::command::vps::{connect_to_vps, prompt_and_add_vps};
 use crate::config::TranquilityConfig;
-use crate::installer::{install_apps_command, uninstall_apps_command};
+use crate::model::application::list_supported_applications;
 use crate::system::SystemInfo;
-use crate::vps::{
-    confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
-};
 use crate::{print_error, print_info, print_success};
 
 #[derive(Parser, Debug)]
@@ -42,6 +41,9 @@ pub enum Commands {
         /// Install only server applications
         #[arg(long)]
         server: bool,
+        /// Preview the install steps without executing
+        #[arg(long = "dry-run")]
+        dry_run: bool,
     },
 
     /// Uninstall default applications and from applications.json
@@ -52,6 +54,9 @@ pub enum Commands {
         /// Uninstall only server applications
         #[arg(long)]
         server: bool,
+        /// Preview the uninstall steps without executing
+        #[arg(long = "dry-run")]
+        dry_run: bool,
     },
 
     /// List all categories
@@ -123,14 +128,27 @@ pub fn handle_args(args: TranquilityArgs) {
                 print_success!("✅ Config initialized at {}", config_path.display());
             }
         }
-        Some(Commands::Install { all, server }) => {
-            print_info!("Installing...");
-            install_apps_command(all, server);
+        Some(Commands::Install {
+            all,
+            server,
+            dry_run,
+        }) => {
+            if dry_run {
+                print_info!("💡 Running in dry-run mode. No changes will be made.");
+            }
+            install_apps_command(all, server, dry_run);
         }
-        Some(Commands::Uninstall { all, server }) => {
-            print_info!("Uninstalling...");
-            uninstall_apps_command(all, server);
+        Some(Commands::Uninstall {
+            all,
+            server,
+            dry_run,
+        }) => {
+            if dry_run {
+                print_info!("💡 Running in dry-run mode. No changes will be made.");
+            }
+            uninstall_apps_command(all, server, dry_run);
         }
+
         Some(Commands::Categories {}) => {
             list_categories();
         }

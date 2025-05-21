@@ -1,8 +1,7 @@
 // src/applications.rs
 use crate::categories::Category;
 use crate::config::TranquilityConfig;
-use crate::models::{Application, ApplicationList, InstallMethod};
-use crate::package_manager::PackageManager;
+use crate::model::application::{Application, ApplicationList};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
 use crate::{print_error, print_info};
 use os_info::Type as OSType;
@@ -22,28 +21,20 @@ pub fn get_apps() -> ApplicationList {
     // Static built-in apps
     let mut apps: Vec<Application> = vec![
         Application {
-            id: "nerd-fonts".into(),
-            name: "Nerd Fonts".into(),
-            description: Some("Nerd Fonts is a collection of over 50 patched fonts (over 5,000 variations) with a high number of glyphs.".into()),
-            cli_command: None,
+            id: Some("nerd-fonts".to_string()),
+            name: "Nerd Fonts".to_string(),
             categories: vec![Category::Fonts, Category::Customization],
-            supported_os: vec![SystemSupport::Cross],
-            supported_distros: vec![],
+            supported_systems: vec![SystemSupport::Cross],
             server_compatible: true,
-            dependencies: vec![],
-            install_methods: vec![]
+            versions: vec![]
         },
         Application {
-            id: "zsh".into(),
-            name: "ZSH".into(),
-            description: Some("".to_string()),
-            cli_command: Some("zsh".to_string()),
+            id: Some("zsh-shell".to_string()),
+            name: "ZSH (shell)".to_string(),
             categories: vec![Category::Shells],
-            supported_os: vec![SystemSupport::MacLin],
-            supported_distros: vec![],
+            supported_systems: vec![SystemSupport::MacLin],
             server_compatible: true,
-            dependencies: vec![],
-            install_methods: vec![]
+            versions: vec![]
         }
     ];
 
@@ -98,7 +89,7 @@ pub fn filter_apps(server_only: bool, categories: Vec<Category>) -> Vec<Applicat
     apps.applications
         .into_iter()
         .filter(|app| {
-            let os_match = app.supported_os.iter().any(|s| s.flags().contains(os_flag));
+            let os_match = app.supported_systems.iter().any(|s| s.flags().contains(os_flag));
             let server_match = !server_only || app.server_compatible;
             let matches_category = if categories.is_empty() {
                 true

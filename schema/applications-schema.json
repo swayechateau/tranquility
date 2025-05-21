@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Application Installation Configuration",
+  "type": "object",
+  "properties": {
+    "applications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "versions"],
+        "properties": {
+          "name": { "type": "string" },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "check_command", "install_methods"],
+              "properties": {
+                "name": { "type": "string" },
+                "check_command": { "type": "string" },
+                "dependencies": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "install_methods": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["os"],
+                    "properties": {
+                      "os": {
+                        "oneOf": [
+                          { "type": "string" },
+                          { "type": "array", "items": { "type": "string" } }
+                        ]
+                      },
+                      "distributions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "package_manager": { "type": "string" },
+                      "package_name": { "type": "string" },
+                      "is_cask": { "type": "boolean" },
+                      "steps": {
+                        "type": "object",
+                        "properties": {
+                          "install": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          },
+                          "uninstall": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          },
+                          "preinstall_steps": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          },
+                          "postinstall_steps": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          },
+                          "postuninstall_steps": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["applications"],
+  "additionalProperties": false
+}
