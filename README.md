@@ -1,199 +1,181 @@
-# Tranquility (Development Enviroment Setup)
+# 🧘 Tranquility
 
-TODO:
-- Create Rust CLI executable (cross platform)
-- Create Documentation on how to use scripts or cli executable and project structure
-- Create system specific scripts
-  
-## Introduction
+> *Peace of mind through dev environment automation.*
 
-One of the pain points when getting a new system or having to rebuild an old system for development, is getting the enviroment set up just right!
+**Tranquility** is a robust, cross-platform CLI tool that automates the setup and teardown of development environments. With deep OS-awareness, custom script execution, VPS provisioning, font installation, and strict schema validation, Tranquility helps you spin up dev-ready systems in minutes.
 
-Tranquility as it's name suggests is a project to give you peace of mind to automate the dev setup process, by storing scripts to install common development tools most (if not all) environments use. Feel free to use any of the scripts help should they be of use to you, no need to credit, just use 😉
+---
 
-Currently the project is focused on the client/server systems I use:
+## ✨ Features
 
-- Windows 11
-- MacOS
-- Fedora
-- Debian
-- Arch
-- Ubuntu
+### 🧩 Application Management
 
-Discontinued/Dropped support for `centos` and `rocky linux`
+* JSON/YAML/XML-based install definitions
+* OS + distro awareness (Debian, Fedora, macOS, etc.)
+* Supports apt, brew, winget, pacman, nix, and more
+* CLI-based shell install logic with fallback to package manager
+* Dependency management and interactive or auto mode
 
-## Current apps to install
+### 🖼 Nerd Fonts
 
-### Mac Only
+* Install from 60+ popular Nerd Fonts
+* Interactive and bulk install modes
+* Auto downloads, unzips, installs, and refreshes font cache
 
-- xcode commandline tools (cli tool)
-- xcode (App Store)
-- orbstack
+### 🧠 Smart System Detection
 
-### Windows Only
+* OS, architecture, distro, CPU info
+* Detects default and available package managers
+* Can auto-install missing ones interactively
 
-- chocolatey
-- winget
+### ☁️ VPS Provisioning
 
-### Linux Only
+* Define remote VPSes with SSH config
+* Run post-connect provisioning scripts
+* JSON-based config management and CLI editor
 
-- sudo (arch)
-- docker && docker-compose (cli tool)
+### 📜 Script Execution Engine
 
-### Shell
+* Unified shell abstraction for Unix and Windows
+* Runs inline or file-based scripts with sudo support
+* Dry-run mode for safe previews
 
-- zsh
-- fish
+### 🧪 Schema Validation
 
-### Shell plugins
+* Validates applications.json/yaml/xml files
+* Enforces CLI+PM fallback logic
+* Detailed error messages with index references
+* Example schema in `schema.md`
 
-- oh-my-zsh
-- powerlevel 10K
+---
+
+## ⚙️ Installation
+
+```bash
+git clone https://github.com/swayechateau/tranquility.git
+cd tranquility
+./build
+./run
+```
+
+---
+
+## 🚀 CLI Commands
+
+### Install Applications
+
+```bash
+tranquility install --all
+```
+
+* `--all`: installs all matched apps
+* `--server`: server-safe apps only
+* `--dry-run`: preview without changes
+
+### Uninstall Applications
+
+```bash
+tranquility uninstall --all
+```
+
+Reverses install steps if uninstall logic is defined.
 
 ### Fonts
 
-- Fira Code Nerd Fonts
+```bash
+tranquility fonts
+tranquility fonts --all
+```
 
-### CLI Tools
+Interactive or full bulk Nerd Font install.
 
-- git
-- wget
-- curl
-- tmux
-- terraform
-- aws
-- deno
-- bun.js
-- node.js
-- hugo
-- yarn
-- jq
+### VPS
 
-## Language SDKs
+```bash
+tranquility vps --list
+tranquility vps --add
+tranquility vps --connect
+tranquility vps --delete
+```
 
-- golang (GO)
-- .netcore (C#)
-- elixir
-- node.js
-- python
-- rust
-- php
-- ruby
+---
 
-### Editors and IDEs
+## 🧬 Application Format (JSON Example)
 
-- neovim
-- visual studio code
-- visual studio
-- sublime
-- atom
-- brackets
-- eclipse
-- intellij
+```json
+{
+  "applications": [
+    {
+      "name": "Neovim",
+      "categories": ["Editors", "Development"],
+      "supported_systems": ["Linux", "MacOS"],
+      "versions": [
+        {
+          "name": "Stable",
+          "check_command": "nvim",
+          "dependencies": ["curl"],
+          "install_methods": [
+            {
+              "os": "Ubuntu",
+              "package_manager": "Apt",
+              "package_name": "neovim"
+            },
+            {
+              "os": "macOS",
+              "steps": {
+                "install": ["brew install neovim"]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
 
-### Development GUI Tools
-- docker desktop
-- github desktop
+---
 
-### Mobile Development
-- andriod studio
-- xcode (Mac Only)
+## ✅ Validation Logic
 
-### Browsers
+| `steps` | `package_manager` | `package_name` | ✅ Valid? | Notes                  |
+| ------- | ----------------- | -------------- | -------- | ---------------------- |
+| ❌       | ❌                 | N/A            | ❌        | No way to install      |
+| ✅       | ❌                 | N/A            | ✅        | CLI only               |
+| ❌       | ✅                 | ✅              | ✅        | PM only                |
+| ✅       | ✅                 | ✅/❌            | ✅        | CLI override or hybrid |
 
-- brave browser
-- opera / opera developer / opera gx
-- vivaldi
-- tor browser
-- chrome
-- thorium
-- edge
-- firefox
-- polypane
+Run:
 
-### Virtualisation
+```bash
+tranquility validate --file ./applications.yaml
+```
 
-- virtual box
-- qemu
-- vm player / fusion (Mac Only)
-- vagrant
-- paralles (Mac Only)
+---
 
-### Chat Applications
+## ☁️ VPS Example
 
-- slack
-- discord
-- signal
-- telegram-desktop
-- line
-- wechat
-- kakaoTalk
-- WhatsApp
+```json
+{
+  "name": "dev-vm",
+  "username": "ubuntu",
+  "host": "10.0.0.5",
+  "private_key": "~/.ssh/id_rsa",
+  "post_connect_script": "echo Connected && uptime"
+}
+```
 
-### Game Development Tools
+---
 
-- unity
-- godot
-- unreal engine
+## 🧰 Developer Notes
 
-### Grapical Editors
+* Built with Rust, Clap, Schemars, JSONSchema, Figlet, and Dialoguer
+* Color-coded CLI output with `print_info!`, `print_error!`, etc.
+* Config lives in `~/.config/tranquility/config.json`
 
-- gimp
-- inkscape
-- krita
-- blender
-- starUML
+---
 
-### Video Editors
+## 🤝 Contributing
 
-- obs
-- davinci resolve
-- handbrake
-- vlc 
-
-### Music Apps
-
-- spotify
-- aimp (Windows only)
-
-### Database Management Tools
-
-- dbeaver
-- mongodb compass
-
-### VPN Tools
-
-- surfshark
-- openVPN
-- wireguard
-
-### REST Client Tools
-
-- insomnia
-- apidog
-- postman
-
-### Download Managers
-
-- jdownloader
-
-### Note Taking Tools
-
-- notion
-- typora
-- obsidian
-
-### Gaming Client
-
-- steam
-- epic games
-- gog galaxy
-- origin
-- battle net
-- sony remote play
-
-### Operating System Extentions
-
-- copyq
-- rectangle (Mac Only)
-- iterm2
+Pull requests welcome.
+Open an issue or fork the repo to get started.

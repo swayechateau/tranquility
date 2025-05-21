@@ -1,15 +1,14 @@
-// src/vps.rs
+// src/command/vps.rs
 use std::{fs, io, path::PathBuf};
 
 use crate::{
-    common::run_shell_command, config::TranquilityConfig, models::VPSConfig, print_error,
-    print_info, print_success, print_warn,
+    config::TranquilityConfig, model::vps::VPSConfig, print_error, print_info, print_success,
+    print_warn, shell::ShellCommand,
 };
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
-use shellexpand::tilde;
+use shellexpand::{env, tilde};
 use tabled::{Table, Tabled};
 
-/// Internal struct to display VPS info in a table.
 #[derive(Tabled)]
 struct VPSDisplay {
     #[tabled(rename = "Index")]
@@ -48,9 +47,7 @@ pub fn list_vps_entries(vps_entries: &[VPSConfig]) {
 }
 
 pub fn connect_to_vps(list: bool) -> io::Result<()> {
-    println!("Running VPS command");
     let config = TranquilityConfig::load_or_init()?;
-    println!("Config loaded: {:?}", config.vps_file);
     let vps_entries = match load_vps_entries(&config.vps_file) {
         Ok(entries) => entries,
         Err(e) => {
@@ -62,7 +59,6 @@ pub fn connect_to_vps(list: bool) -> io::Result<()> {
             return Ok(());
         }
     };
-    println!("Loaded {} VPS entries", vps_entries.len());
 
     if vps_entries.is_empty() {
         print_warn!("⚠️  No VPS entries found in your configuration.");
@@ -75,12 +71,7 @@ pub fn connect_to_vps(list: bool) -> io::Result<()> {
         return Ok(());
     }
 
-    let items: Vec<String> = vps_entries
-        .iter()
-        .map(|vps| {
-            set_connetion_string(vps)
-        })
-        .collect();
+    let items: Vec<String> = vps_entries.iter().map(set_connection_string).collect();
 
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("🔌 Select a VPS to connect to")
@@ -100,15 +91,9 @@ pub fn connect_to_vps(list: bool) -> io::Result<()> {
     Ok(())
 }
 
-fn set_connetion_string(vps: &VPSConfig) -> String {
-
+fn set_connection_string(vps: &VPSConfig) -> String {
     let name = vps.name.clone();
-
-    let mut conn = format!(
-        "{}@{}",
-        vps.username.as_deref().unwrap_or("user"),
-        vps.host
-    );
+    let mut conn = format!("{}@{}", vps.username.as_deref().unwrap_or("user"), vps.host);
 
     if let Some(port) = vps.port.as_deref() {
         if port != "22" {
@@ -116,8 +101,8 @@ fn set_connetion_string(vps: &VPSConfig) -> String {
         }
     }
 
-    if name.is_some() {
-        conn = format!("{} ({})", name.unwrap(), conn);
+    if let Some(name) = name {
+        conn = format!("{} ({})", name, conn);
     }
 
     conn
@@ -127,29 +112,42 @@ fn connect(vps: &VPSConfig) -> io::Result<()> {
     let username = vps.username.as_deref().unwrap_or("user");
     let port = vps.port.as_deref().unwrap_or("22");
 
-    let mut command_parts = vec!["ssh".to_string()];
+    let mut args: Vec<String> = vec![];
 
     if let Some(private_key) = &vps.private_key {
-        command_parts.push("-i".into());
-        command_parts.push(private_key.display().to_string());
+        args.push("-i".into());
+        args.push(private_key.to_str().unwrap().into());
     }
 
-    // Only add `-p` if port is not the default
     if port != "22" {
-        command_parts.push("-p".into());
-        command_parts.push(port.to_string());
+        args.push("-p".into());
+        args.push(port.into());
     }
 
-    command_parts.push(format!("{}@{}", username, vps.host));
+    args.push(format!("{}@{}", username, vps.host));
 
-    let command = command_parts.join(" ");
+    let args_ref: Vec<&str> = args.iter().map(String::as_str).collect();
 
-    print_info!("▶ Executing: {command}");
-    run_shell_command(&command);
+    ShellCommand::new("ssh")
+        .with_args(&args_ref)
+        .run_verbose(false);
+
+    if let Some(script) = &vps.post_connect_script {
+        print_info!("📜 Running post-connect script...");
+
+        // Expand env variables like $USER and ~
+        let tilde_expanded = tilde(script).to_string();
+        let expanded_script = match env(&tilde_expanded) {
+            Ok(val) => val.to_string(),
+            Err(_) => tilde_expanded,
+        };
+
+        let remote_cmd = format!("ssh {}@{} '{}'", username, vps.host, expanded_script);
+        ShellCommand::from_shell(&remote_cmd, false).run_verbose(false);
+    }
 
     Ok(())
 }
-
 
 pub fn json_schema_example() -> VPSConfig {
     VPSConfig {
@@ -158,6 +156,7 @@ pub fn json_schema_example() -> VPSConfig {
         host: "example.com".into(),
         port: Some("22".into()),
         private_key: Some("/home/user/.ssh/id_rsa".into()),
+        post_connect_script: Some("uptime && echo $USER".into()),
     }
 }
 
@@ -170,64 +169,43 @@ pub fn prompt_and_add_vps(
 ) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
     let path = &config.vps_file;
-    let is_full_interactive = host.is_none() || host.is_none(); 
+    let is_full_interactive = host.is_none();
     let mut vps_entries = load_vps_entries(path).unwrap_or_default();
 
-    let name = match name {
-        Some(v) => v,
-        None => Input::new()
-            .with_prompt("Name")
-            .interact_text()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?,
-    };
+    let name = name.unwrap_or_else(|| Input::new().with_prompt("Name").interact_text().unwrap());
 
-    let host = match host {
-        Some(v) => v,
-        None => Input::new()
-            .with_prompt("Host")
-            .interact_text()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?,
-    };
+    let host = host.unwrap_or_else(|| Input::new().with_prompt("Host").interact_text().unwrap());
 
-    let username = match username {
-        Some(v) => v,
-        None => Input::new()
+    let username = username.unwrap_or_else(|| {
+        Input::new()
             .with_prompt("Username")
             .default("root".into())
             .interact_text()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?,
-    };
+            .unwrap()
+    });
 
-    let port = match port {
-        Some(v) if !v.trim().is_empty() => v,
-        Some(_) => "22".to_string(),
-        None => {
-            if is_full_interactive {
-                // Only prompt if name wasn't passed (full interactive mode)
-                Input::new()
-                    .with_prompt("Port")
-                    .default("22".into())
-                    .interact_text()
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?
-            } else {
-                "22".to_string()
-            }
+    let port = port.unwrap_or_else(|| {
+        if is_full_interactive {
+            Input::new()
+                .with_prompt("Port")
+                .default("22".into())
+                .interact_text()
+                .unwrap()
+        } else {
+            "22".to_string()
         }
-    };
+    });
 
     let private_key = match private_key {
         Some(v) if !v.trim().is_empty() => Some(PathBuf::from(tilde(&v).to_string())),
-        Some(_) => None,
-        None => {
+        _ => {
             if is_full_interactive {
                 let input: String = Input::new()
                     .with_prompt("Private key path (leave blank for none)")
                     .allow_empty(true)
                     .default("".into())
                     .interact_text()
-                    .map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}"))
-                    })?;
+                    .unwrap();
 
                 if input.trim().is_empty() {
                     None
@@ -240,12 +218,39 @@ pub fn prompt_and_add_vps(
         }
     };
 
+    let post_connect_script = if is_full_interactive {
+        let input: String = Input::new()
+            .with_prompt("Post-connect script (inline or @file)")
+            .allow_empty(true)
+            .default("".into())
+            .interact_text()
+            .unwrap();
+
+        if input.trim().is_empty() {
+            None
+        } else if input.trim_start().starts_with('@') {
+            let path = tilde(input.trim_start().trim_start_matches('@').trim());
+            match fs::read_to_string(path.to_string()) {
+                Ok(content) => Some(content),
+                Err(e) => {
+                    print_error!("❌ Failed to read script file: {e}");
+                    None
+                }
+            }
+        } else {
+            Some(input)
+        }
+    } else {
+        None
+    };
+
     let new_vps = VPSConfig {
         name: Some(name),
         host,
         username: Some(username),
         port: Some(port),
         private_key,
+        post_connect_script,
     };
 
     print_info!("\n📦 New VPS entry:");
@@ -276,7 +281,7 @@ pub fn confirm_and_delete_vps_config() -> io::Result<()> {
         ))
         .default(false)
         .interact()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?;
+        .unwrap();
 
     if confirm {
         fs::remove_file(&vps_path)?;

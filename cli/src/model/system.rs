@@ -1,10 +1,11 @@
-// src/system.rs
-use crate::{common::command_exists, package_manager::PackageManager};
+// src/models/system.rs
 use bitflags::bitflags;
 use colored::Colorize;
 use os_info::{self, Type as OSType};
 use serde::Deserialize;
 use sysinfo::System;
+
+use crate::{model::package_manager::PackageManager, shell::command::command_exists};
 
 bitflags! {
     #[derive(Clone, Copy)]

@@ -1,3 +1,4 @@
+// src/config.rs
 use dirs::config_dir;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -8,6 +9,7 @@ use std::path::PathBuf;
 pub struct TranquilityConfig {
     pub applications_file: PathBuf,
     pub vps_file: PathBuf,
+    pub log_file: PathBuf,
 }
 
 impl TranquilityConfig {
@@ -17,13 +19,23 @@ impl TranquilityConfig {
         })
     }
 
-    pub fn default() -> io::Result<Self> {
-        let base_dir = Self::config_dir()?;
-        Ok(TranquilityConfig {
-            applications_file: base_dir.join("applications.json"),
-            vps_file: base_dir.join("vps.json"),
-        })
-    }
+pub fn default() -> io::Result<Self> {
+    let base_dir = Self::config_dir()?;
+    let logs_dir = base_dir.join("logs");
+    fs::create_dir_all(&logs_dir)?;
+
+    let log_file = logs_dir.join(format!(
+        "tranquility-{}.log",
+        chrono::Local::now().format("%Y-%m-%d")
+    ));
+
+    Ok(TranquilityConfig {
+        applications_file: base_dir.join("applications.json"),
+        vps_file: base_dir.join("vps.json"),
+        log_file: log_file,
+    })
+}
+
 
     pub fn load_or_init() -> io::Result<Self> {
         let path = Self::config_dir()?.join("config.json");

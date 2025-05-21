@@ -1,17 +1,13 @@
 mod args;
-mod models;
-mod applications;
-mod categories;
-mod common;
-mod system;
-mod package_manager;
+mod model;
 mod fonts;
-mod vps;
+mod shell;
+mod command;
+mod logging;
 #[macro_use]
 mod print;
 mod config;
-mod installer;
-
+use model::{categories,package_manager,system};
 use clap::{Parser};
 use args::{handle_arg_errors, handle_args, TranquilityArgs};
 use figlet_rs::FIGfont;
