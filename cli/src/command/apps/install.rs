@@ -1,14 +1,18 @@
 // src/command/install.rs
 
-use crate::{model::{application::{filter_apps, Application}, system::SystemInfo}, print_info, print_warn, shell::InstallRunner};
-
+use crate::{
+    model::application::{filter_apps, Application},
+    model::system::SystemInfo,
+    print_info, print_warn,
+    shell::InstallRunner,
+};
 
 pub fn install_apps_command(all: bool, server: bool, dry_run: bool) {
     let apps = filter_apps(server, vec![]);
-    install_apps(apps, Some(all), dry_run);
+    install_apps(apps, all, dry_run);
 }
 
-fn install_apps(apps: Vec<Application>, auto: Option<bool>, dry_run: bool) {
+fn install_apps(apps: Vec<Application>, auto: bool, dry_run: bool) {
     let system = SystemInfo::new();
     let current_os = system.os_type().to_string();
     let current_distro = system.distro();
@@ -21,26 +25,34 @@ fn install_apps(apps: Vec<Application>, auto: Option<bool>, dry_run: bool) {
             continue;
         }
 
-        if auto.is_some() {
-            print_info!("Auto mode enabled: Skipping user input");
-        } else if !app.prompt_install() {
+        if !auto && !app.prompt_install() {
             print_info!("Skipping installation of {}", app.name);
             continue;
         }
 
         let mut installed = false;
 
-        for method in &app.install_methods {
-            if let Some(block) = method.get_validated_block(&current_os, &current_distro) {
-                let runner = InstallRunner::new(&app, block, dry_run);
-                runner.run_install();
-                installed = true;
+        for version in &app.versions {
+            for method in &version.install_methods {
+                if method
+                    .os
+                    .iter()
+                    .any(|os| os == &current_os || os == &current_distro)
+                {
+                    let runner = InstallRunner::new(&app, method, dry_run);
+                    runner.run_install();
+                    installed = true;
+                    break;
+                }
+            }
+            if installed {
                 break;
             }
         }
 
         if !installed {
-            print_warn!("No valid install method worked for {}", app.name);
+            print_warn!("No valid install method found for {}", app.name);
         }
     }
 }
+

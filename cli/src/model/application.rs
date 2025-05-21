@@ -1,8 +1,8 @@
 // src/models/application.rs
 use crate::categories::Category;
-use crate::common::command_exists;
 use crate::config::TranquilityConfig;
 use crate::package_manager::PackageManager;
+use crate::shell::command::{command_exists, run_shell_command};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
 use crate::{print_error, print_info};
 use heck::{ToKebabCase};
@@ -310,8 +310,6 @@ pub fn list_supported_applications(server_only: bool, category_filter: Vec<Categ
     table.with(Style::modern_rounded());
     println!("{}", table);
 }
-
-use crate::common::run_shell_command;
 
 impl InstallMethod {
     pub fn install(&self, dry_run: bool) {

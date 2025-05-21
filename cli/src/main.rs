@@ -2,8 +2,8 @@ mod args;
 mod model;
 mod fonts;
 mod shell;
-mod common;
 mod command;
+mod logging;
 #[macro_use]
 mod print;
 mod config;

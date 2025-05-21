@@ -1,5 +1,5 @@
-// src/package_manager.rs
-use crate::common::{check_command, command_exists, run_shell_command};
+use crate::shell::command::{check_command, command_exists, run_shell_command};
+// src/models/package_manager.rs
 use crate::shell::ShellCommand;
 use crate::system::SystemInfo;
 use crate::{print_error, print_warn};
