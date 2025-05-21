@@ -1,7 +1,7 @@
 // src/package_manager.rs
 use dialoguer::Confirm;
 use colored::Colorize;
-use os_info::Type;
+use os_info::Type as OSType;
 use serde::Deserialize;
 use crate::common::{check_command, command_exists, run_shell_command};
 use crate::{print_error, print_warn};
@@ -46,24 +46,55 @@ macro_rules! pm_installer {
     }};
 }
 impl PackageManager {
-    pub fn all() -> &'static [PackageManager] {
-        &[
-            PackageManager::Apt,
-            PackageManager::Snap,
-            PackageManager::Yum,
-            PackageManager::Dnf,
-            PackageManager::Zypper,
-            PackageManager::Portage,
-            PackageManager::Nix,
-            PackageManager::Apk,
-            PackageManager::Pacman,
-            PackageManager::Yay,
-            PackageManager::Flatpak,
-            PackageManager::Brew,
-            PackageManager::Choco,
-            PackageManager::Winget,
-            PackageManager::Scoop,
-        ]
+    pub fn supported_on_os(os: OSType) -> Vec<PackageManager> {
+        match os {
+            OSType::Ubuntu | OSType::Debian | OSType::Pop | OSType::Linux => vec![
+                PackageManager::Apt,
+                PackageManager::Snap,
+                PackageManager::Flatpak,
+                PackageManager::Nix,
+            ],
+            OSType::Fedora => vec![
+                PackageManager::Dnf,
+                PackageManager::Snap,
+                PackageManager::Flatpak,
+                PackageManager::Nix,
+            ],
+            OSType::Redhat => vec![
+                PackageManager::Yum,
+                PackageManager::Nix,
+            ],
+            OSType::Alpine => vec![
+                PackageManager::Apk,
+                PackageManager::Nix,
+            ],
+            OSType::Arch | OSType::Manjaro | OSType::EndeavourOS => vec![
+                PackageManager::Pacman,
+                PackageManager::Yay,
+                PackageManager::Flatpak,
+                PackageManager::Snap,
+                PackageManager::Nix,
+            ],
+            OSType::SUSE => vec![
+                PackageManager::Zypper,
+                PackageManager::Nix,
+            ],
+            OSType::Gentoo => vec![
+                PackageManager::Portage,
+                PackageManager::Nix,
+            ],
+            OSType::Macos => vec![
+                PackageManager::Brew,
+                PackageManager::Nix,
+            ],
+            OSType::Windows => vec![
+                PackageManager::Winget,
+                PackageManager::Choco,
+                PackageManager::Scoop,
+                PackageManager::Nix,
+            ],
+            _ => vec![],
+        }
     }
     pub fn name(&self) -> &'static str {
         match self {
@@ -85,6 +116,11 @@ impl PackageManager {
         }
     }
 
+    pub fn check_installed(&self) -> bool {
+        match self {
+            _ => command_exists(self.name()),
+        }
+    }
     pub fn check_install(&self) -> bool {
         match self {
             Self::Yay => pm_installer!("yay", install_yay),
@@ -247,7 +283,7 @@ fn install_nix() {
     let system = SystemInfo::new();
     
     // if the target is linux
-    if system.os_type() == Type::Linux {
+    if system.os_type() == OSType::Linux {
         let daemon = Confirm::new()
             .with_prompt("Do you want to install the Nix daemon?")
             .default(true)

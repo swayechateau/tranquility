@@ -1,5 +1,5 @@
 // src/common.rs
-use std::{process::Command};
+use std::process::{Command, Stdio};
 use colored::Colorize;
 
 use crate::{print_error, print_info, print_warn};
@@ -21,6 +21,8 @@ pub fn check_command(cmd: &str, friendly_name: &str) -> bool {
 pub fn command_exists(cmd: &str) -> bool {
     Command::new(if cfg!(windows) { "where" } else { "which" })
         .arg(cmd)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .map(|s| s.success())
         .unwrap_or(false)

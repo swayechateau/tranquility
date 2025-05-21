@@ -2,7 +2,7 @@
 use crate::{common::command_exists, package_manager::PackageManager};
 use bitflags::bitflags;
 use colored::Colorize;
-use os_info::Type as OSType;
+use os_info::{self, Type as OSType};
 use serde::Deserialize;
 use sysinfo::System;
 
@@ -18,6 +18,7 @@ bitflags! {
 #[derive(Debug)]
 pub struct SystemInfo {
     os: OSType,
+    raw_os: os_info::Type,
     arch: String,
     distro: Option<String>,
     cpu_vendor: Option<String>,
@@ -29,20 +30,23 @@ pub struct SystemInfo {
 impl SystemInfo {
     pub fn new() -> Self {
         let info = os_info::get();
-        let arch = std::env::consts::ARCH.to_string();
+        let raw_os = info.os_type();
         let os = normalized_os_type(&info);
-        // For distro we can pull from os_info’s version type if Linux
+        let arch = std::env::consts::ARCH.to_owned();
         let distro = Some(info.os_type().to_string());
 
         let sys = System::new_all();
+        let cpu = sys.cpus().get(0);
 
-        let cpu_brand = sys.cpus().get(0).map(|cpu| cpu.brand().to_string());
-        let cpu_vendor = sys.cpus().get(0).map(|cpu| cpu.vendor_id().to_string());
+        let cpu_brand = cpu.map(|c| c.brand().to_owned());
+        let cpu_vendor = cpu.map(|c| c.vendor_id().to_owned());
+
         let default_package_manager = detect_default_package_manager(&info);
-        let available_package_managers = detect_available_package_managers();
+        let available_package_managers = detect_available_package_managers(&os);
 
         SystemInfo {
             os,
+            raw_os,
             arch,
             distro,
             cpu_vendor,
@@ -51,26 +55,29 @@ impl SystemInfo {
             available_package_managers,
         }
     }
+
     pub fn os_type(&self) -> OSType {
         self.os
     }
+
     pub fn distro(&self) -> String {
-        self.distro.as_deref().unwrap_or("Unknown").into()
+        self.distro.as_deref().unwrap_or("Unknown").to_string()
     }
-    pub fn arch_type(&self) -> String {
-        self.arch.clone()
-    }
+
     pub fn cpu_brand(&self) -> String {
-        self.cpu_brand.as_deref().unwrap_or("Unknown").into()
+        self.cpu_brand.as_deref().unwrap_or("Unknown").to_string()
     }
+
     pub fn cpu_vendor(&self) -> String {
-        self.cpu_vendor.as_deref().unwrap_or("Unknown").into()
+        self.cpu_vendor.as_deref().unwrap_or("Unknown").to_string()
     }
+
     pub fn default_package_manager(&self) -> String {
         self.default_package_manager
             .map(|pm| pm.name().to_string())
             .unwrap_or_else(|| "Unknown".to_string())
     }
+
     pub fn available_package_manager(&self) -> String {
         if self.available_package_managers.is_empty() {
             "None".to_string()
@@ -78,7 +85,7 @@ impl SystemInfo {
             self.available_package_managers
                 .iter()
                 .map(|pm| pm.name())
-                .collect::<Vec<&str>>()
+                .collect::<Vec<_>>()
                 .join(", ")
         }
     }
@@ -86,52 +93,38 @@ impl SystemInfo {
     pub fn to_pretty_string(&self) -> String {
         format!(
             "\n🧠 {} {}\n\
-         🖥  {} {}\n\
-         🧱  {} {}\n\
-         🐧  {} {}\n\
-         🏷  {} {}\n\
-         🧬  {} {}\n\
-         📦  {} {}\n\
-         📦  {} {}\n",
+             🖥  {} {}\n\
+             🧱  {} {}\n\
+             🐧  {} {}\n\
+             🏷  {} {}\n\
+             🧬  {} {}\n\
+             📦  {} {}\n\
+             📦  {} {}\n",
             "System Info".bold().underline().cyan(),
             "",
             "OS:".bold().green(),
-            format!("{:?}", self.os_type()).white(),
+            format!("{:?}", self.os).white(),
             "Arch:".bold().green(),
-            self.arch_type().white(),
+            self.arch,
             "Distro:".bold().green(),
-            self.distro().white(),
+            self.distro(),
             "CPU Vendor:".bold().green(),
-            self.cpu_vendor().white(),
+            self.cpu_vendor(),
             "CPU Brand:".bold().green(),
-            self.cpu_brand().white(),
+            self.cpu_brand(),
             "Default Package Manager:".bold().green(),
-            self.default_package_manager().white(),
+            self.default_package_manager(),
             "Available Package Managers:".bold().green(),
-            self.available_package_manager().white(),
+            self.available_package_manager(),
         )
     }
+
     pub fn install_additional_pms(&self) {
-        // Everyone gets Nix
-        PackageManager::Nix.check_install();
-        match self.os_type() {
-            OSType::Linux => {
-                PackageManager::Snap.check_install();
-                PackageManager::Flatpak.check_install();
-                // If arch based, install yay
-                if self.distro().contains("Arch") {
-                    PackageManager::Yay.check_install();
-                }
-            }
-            OSType::Macos => {
-                PackageManager::Brew.check_install();
-            }
-            OSType::Windows => {
-                PackageManager::Scoop.check_install();
-                PackageManager::Choco.check_install();
-            }
-            _ => {}
-        }
+        // Optional: Trigger installation logic on-demand (could be called manually)
+        let _installed = PackageManager::supported_on_os(self.raw_os)
+            .into_iter()
+            .filter(|pm| pm.check_install())
+            .collect::<Vec<_>>();
     }
 }
 
@@ -147,7 +140,6 @@ pub enum SystemSupport {
 }
 
 impl SystemSupport {
-    /// map each supported system to the bitflags it implies:
     pub fn flags(self) -> OsSupport {
         match self {
             SystemSupport::Cross => OsSupport::all(),
@@ -190,57 +182,34 @@ fn normalized_os_type(info: &os_info::Info) -> OSType {
         | OSType::Pop
         | OSType::EndeavourOS
         | OSType::Manjaro => OSType::Linux,
-
-        OSType::Windows => OSType::Windows,
-        OSType::Macos => OSType::Macos,
-        other => other, // Fallback (BSD, Solaris, Unknown, etc.)
+        other => other, // includes Windows, MacOS, BSD, etc.
     }
 }
 
 fn detect_default_package_manager(info: &os_info::Info) -> Option<PackageManager> {
-    let os_type = info.os_type();
+    use PackageManager::*;
 
-    match os_type {
-        OSType::Ubuntu | OSType::Debian => Some(PackageManager::Apt),
-        OSType::Fedora => Some(PackageManager::Dnf),
-        OSType::Redhat => Some(PackageManager::Yum),
-        OSType::Alpine => Some(PackageManager::Apk),
-        OSType::Arch | OSType::Manjaro | OSType::EndeavourOS => Some(PackageManager::Pacman),
-        OSType::Macos => Some(PackageManager::Brew),
-        OSType::Windows => Some(PackageManager::Winget),
+    match info.os_type() {
+        OSType::Ubuntu | OSType::Debian => Some(Apt),
+        OSType::Fedora => Some(Dnf),
+        OSType::Redhat => Some(Yum),
+        OSType::Alpine => Some(Apk),
+        OSType::Arch | OSType::Manjaro | OSType::EndeavourOS => Some(Pacman),
+        OSType::Macos => Some(Brew),
+        OSType::Windows => Some(Winget),
         _ => {
-            // Fallback: probe what's available
-            if command_exists("apt") {
-                Some(PackageManager::Apt)
-            } else if command_exists("dnf") {
-                Some(PackageManager::Dnf)
-            } else if command_exists("yum") {
-                Some(PackageManager::Yum)
-            } else if command_exists("apk") {
-                Some(PackageManager::Apk)
-            } else if command_exists("pacman") {
-                Some(PackageManager::Pacman)
-            } else if command_exists("brew") {
-                Some(PackageManager::Brew)
-            } else if command_exists("winget") {
-                Some(PackageManager::Winget)
-            } else if command_exists("scoop") {
-                Some(PackageManager::Scoop)
-            } else if command_exists("choco") {
-                Some(PackageManager::Choco)
-            } else {
-                None
-            }
+            // Fallback: first one found
+            [Apt, Dnf, Yum, Apk, Pacman, Brew, Winget, Scoop, Choco]
+                .iter()
+                .copied()
+                .find(|pm| command_exists(pm.name()))
         }
     }
 }
 
-fn detect_available_package_managers() -> Vec<PackageManager> {
-    use crate::package_manager::PackageManager;
-
-    PackageManager::all()
-        .iter()
-        .copied()
-        .filter(|pm| pm.check_install())
+fn detect_available_package_managers(os: &OSType) -> Vec<PackageManager> {
+    PackageManager::supported_on_os(*os)
+        .into_iter()
+        .filter(|pm| pm.check_installed()) // Non-interactive version (no prompting)
         .collect()
 }

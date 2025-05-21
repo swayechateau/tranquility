@@ -14,9 +14,10 @@ pub fn uninstall_apps_command(all: bool, server: bool) {
 
 fn install_apps(apps: Vec<Application>, auto: Option<bool>) {
     let system = SystemInfo::new();
-    system.install_additional_pms();
     let current_os = system.os_type().to_string();
     let current_distro = system.distro();
+
+    system.install_additional_pms();
 
     for app in apps {
         // Check if the app is already installed
