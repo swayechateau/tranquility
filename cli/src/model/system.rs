@@ -61,6 +61,10 @@ impl SystemInfo {
         self.os
     }
 
+    pub fn os_type_raw(&self) -> OSType {
+        self.raw_os
+    }
+
     pub fn distro(&self) -> String {
         self.distro.as_deref().unwrap_or("Unknown").to_string()
     }

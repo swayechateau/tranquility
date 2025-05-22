@@ -1,11 +1,19 @@
 // src/print.rs
 use colored::Colorize;
+use figlet_rs::FIGfont;
 
 pub enum PrefixColor {
     RED,
     GREEN,
     YELLOW,
     BLUE,
+}
+
+pub fn tranquility_figlet() {
+    let standard_font = FIGfont::standard().unwrap();
+    let figure_1 = standard_font.convert("TRANQULITY");
+    assert!(figure_1.is_some());
+    println!("{}", figure_1.unwrap());
 }
 
 /// Prints a message with a color-coded prefix
