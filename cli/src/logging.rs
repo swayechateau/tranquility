@@ -4,7 +4,7 @@ use std::{fs::OpenOptions, io::Write, path::PathBuf};
 use serde::Serialize;
 use chrono::Utc;
 
-use crate::config::TranquilityConfig;
+use crate::model::config::TranquilityConfig;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 static LOG_LEVEL: AtomicU8 = AtomicU8::new(1); // 0 = error, 1 = warn, 2 = info

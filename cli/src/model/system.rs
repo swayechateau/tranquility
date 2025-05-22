@@ -2,10 +2,52 @@
 use bitflags::bitflags;
 use colored::Colorize;
 use os_info::{self, Type as OSType};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sysinfo::System;
+use schemars::JsonSchema;
 
 use crate::{model::package_manager::PackageManager, shell::command::command_exists};
+
+#[derive(Debug, Deserialize, Serialize,PartialEq)]
+pub struct OsTypeWrapper {
+    pub os_type: String,
+}
+impl OsTypeWrapper {
+    pub fn equals_ostype(&self, other: &OSType) -> bool {
+        self.os_type.eq_ignore_ascii_case(&other.to_string())
+    }
+}
+impl From<OSType> for OsTypeWrapper {
+    fn from(ty: OSType) -> Self {
+        OsTypeWrapper {
+            os_type: ty.to_string(), // convert to a string for serialization
+        }
+    }
+}
+
+impl JsonSchema for OsTypeWrapper {
+    fn schema_name() -> String {
+        "OsTypeWrapper".to_string()
+    }
+
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        String::json_schema(gen)
+    }
+}
+impl std::fmt::Display for OsTypeWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.os_type)
+    }
+}
+
+impl std::str::FromStr for OsTypeWrapper {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self { os_type: s.to_string() })
+    }
+}
+
 
 bitflags! {
     #[derive(Clone, Copy)]
@@ -133,7 +175,7 @@ impl SystemInfo {
     }
 }
 
-#[derive(Copy, Clone, Debug, clap::ValueEnum, Deserialize)]
+#[derive(Copy, Clone, Debug, clap::ValueEnum, Deserialize, Serialize, JsonSchema)]
 pub enum SystemSupport {
     Cross,
     MacLin,

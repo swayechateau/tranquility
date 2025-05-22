@@ -6,10 +6,11 @@ use crate::{print_error, print_warn};
 use colored::Colorize;
 use dialoguer::Confirm;
 use os_info::Type as OSType;
-use serde::Deserialize;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 /// Represents supported package managers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
 pub enum PackageManager {
     Apt,
     Snap,

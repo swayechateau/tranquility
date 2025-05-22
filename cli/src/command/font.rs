@@ -1,6 +1,6 @@
 // src/commad/font.rs
 
-use crate::{fonts::{auto_refresh, choose_and_install_fonts, choose_and_uninstall_fonts, install_nerd_font, list_fonts, uninstall_font, update_fonts, NERD_FONT_LIST}, print_success};
+use crate::{fonts::{auto_refresh, choose_and_install_fonts, choose_and_uninstall_fonts, install_nerd_font, list_fonts, uninstall_font, update_fonts}, print_success};
 
 pub fn install(all: bool, name: Vec<String>) {
     if all {

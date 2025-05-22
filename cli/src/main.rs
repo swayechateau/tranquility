@@ -4,16 +4,20 @@ mod fonts;
 mod shell;
 mod command;
 mod logging;
-#[macro_use]
+mod schema;
 mod print;
-mod config;
-use model::{categories,package_manager,system};
+#[macro_use]
+mod libs;
+use model::{categories,package_manager,system,config};
 use clap::{Parser};
 use args::{handle_arg_errors, handle_args, TranquilityArgs};
 use print::tranquility_figlet;
+use logging::{log_event};
 
 fn main() {
+
     tranquility_figlet();
+    log_event("info","Starting","tranquility","success",None);
     match TranquilityArgs::try_parse() {
         Ok(args) => {
             handle_args(args);

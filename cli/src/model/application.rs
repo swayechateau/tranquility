@@ -9,34 +9,34 @@ use heck::{ToKebabCase};
 use colored::Colorize;
 use dialoguer::Confirm;
 use os_info::Type as OSType;
-use serde::Deserialize;
-
+use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 use tabled::settings::Style;
 use tabled::{Table, Tabled};
 
 /// Top-level application file
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct ApplicationList {
     pub applications: Vec<Application>,
 }
 
 /// A single application entry
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct Application {
     #[serde(default)]
     pub id: Option<String>, // Optional ID
     pub name: String,
     #[serde(default)]
-    pub categories: Vec<Category>,
-    #[serde(default)]
     pub server_compatible: bool,
+    #[serde(default)]
+    pub categories: Vec<Category>,
     #[serde(default)]
     pub supported_systems: Vec<SystemSupport>,
     pub versions: Vec<ApplicationVersion>,
 }
 
 /// Top-level application file
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct ApplicationVersion {
     pub name: String,
 
@@ -50,10 +50,10 @@ pub struct ApplicationVersion {
 }
 
 /// An install method (OS specific PM, or CLI steps)
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct InstallMethod {
-    #[serde(deserialize_with = "deserialize_os")]
-    pub os: Vec<String>,
+    #[serde(default)]
+    pub os: Vec<OsTypeWrapper>,
 
     #[serde(default)]
     pub package_manager: Option<PackageManager>,
@@ -69,7 +69,7 @@ pub struct InstallMethod {
 }
 
 /// CLI steps override block
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct InstallSteps {
     #[serde(default)]
     pub preinstall_steps: Vec<String>,
@@ -92,9 +92,25 @@ pub struct InstallSteps {
 // --------------------------
 
 impl Application {
-    /// Get or generate an ID
-    pub fn get_id(&self) -> String {
-        self.id.clone().unwrap_or_else(|| self.name.to_kebab_case())
+    /// Constructs a new Application and generates an ID if not provided
+    pub fn new(
+        id: Option<String>,
+        name: String,
+        server_compatible: bool,
+        categories: Vec<Category>,
+        supported_systems: Vec<SystemSupport>,
+        versions: Vec<ApplicationVersion>,
+    ) -> Self {
+        let generated_id = id.or_else(|| Some(name.to_kebab_case()));
+
+        Application {
+            id: generated_id,
+            name,
+            server_compatible,
+            categories,
+            supported_systems,
+            versions,
+        }
     }
     pub fn prompt_install(&self) -> bool {
         let prompt = format!("Do you want to install: {}?", self.name)
@@ -132,45 +148,7 @@ impl Application {
 // --------------------------
 // Flexible OS field
 // --------------------------
-
-use serde::{
-    de::{Error, SeqAccess, Visitor},
-    Deserializer,
-};
-use std::fmt;
-
-/// Allows "os": "Ubuntu" or "os": ["Ubuntu", "Debian"]
-fn deserialize_os<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct OsVisitor;
-
-    impl<'de> Visitor<'de> for OsVisitor {
-        type Value = Vec<String>;
-
-        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "a string or a list of strings")
-        }
-
-        fn visit_str<E: Error>(self, v: &str) -> Result<Self::Value, E> {
-            Ok(vec![v.to_string()])
-        }
-
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: SeqAccess<'de>,
-        {
-            let mut items = vec![];
-            while let Some(item) = seq.next_element::<String>()? {
-                items.push(item);
-            }
-            Ok(items)
-        }
-    }
-
-    deserializer.deserialize_any(OsVisitor)
-}
+use super::system::OsTypeWrapper;
 
 #[derive(Tabled)]
 struct DisplayApp<'a> {
@@ -182,24 +160,7 @@ struct DisplayApp<'a> {
 /// Gets a list of predefined applications and checks application.json if exists adds to the list and returns
 pub fn get_apps() -> ApplicationList {
     // Static built-in apps
-    let mut apps: Vec<Application> = vec![
-        Application {
-            id: Some("nerd-fonts".to_string()),
-            name: "Nerd Fonts".to_string(),
-            categories: vec![Category::Fonts, Category::Customization],
-            supported_systems: vec![SystemSupport::Cross],
-            server_compatible: true,
-            versions: vec![],
-        },
-        Application {
-            id: Some("zsh-shell".to_string()),
-            name: "ZSH (shell)".to_string(),
-            categories: vec![Category::Shells],
-            supported_systems: vec![SystemSupport::MacLin],
-            server_compatible: true,
-            versions: vec![],
-        },
-    ];
+    let mut apps= default_apps();
 
     if let Ok(config) = TranquilityConfig::load_or_init() {
         println!(
@@ -347,4 +308,73 @@ impl InstallMethod {
             eprintln!("❌ No uninstall steps or valid package manager fallback provided.");
         }
     }
+}
+
+
+fn default_apps() -> Vec<Application> {
+    vec![
+        Application::new(
+            None, // id
+            "Alacritty".to_string(),
+            false, // server_compatible
+            vec![Category::TerminalEmulators],
+            vec![SystemSupport::MacLin],
+            vec![ApplicationVersion {
+                name: "Latest".to_string(),
+                check_command: Some("alacritty --version".to_string()),
+                dependencies: vec!["cmake".to_string()],
+                install_methods: vec![InstallMethod {
+                    os: vec![OSType::Ubuntu.into(), OSType::Debian.into()],
+                    package_manager: Some(PackageManager::Apt),
+                    package_name: Some("alacritty".to_string()),
+                    is_cask: None,
+                    steps: None,
+                }],
+            }],
+        ),
+        Application::new(
+            Some("fish-shell".to_string()),
+            "Fish Shell".to_string(),
+            true,
+            vec![Category::Shells],
+            vec![SystemSupport::MacLin],
+            vec![ApplicationVersion {
+                name: "Default".to_string(),
+                check_command: Some("fish --version".to_string()),
+                dependencies: vec![],
+                install_methods: vec![InstallMethod {
+                    os: vec![
+                        OSType::Linux.into(), 
+                        OSType::Macos.into()
+                    ],
+                    package_manager: Some(PackageManager::Apt),
+                    package_name: Some("fish".to_string()),
+                    is_cask: None,
+                    steps: None,
+                }],
+            }],
+        ),
+        Application::new(
+            Some("zsh-shell".to_string()),
+            "ZSH Shell".to_string(),
+            true,
+            vec![Category::Shells],
+            vec![SystemSupport::MacLin],
+            vec![ApplicationVersion {
+                name: "Default".to_string(),
+                check_command: Some("zsh --version".to_string()),
+                dependencies: vec![],
+                install_methods: vec![InstallMethod {
+                    os: vec![
+                        OSType::Linux.into(), 
+                        OSType::Macos.into()
+                    ],
+                    package_manager: Some(PackageManager::Apt),
+                    package_name: Some("zsh".to_string()),
+                    is_cask: None,
+                    steps: None,
+                }],
+            }],
+        ),
+    ]
 }

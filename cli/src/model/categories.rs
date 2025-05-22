@@ -1,11 +1,12 @@
 // src/models/categories.rs
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 use strum::{Display, EnumIter, IntoEnumIterator};
 
 /// Software categories
 #[derive(
-    Copy, Clone, Debug, PartialEq, Eq, ValueEnum, Deserialize, Serialize, EnumIter, Display,
+    Copy, Clone, Debug, PartialEq, Eq, ValueEnum, Deserialize, Serialize, EnumIter, Display, JsonSchema,
 )]
 #[serde(rename_all = "PascalCase")]
 pub enum Category {

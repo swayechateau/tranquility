@@ -1,7 +1,8 @@
 // src/models/vps.rs
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct VPSConfig {
     pub name: Option<String>,
     pub username: Option<String>,

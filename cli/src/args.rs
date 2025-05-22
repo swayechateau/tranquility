@@ -6,10 +6,13 @@ use strum::Display;
 use crate::{
     categories::{list_categories, Category},
     command::{
-        apps::{install::install_apps_command, uninstall::uninstall_apps_command}, doctor, font, logs, vps::{
+        apps::{install::install_apps_command, uninstall::uninstall_apps_command},
+        config, doctor, font, logs,
+        vps::{
             confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
-        }
+        },
     },
+    config::TranquilityConfig,
     model::application::list_supported_applications,
     print_error, print_info,
     system::SystemInfo,
@@ -69,6 +72,16 @@ pub enum Commands {
         list: bool,
         #[arg(long)]
         delete: bool,
+    },
+
+    Config {
+        #[arg(long)]
+        override_config: Option<PathBuf>,
+        #[arg(long)]
+        override_applications: Option<PathBuf>,
+
+        #[arg(long)]
+        override_vps: Option<PathBuf>,
     },
 
     /// Show tranquility logs
@@ -144,8 +157,7 @@ pub enum FontAction {
         name: Vec<String>,
     },
     /// 🔁 Update all installed fonts
-    Update {
-    },
+    Update {},
     /// List installed fonts
     List {
         /// Show only installed fonts
@@ -172,7 +184,6 @@ pub enum VpsAction {
 
 pub fn handle_args(args: TranquilityArgs) {
     let sys = SystemInfo::new();
-
     if args.command.is_none() {
         println!("{}", sys.to_pretty_string());
         println!();
@@ -180,6 +191,38 @@ pub fn handle_args(args: TranquilityArgs) {
     }
 
     match args.command {
+        Some(Commands::Config {
+            override_config,
+            override_applications,
+            override_vps,
+        }) => {
+            let config_path = TranquilityConfig::config_dir()
+                .unwrap_or_default()
+                .join("config.json");
+
+            if let Some(path) = override_config {
+                config::override_config_file(path.as_path(), &config_path);
+            }
+
+            // Reload config in case it was overridden
+            let tran_config = TranquilityConfig::load_or_init();
+            let conf = match tran_config {
+                Ok(c) => c,
+                Err(e) => {
+                    print_error!("❌ Failed to load config: {e}");
+                    return;
+                }
+            };
+
+            if let Some(path) = override_applications {
+                config::override_application_config_file(path.as_path(), &conf);
+            }
+
+            if let Some(path) = override_vps {
+                config::override_vps_config_file(path.as_path(), &conf);
+            }
+        }
+
         Some(Commands::Logs {
             tail,
             level,
@@ -199,7 +242,7 @@ pub fn handle_args(args: TranquilityArgs) {
             Some(FontAction::List { installed }) => {
                 font::list(installed);
             }
-            Some(FontAction::Update { }) => {
+            Some(FontAction::Update {}) => {
                 font::update();
             }
             None => font::list(false),

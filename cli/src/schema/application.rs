@@ -1,9 +1,9 @@
 // src/schema/application.rs
-use crate::models::ApplicationFile;
-use jsonschema::{Draft, JSONSchema};
+use crate::model::application::ApplicationList as ApplicationFile;
+use jsonschema::validator_for;
 use schemars::schema_for;
 use serde_json::Value;
-use std::fs;
+use std::{fs, path::Path};
 
 pub fn validate_file(path: &str) -> Result<(), String> {
     let ext = Path::new(path)
@@ -30,14 +30,17 @@ pub fn validate_file(path: &str) -> Result<(), String> {
     };
 
     let schema = schema_for!(ApplicationFile);
-    let compiled = JSONSchema::options()
-        .with_draft(Draft::Draft7)
-        .compile(&serde_json::to_value(&schema.schema).unwrap())
-        .map_err(|e| format!("Schema error: {e}"))?;
+    let schema_value = serde_json::to_value(&schema.schema).unwrap();
 
-    compiled
-        .validate(&json_value)
-        .map_err(|errs| errs.map(|e| e.to_string()).collect::<Vec<_>>().join("\n"))?;
+    let validator = validator_for(&schema_value).map_err(|e| format!("Schema error: {e}"))?;
+
+    validator.validate(&json_value).map_err(|_| {
+        validator
+            .iter_errors(&json_value)
+            .map(|e| e.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    })?;
 
     validate_custom(&json_value)?;
 

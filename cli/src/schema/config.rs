@@ -1,5 +1,5 @@
-//src/schema/vps.rs
-use crate::model::vps::VPSConfig;
+// src/schema/config.rs
+use crate::model::config::TranquilityConfig;
 use jsonschema::validator_for;
 use schemars::schema_for;
 use serde_json::Value;
@@ -23,16 +23,16 @@ pub fn validate_file(path: &str) -> Result<(), String> {
             serde_json::to_value(yaml).unwrap()
         }
         "xml" => {
-            let parsed: VPSConfig =
+            let parsed: TranquilityConfig =
                 quick_xml::de::from_str(&raw).map_err(|e| format!("Invalid XML: {e}"))?;
             serde_json::to_value(parsed).unwrap()
         }
         _ => return Err(format!("Unsupported file extension: .{}", ext)),
     };
 
-    let schema = schema_for!(VPSConfig);
-    let schema_json = serde_json::to_value(&schema.schema).unwrap();
-    let validator = validator_for(&schema_json).map_err(|e| format!("Schema error: {e}"))?;
+    let schema = schema_for!(TranquilityConfig);
+    let schema_value = serde_json::to_value(&schema.schema).unwrap();
+    let validator = validator_for(&schema_value).map_err(|e| format!("Schema error: {e}"))?;
 
     validator.validate(&json_value).map_err(|_| {
         validator
@@ -50,17 +50,19 @@ pub fn validate_file(path: &str) -> Result<(), String> {
 fn validate_custom(json: &Value) -> Result<(), String> {
     let mut errors = Vec::new();
 
-    if let Some(host) = json.get("host") {
-        if host.as_str().map(|s| s.trim().is_empty()).unwrap_or(true) {
-            errors.push("The 'host' field must not be empty.".to_string());
-        }
-    }
-
-    if let Some(port) = json.get("port") {
-        if let Some(port_str) = port.as_str() {
-            if port_str.parse::<u16>().is_err() {
-                errors.push("The 'port' field must be a valid number between 0-65535.".to_string());
+    for field in ["applications_file", "vps_file", "log_file"] {
+        if let Some(path_val) = json.get(field) {
+            if let Some(path_str) = path_val.as_str() {
+                if path_str.trim().is_empty() {
+                    errors.push(format!("Field '{}' must not be empty.", field));
+                } else if !Path::new(path_str).is_absolute() {
+                    errors.push(format!("Field '{}' must be an absolute path.", field));
+                }
+            } else {
+                errors.push(format!("Field '{}' must be a string.", field));
             }
+        } else {
+            errors.push(format!("Field '{}' is missing.", field));
         }
     }
 

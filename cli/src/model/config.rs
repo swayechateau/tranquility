@@ -1,11 +1,17 @@
-// src/config.rs
+// src/model/config.rs
 use dirs::config_dir;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self};
 use std::path::PathBuf;
+use schemars::JsonSchema;
 
-#[derive(Debug, Serialize, Deserialize)]
+use crate::{print_success, print_warn};
+
+
+
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct TranquilityConfig {
     pub applications_file: PathBuf,
     pub vps_file: PathBuf,

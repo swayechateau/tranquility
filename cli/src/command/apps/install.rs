@@ -14,8 +14,7 @@ pub fn install_apps_command(all: bool, server: bool, dry_run: bool) {
 
 fn install_apps(apps: Vec<Application>, auto: bool, dry_run: bool) {
     let system = SystemInfo::new();
-    let current_os = system.os_type().to_string();
-    let current_distro = system.distro();
+    let current_os = system.os_type_raw();
 
     system.install_additional_pms();
 
@@ -37,7 +36,7 @@ fn install_apps(apps: Vec<Application>, auto: bool, dry_run: bool) {
                 if method
                     .os
                     .iter()
-                    .any(|os| os == &current_os || os == &current_distro)
+                    .any(|os| os.equals_ostype(&current_os))
                 {
                     let runner = InstallRunner::new(&app, method, dry_run);
                     runner.run_install();
