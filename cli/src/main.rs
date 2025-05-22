@@ -10,7 +10,7 @@ mod config;
 use model::{categories,package_manager,system};
 use clap::{Parser};
 use args::{handle_arg_errors, handle_args, TranquilityArgs};
-use figlet_rs::FIGfont;
+use print::tranquility_figlet;
 
 fn main() {
     tranquility_figlet();
@@ -24,9 +24,3 @@ fn main() {
     }
 }
 
-fn tranquility_figlet() {
-    let standard_font = FIGfont::standard().unwrap();
-    let figure_1 = standard_font.convert("TRANQULITY");
-    assert!(figure_1.is_some());
-    println!("{}", figure_1.unwrap());
-}

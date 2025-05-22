@@ -1,4 +1,5 @@
 pub mod apps;
 pub mod vps;
 pub mod logs;
-pub mod init;
+pub mod doctor;
+pub mod font;

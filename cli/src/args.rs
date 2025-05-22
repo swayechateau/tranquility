@@ -1,13 +1,18 @@
-
 // src/args.rs
 use clap::{error::ErrorKind, CommandFactory, Error, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
-use strum::{Display};
+use strum::Display;
 
 use crate::{
-    categories::{list_categories, Category}, command::{
-        apps::{install::install_apps_command, uninstall::uninstall_apps_command}, init, logs, vps::{confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps}
-    }, config::TranquilityConfig, model::application::list_supported_applications, print_error, print_info, print_success, system::SystemInfo
+    categories::{list_categories, Category},
+    command::{
+        apps::{install::install_apps_command, uninstall::uninstall_apps_command}, doctor, font, logs, vps::{
+            confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
+        }
+    },
+    model::application::list_supported_applications,
+    print_error, print_info,
+    system::SystemInfo,
 };
 
 #[derive(Parser, Debug)]
@@ -34,18 +39,26 @@ pub enum LogLevel {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Initialize or reset config
-    Init {
+    /// Check and fix common issues
+    Doctor {
+        /// Fix any issues automatically
+        #[arg(long)]
+        fix: bool,
+        /// Reset the config to default values
         #[arg(long)]
         reset: bool,
     },
-
     /// Application management
     Apps {
         #[command(subcommand)]
         action: Option<AppAction>,
     },
 
+    /// Font management
+    Fonts {
+        #[command(subcommand)]
+        action: Option<FontAction>,
+    },
     /// VPS host management
     Vps {
         #[command(subcommand)]
@@ -71,7 +84,7 @@ pub enum Commands {
 
         #[arg(long)]
         date: Option<String>,
-    }
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -109,6 +122,39 @@ pub enum AppAction {
 }
 
 #[derive(Subcommand, Debug)]
+pub enum FontAction {
+    /// Install Nerd Fonts
+    Install {
+        /// Install all fonts
+        #[arg(long)]
+        all: bool,
+
+        /// Font name(s) (comma-separated or repeated)
+        #[arg(long, value_name = "NAME")]
+        name: Vec<String>,
+    },
+
+    /// Uninstall Nerd Fonts
+    Uninstall {
+        /// Uninstall all fonts
+        #[arg(long)]
+        all: bool,
+        /// Font name(s) (comma-separated or repeated)
+        #[arg(long, value_name = "NAME")]
+        name: Vec<String>,
+    },
+    /// 🔁 Update all installed fonts
+    Update {
+    },
+    /// List installed fonts
+    List {
+        /// Show only installed fonts
+        #[arg(long)]
+        installed: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
 pub enum VpsAction {
     Add {
         #[arg(long)]
@@ -125,7 +171,6 @@ pub enum VpsAction {
 }
 
 pub fn handle_args(args: TranquilityArgs) {
-    let config_path = TranquilityConfig::config_dir().unwrap().join("config.json");
     let sys = SystemInfo::new();
 
     if args.command.is_none() {
@@ -135,35 +180,73 @@ pub fn handle_args(args: TranquilityArgs) {
     }
 
     match args.command {
-        Some(Commands::Logs { tail, level, json, date }) => {
+        Some(Commands::Logs {
+            tail,
+            level,
+            json,
+            date,
+        }) => {
             logs::show_logs(tail, &level.to_string().to_lowercase(), json, date);
         }
 
-        Some(Commands::Init { reset }) => {
-            init::init_command(reset, &config_path);
+        Some(Commands::Fonts { action }) => match action {
+            Some(FontAction::Install { all, name }) => {
+                font::install(all, name);
+            }
+            Some(FontAction::Uninstall { all, name }) => {
+                font::uninstall(all, name);
+            }
+            Some(FontAction::List { installed }) => {
+                font::list(installed);
+            }
+            Some(FontAction::Update { }) => {
+                font::update();
+            }
+            None => font::list(false),
+        },
+        Some(Commands::Doctor { reset, fix }) => {
+            doctor::run_doctor(reset, fix);
         }
 
         Some(Commands::Apps { action }) => match action {
-            Some(AppAction::Install { all, server, dry_run }) => {
+            Some(AppAction::Install {
+                all,
+                server,
+                dry_run,
+            }) => {
                 if dry_run {
                     print_info!("💡 Running in dry-run mode. No changes will be made.");
                 }
                 install_apps_command(all, server, dry_run);
             }
-            Some(AppAction::Uninstall { all, server, dry_run }) => {
+            Some(AppAction::Uninstall {
+                all,
+                server,
+                dry_run,
+            }) => {
                 if dry_run {
                     print_info!("💡 Running in dry-run mode. No changes will be made.");
                 }
                 uninstall_apps_command(all, server, dry_run);
             }
             Some(AppAction::Categories {}) => list_categories(),
-            Some(AppAction::List { server, category }) => list_supported_applications(server, category),
+            Some(AppAction::List { server, category }) => {
+                list_supported_applications(server, category)
+            }
             None => print_info!("Use a subcommand like install or list for 'apps'"),
         },
 
-        Some(Commands::Vps { list, schema, delete, action }) => {
+        Some(Commands::Vps {
+            list,
+            schema,
+            delete,
+            action,
+        }) => {
             if schema {
-                println!("{}", serde_json::to_string_pretty(&json_schema_example()).unwrap());
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&json_schema_example()).unwrap()
+                );
                 return;
             }
 
@@ -175,7 +258,13 @@ pub fn handle_args(args: TranquilityArgs) {
             }
 
             match action {
-                Some(VpsAction::Add { name, host, username, port, private_key }) => {
+                Some(VpsAction::Add {
+                    name,
+                    host,
+                    username,
+                    port,
+                    private_key,
+                }) => {
                     if let Err(e) = prompt_and_add_vps(name, host, username, port, private_key) {
                         print_error!("❌ Failed to add VPS entry: {e}");
                     }
