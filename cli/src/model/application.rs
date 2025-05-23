@@ -287,7 +287,7 @@ impl InstallMethod {
                 run_shell_command(cmd);
             }
         } else if let (Some(pm), Some(pkg)) = (self.package_manager, self.package_name.as_deref()) {
-            pm.install(pkg, self.is_cask, dry_run);
+            pm.install(None, pkg, self.is_cask, dry_run);
         } else {
             eprintln!("❌ No install steps or valid package manager fallback provided.");
         }
@@ -303,7 +303,7 @@ impl InstallMethod {
                 run_shell_command(cmd);
             }
         } else if let (Some(pm), Some(pkg)) = (self.package_manager, self.package_name.as_deref()) {
-            pm.uninstall(pkg, dry_run);
+            pm.uninstall(None, pkg, dry_run);
         } else {
             eprintln!("❌ No uninstall steps or valid package manager fallback provided.");
         }

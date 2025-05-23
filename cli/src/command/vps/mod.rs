@@ -46,7 +46,7 @@ pub fn list_vps_entries(vps_entries: &[VPSConfig]) {
     println!("{table}");
 }
 
-pub fn connect_to_vps(list: bool) -> io::Result<()> {
+pub fn connect_to_vps(list: bool, run_script_only: bool) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
     let vps_entries = match load_vps_entries(&config.vps_file) {
         Ok(entries) => entries,
@@ -87,9 +87,10 @@ pub fn connect_to_vps(list: bool) -> io::Result<()> {
         selected.host
     );
 
-    connect(selected)?;
+    connect(selected, run_script_only)?;
     Ok(())
 }
+
 
 fn set_connection_string(vps: &VPSConfig) -> String {
     let name = vps.name.clone();
@@ -108,46 +109,48 @@ fn set_connection_string(vps: &VPSConfig) -> String {
     conn
 }
 
-fn connect(vps: &VPSConfig) -> io::Result<()> {
+fn connect(vps: &VPSConfig, script_mode: bool) -> io::Result<()> {
     let username = vps.username.as_deref().unwrap_or("user");
     let port = vps.port.as_deref().unwrap_or("22");
+    let remote = format!("{}@{}", username, vps.host);
 
-    let mut args: Vec<String> = vec![];
+    let mut args: Vec<&str> = vec![];
 
     if let Some(private_key) = &vps.private_key {
-        args.push("-i".into());
-        args.push(private_key.to_str().unwrap().into());
+        args.push("-i");
+        args.push(private_key.to_str().unwrap());
     }
 
     if port != "22" {
-        args.push("-p".into());
-        args.push(port.into());
+        args.push("-p");
+        args.push(port);
     }
 
-    args.push(format!("{}@{}", username, vps.host));
+    if script_mode {
+        if let Some(script) = &vps.post_connect_script {
+            let tilde_expanded = shellexpand::tilde(script).to_string();
+            let expanded_script = shellexpand::env(&tilde_expanded)
+                .unwrap_or_else(|_| tilde_expanded.clone().into())
+                .to_string();
 
-    let args_ref: Vec<&str> = args.iter().map(String::as_str).collect();
+            print_info!("📜 Running script on {}...", remote);
+            let ssh_script = format!("ssh {} '{}'", remote, expanded_script);
+            ShellCommand::from_script(&ssh_script, false).run_verbose(false);
+        } else {
+            print_warn!("⚠️ No post-connect script defined for this VPS.");
+        }
+    } else {
+        args.insert(0, "-tt"); // Force pseudo-terminal
+        args.push(&remote);
 
-    ShellCommand::new("ssh")
-        .with_args(&args_ref)
-        .run_verbose(false);
-
-    if let Some(script) = &vps.post_connect_script {
-        print_info!("📜 Running post-connect script...");
-
-        // Expand env variables like $USER and ~
-        let tilde_expanded = tilde(script).to_string();
-        let expanded_script = match env(&tilde_expanded) {
-            Ok(val) => val.to_string(),
-            Err(_) => tilde_expanded,
-        };
-
-        let remote_cmd = format!("ssh {}@{} '{}'", username, vps.host, expanded_script);
-        ShellCommand::from_shell(&remote_cmd, false).run_verbose(false);
+        ShellCommand::new("ssh")
+            .with_args(args)
+            .run_verbose(false);
     }
 
     Ok(())
 }
+
 
 pub fn json_schema_example() -> VPSConfig {
     VPSConfig {

@@ -67,6 +67,8 @@ pub enum Commands {
         #[command(subcommand)]
         action: Option<VpsAction>,
         #[arg(long)]
+        script: bool,
+        #[arg(long)]
         schema: bool,
         #[arg(long)]
         list: bool,
@@ -281,6 +283,7 @@ pub fn handle_args(args: TranquilityArgs) {
 
         Some(Commands::Vps {
             list,
+            script,
             schema,
             delete,
             action,
@@ -313,7 +316,7 @@ pub fn handle_args(args: TranquilityArgs) {
                     }
                 }
                 None => {
-                    if let Err(e) = connect_to_vps(list) {
+                    if let Err(e) = connect_to_vps(list, script) {
                         print_error!("❌ VPS connection failed: {e}");
                     }
                 }

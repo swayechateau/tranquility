@@ -32,20 +32,25 @@ impl ShellScriptRunner {
         })
     }
 
-    /// Run the script with appropriate shell
-    pub fn run(&self) {
+    /// Run the script with shell and show output
+    pub fn run_verbose(&self) {
         println!(
             "📜 Running script {}{}",
             if self.from_file { "[file] " } else { "" },
             if self.dry_run { "(dry-run)".yellow() } else { "".normal() }
         );
 
-        let cmd = if cfg!(target_os = "windows") {
-            ShellCommand::from_powershell(&self.script, self.use_sudo)
-        } else {
-            ShellCommand::from_shell(&self.script, self.use_sudo)
-        };
-
+        let cmd = ShellCommand::from_script(&self.script, self.use_sudo);
         cmd.run_verbose(self.dry_run);
+    }
+
+    /// Run silently (e.g., for internal use or scripting)
+    pub fn run_silent(&self) -> Option<std::io::Result<()>> {
+        ShellCommand::from_script(&self.script, self.use_sudo).run(self.dry_run)
+    }
+
+    /// Unified run (default to verbose)
+    pub fn run(&self) {
+        self.run_verbose();
     }
 }

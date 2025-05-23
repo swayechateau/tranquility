@@ -3,7 +3,7 @@ mod model;
 mod fonts;
 mod shell;
 mod command;
-mod logging;
+mod logger;
 mod schema;
 mod print;
 #[macro_use]
@@ -12,7 +12,7 @@ use model::{categories,package_manager,system,config};
 use clap::{Parser};
 use args::{handle_arg_errors, handle_args, TranquilityArgs};
 use print::tranquility_figlet;
-use logging::{log_event};
+use logger::{log_event};
 
 fn main() {
 
