@@ -1,5 +1,5 @@
 // src/logger.rs
-use std::{fs::OpenOptions, io::Write, path::PathBuf};
+use std::{fs::OpenOptions, io::{stderr, Write}, path::PathBuf};
 use serde::Serialize;
 use chrono::Utc;
 
@@ -7,15 +7,6 @@ use crate::model::config::TranquilityConfig;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 static LOG_LEVEL: AtomicU8 = AtomicU8::new(1); // 0 = error, 1 = warn, 2 = info
-
-// pub fn set_log_level(level: &str) {
-//     let value = match level {
-//         "error" => 0,
-//         "warn" => 1,
-//         _ => 2,
-//     };
-//     LOG_LEVEL.store(value, Ordering::Relaxed);
-// }
 
 fn should_log(level: &str) -> bool {
     let current = LOG_LEVEL.load(Ordering::Relaxed);
@@ -38,8 +29,7 @@ pub struct LogEntry<'a> {
     pub duration_secs: Option<f64>,
 }
 
-/// Log an event using the config-defined log file path
-/// Automatically loads the config (use only for occasional logging)
+/// Log an event using the config-defined log file path (fallbacks to stderr if needed)
 pub fn log_event(
     level: &str,
     action: &str,
@@ -47,20 +37,26 @@ pub fn log_event(
     status: &str,
     duration_secs: Option<f64>,
 ) {
-    let config = TranquilityConfig::load_or_init().unwrap();
-    let path = config.log_file;
-    log_event_with_path(&path, level, action, app, status, duration_secs);
+    let path_opt = TranquilityConfig::load_or_init()
+        .ok()
+        .and_then(|cfg| Some(cfg.log_file));
+
+    log_event_with_path(path_opt.as_ref(), level, action, app, status, duration_secs);
 }
 
-/// More efficient logging interface when config is already loaded
+/// Logging with known config, fallback if path is invalid
 pub fn log_event_with_path(
-    path: &PathBuf,
+    path: Option<&PathBuf>,
     level: &str,
     action: &str,
     app: &str,
     status: &str,
     duration_secs: Option<f64>,
 ) {
+    if !should_log(level) {
+        return;
+    }
+
     let entry = LogEntry {
         timestamp: Utc::now().to_rfc3339(),
         level,
@@ -69,29 +65,33 @@ pub fn log_event_with_path(
         status,
         duration_secs,
     };
-    log_(path, &entry);
-}
 
-/// Appends both a human-readable and JSON entry to the log file
-pub fn log_(path: &PathBuf, entry: &LogEntry) {
-    if !should_log(entry.level) {
-        return;
+    // Try writing to file, fallback to stderr
+    if let Some(path) = path {
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
+            write_log(&mut file, &entry);
+            return;
+        }
     }
 
-    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
-        let json = serde_json::to_string(entry).unwrap_or_default();
-        let human = format!(
-            "[{}] [{}] {} {} - {} ({:?})",
-            entry.timestamp,
-            entry.level.to_uppercase(),
-            entry.action,
-            entry.app,
-            entry.status,
-            entry.duration_secs
-        );
-
-        let _ = writeln!(file, "{human}");
-        let _ = writeln!(file, "{json}");
-    }
+    // Fallback to stderr
+    let mut err = stderr();
+    write_log(&mut err, &entry);
 }
 
+/// Write human and JSON to any writer
+fn write_log(writer: &mut dyn Write, entry: &LogEntry) {
+    let json = serde_json::to_string(entry).unwrap_or_default();
+    let human = format!(
+        "[{}] [{}] {} {} - {} ({:?})",
+        entry.timestamp,
+        entry.level.to_uppercase(),
+        entry.action,
+        entry.app,
+        entry.status,
+        entry.duration_secs
+    );
+
+    let _ = writeln!(writer, "{human}");
+    let _ = writeln!(writer, "{json}");
+}
