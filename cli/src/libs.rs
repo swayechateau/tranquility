@@ -1,4 +1,4 @@
-
+//src/lib.rs
 #[macro_export]
 macro_rules! print_error {
     ($($arg:tt)*) => {

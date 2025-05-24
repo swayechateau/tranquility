@@ -1,5 +1,4 @@
 // src/logger.rs
-
 use std::{fs::OpenOptions, io::Write, path::PathBuf};
 use serde::Serialize;
 use chrono::Utc;

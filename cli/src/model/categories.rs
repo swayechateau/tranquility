@@ -1,4 +1,4 @@
-// src/models/categories.rs
+// src/model/categories.rs
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;

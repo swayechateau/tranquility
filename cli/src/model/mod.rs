@@ -1,4 +1,4 @@
-// src/models/mod.rs
+// src/model/mod.rs
 pub mod application;
 pub mod categories;
 pub mod package_manager;

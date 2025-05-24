@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[derive(Parser, Debug)]
-#[command(version, about)]
+#[command(author, version, about, long_about = None)]
 pub struct TranquilityArgs {
     /// Sets a custom config file
     #[arg(short, long, value_name = "FILE")]
@@ -165,6 +165,9 @@ pub enum FontAction {
         /// Show only installed fonts
         #[arg(long)]
         installed: bool,
+        /// Show available and installed fonts
+        #[arg(long)]
+        all: bool,
     },
 }
 
@@ -241,13 +244,13 @@ pub fn handle_args(args: TranquilityArgs) {
             Some(FontAction::Uninstall { all, name }) => {
                 font::uninstall(all, name);
             }
-            Some(FontAction::List { installed }) => {
-                font::list(installed);
+            Some(FontAction::List { installed , all}) => {
+                font::list(installed, all);
             }
             Some(FontAction::Update {}) => {
                 font::update();
             }
-            None => font::list(false),
+            None => font::list(false, false),
         },
         Some(Commands::Doctor { reset, fix }) => {
             doctor::run_doctor(reset, fix);

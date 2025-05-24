@@ -1,3 +1,4 @@
+// src/command/mod.rs
 pub mod apps;
 pub mod vps;
 pub mod logs;

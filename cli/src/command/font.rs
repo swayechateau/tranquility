@@ -1,12 +1,22 @@
 // src/commad/font.rs
 
-use crate::{fonts::{auto_refresh, choose_and_install_fonts, choose_and_uninstall_fonts, install_nerd_font, list_fonts, uninstall_font, update_fonts}, print_success};
+use crate::fonts::{
+    auto_refresh,
+    choose_and_install_fonts,
+    choose_and_uninstall_fonts,
+    install_nerd_font,
+    list_fonts,
+    uninstall_font,
+    update_fonts,
+};
+use crate::print_success;
 
-pub fn install(all: bool, name: Vec<String>) {
+/// 🎯 Handle font install command
+pub fn install(all: bool, names: Vec<String>) {
     if all {
         choose_and_install_fonts(true);
-    } else if !name.is_empty() {
-        for font in name {
+    } else if !names.is_empty() {
+        for font in names {
             install_nerd_font(&font);
         }
     } else {
@@ -16,11 +26,12 @@ pub fn install(all: bool, name: Vec<String>) {
     print_success!("✅ Font installation complete.");
 }
 
-pub fn uninstall(all: bool, name: Vec<String>) {
+/// 🗑️ Handle font uninstall command
+pub fn uninstall(all: bool, names: Vec<String>) {
     if all {
-        choose_and_uninstall_fonts(all);
-    } else if !name.is_empty() {
-        for font in name {
+        choose_and_uninstall_fonts(true);
+    } else if !names.is_empty() {
+        for font in names {
             uninstall_font(&font);
         }
     } else {
@@ -30,12 +41,26 @@ pub fn uninstall(all: bool, name: Vec<String>) {
     print_success!("✅ Font uninstall complete.");
 }
 
+/// 🔁 Update only installed fonts
 pub fn update() {
     println!("🔁 Updating installed Nerd Fonts...");
     update_fonts();
+    auto_refresh();
+    print_success!("✅ Font update complete.");
 }
 
-pub fn list(installed_only: bool) {
-    println!("📦 Available Nerd Fonts:");
-    list_fonts(installed_only);
+/// 📦 List fonts based on filter
+pub fn list(installed: bool, all: bool) {
+    if all {
+        println!("📦 Listing all Nerd Fonts:");
+        list_fonts(None);
+        return;
+    }
+    if installed {
+        println!("✅ Listing only installed fonts:");
+        list_fonts(Some(true));
+        return;
+    }
+    println!("📄 Listing only available (not installed) fonts:");
+    list_fonts(Some(false));
 }

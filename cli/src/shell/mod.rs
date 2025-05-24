@@ -1,3 +1,4 @@
+// src/shell/mod.rs
 pub mod command;
 pub mod runner;
 pub mod script_runner;

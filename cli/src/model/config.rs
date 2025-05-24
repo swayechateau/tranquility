@@ -8,9 +8,6 @@ use schemars::JsonSchema;
 
 use crate::{print_success, print_warn};
 
-
-
-
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct TranquilityConfig {
     pub applications_file: PathBuf,

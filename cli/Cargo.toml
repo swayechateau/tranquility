@@ -27,3 +27,6 @@ chrono = "0.4.41"
 schemars = "0.8.22"
 serde_yaml = "0.9.34"
 quick-xml = { version = "0.37.5", features = ["serialize"] }
+zip = "4.0.0"
+reqwest = { version = "0.12.15", features = ["blocking", "json"] }
+zip-extract = "0.4.0"

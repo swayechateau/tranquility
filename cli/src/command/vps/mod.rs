@@ -1,10 +1,11 @@
-// src/command/vps.rs
+// src/command/vps/mod.rs
 use std::{fs, io, path::PathBuf};
 
 use crate::{
     config::TranquilityConfig, model::vps::VPSConfig, print_error, print_info, print_success,
     print_warn, shell::ShellCommand,
 };
+use clap::Command;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use shellexpand::{env, tilde};
 use tabled::{Table, Tabled};
@@ -143,9 +144,10 @@ fn connect(vps: &VPSConfig, script_mode: bool) -> io::Result<()> {
         args.insert(0, "-tt"); // Force pseudo-terminal
         args.push(&remote);
 
-        ShellCommand::new("ssh")
-            .with_args(args)
-            .run_verbose(false);
+        std::process::Command::new("ssh")
+            .args(args)
+            .spawn()?
+            .wait()?; // Wait for the process to complete
     }
 
     Ok(())
