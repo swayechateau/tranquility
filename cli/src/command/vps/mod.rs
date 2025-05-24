@@ -2,10 +2,11 @@
 use std::{fs, io, path::PathBuf};
 
 use crate::{
-    config::TranquilityConfig, model::vps::VPSConfig, print_error, print_info, print_success,
-    print_warn, shell::ShellCommand,
+    config::TranquilityConfig,
+    model::vps::VPSConfig,
+    print_error, print_info, print_success, print_warn,
+    shell::ShellCommand,
 };
-use clap::Command;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use shellexpand::{env, tilde};
 use tabled::{Table, Tabled};
@@ -26,7 +27,7 @@ struct VPSDisplay {
 
 pub fn load_vps_entries(path: &PathBuf) -> io::Result<Vec<VPSConfig>> {
     let content = fs::read_to_string(path)?;
-    let entries: Vec<VPSConfig> = serde_json::from_str(&content)?;
+    let entries = serde_json::from_str(&content)?;
     Ok(entries)
 }
 
@@ -36,30 +37,26 @@ pub fn list_vps_entries(vps_entries: &[VPSConfig]) {
         .enumerate()
         .map(|(i, vps)| VPSDisplay {
             index: i + 1,
-            name: vps.name.clone().unwrap_or_else(|| "-".to_string()),
-            username: vps.username.clone().unwrap_or_else(|| "user".to_string()),
+            name: vps.name.clone().unwrap_or_else(|| "-".into()),
+            username: vps.username.clone().unwrap_or_else(|| "user".into()),
             host: vps.host.clone(),
-            port: vps.port.clone().unwrap_or_else(|| "22".to_string()),
+            port: vps.port.clone().unwrap_or_else(|| "22".into()),
         })
         .collect();
 
-    let table = Table::new(table_data).to_string();
-    println!("{table}");
+    println!("{}", Table::new(table_data));
 }
 
 pub fn connect_to_vps(list: bool, run_script_only: bool) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
-    let vps_entries = match load_vps_entries(&config.vps_file) {
-        Ok(entries) => entries,
-        Err(e) => {
-            print_error!(
-                "❌ Failed to load VPS entries from {}: {}",
-                config.vps_file.display(),
-                e
-            );
-            return Ok(());
-        }
-    };
+    let vps_entries = load_vps_entries(&config.vps_file).unwrap_or_else(|e| {
+        print_error!(
+            "❌ Failed to load VPS entries from {}: {}",
+            config.vps_file.display(),
+            e
+        );
+        vec![]
+    });
 
     if vps_entries.is_empty() {
         print_warn!("⚠️  No VPS entries found in your configuration.");
@@ -67,7 +64,7 @@ pub fn connect_to_vps(list: bool, run_script_only: bool) -> io::Result<()> {
     }
 
     if list {
-        println!("\n📋 Configured VPS instances:\n");
+        print_info!("\n📋 Configured VPS instances:\n");
         list_vps_entries(&vps_entries);
         return Ok(());
     }
@@ -82,32 +79,31 @@ pub fn connect_to_vps(list: bool, run_script_only: bool) -> io::Result<()> {
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Dialog error: {e}")))?;
 
     let selected = &vps_entries[selection];
-    println!(
+    print_info!(
         "\n🔗 Connecting to {}@{}...\n",
         selected.username.as_deref().unwrap_or("user"),
         selected.host
     );
 
-    connect(selected, run_script_only)?;
-    Ok(())
+    connect(selected, run_script_only)
 }
 
-
 fn set_connection_string(vps: &VPSConfig) -> String {
-    let name = vps.name.clone();
-    let mut conn = format!("{}@{}", vps.username.as_deref().unwrap_or("user"), vps.host);
+    let base = format!(
+        "{}@{}",
+        vps.username.as_deref().unwrap_or("user"),
+        vps.host
+    );
 
-    if let Some(port) = vps.port.as_deref() {
-        if port != "22" {
-            conn = format!("{}:{}", conn, port);
-        }
+    let with_port = match vps.port.as_deref() {
+        Some(port) if port != "22" => format!("{base}:{port}"),
+        _ => base,
+    };
+
+    match &vps.name {
+        Some(name) => format!("{name} ({with_port})"),
+        None => with_port,
     }
-
-    if let Some(name) = name {
-        conn = format!("{} ({})", name, conn);
-    }
-
-    conn
 }
 
 fn connect(vps: &VPSConfig, script_mode: bool) -> io::Result<()> {
@@ -129,8 +125,8 @@ fn connect(vps: &VPSConfig, script_mode: bool) -> io::Result<()> {
 
     if script_mode {
         if let Some(script) = &vps.post_connect_script {
-            let tilde_expanded = shellexpand::tilde(script).to_string();
-            let expanded_script = shellexpand::env(&tilde_expanded)
+            let tilde_expanded = tilde(script).to_string();
+            let expanded_script = env(&tilde_expanded)
                 .unwrap_or_else(|_| tilde_expanded.clone().into())
                 .to_string();
 
@@ -147,12 +143,11 @@ fn connect(vps: &VPSConfig, script_mode: bool) -> io::Result<()> {
         std::process::Command::new("ssh")
             .args(args)
             .spawn()?
-            .wait()?; // Wait for the process to complete
+            .wait()?;
     }
 
     Ok(())
 }
-
 
 pub fn json_schema_example() -> VPSConfig {
     VPSConfig {
@@ -178,7 +173,6 @@ pub fn prompt_and_add_vps(
     let mut vps_entries = load_vps_entries(path).unwrap_or_default();
 
     let name = name.unwrap_or_else(|| Input::new().with_prompt("Name").interact_text().unwrap());
-
     let host = host.unwrap_or_else(|| Input::new().with_prompt("Host").interact_text().unwrap());
 
     let username = username.unwrap_or_else(|| {
@@ -197,30 +191,27 @@ pub fn prompt_and_add_vps(
                 .interact_text()
                 .unwrap()
         } else {
-            "22".to_string()
+            "22".into()
         }
     });
 
     let private_key = match private_key {
         Some(v) if !v.trim().is_empty() => Some(PathBuf::from(tilde(&v).to_string())),
-        _ => {
-            if is_full_interactive {
-                let input: String = Input::new()
-                    .with_prompt("Private key path (leave blank for none)")
-                    .allow_empty(true)
-                    .default("".into())
-                    .interact_text()
-                    .unwrap();
+        _ if is_full_interactive => {
+            let input: String = Input::new()
+                .with_prompt("Private key path (leave blank for none)")
+                .allow_empty(true)
+                .default("".into())
+                .interact_text()
+                .unwrap();
 
-                if input.trim().is_empty() {
-                    None
-                } else {
-                    Some(PathBuf::from(tilde(&input).to_string()))
-                }
-            } else {
+            if input.trim().is_empty() {
                 None
+            } else {
+                Some(PathBuf::from(tilde(&input).to_string()))
             }
         }
+        _ => None,
     };
 
     let post_connect_script = if is_full_interactive {
@@ -234,7 +225,7 @@ pub fn prompt_and_add_vps(
         if input.trim().is_empty() {
             None
         } else if input.trim_start().starts_with('@') {
-            let path = tilde(input.trim_start().trim_start_matches('@').trim());
+            let path = tilde(input.trim_start_matches('@').trim());
             match fs::read_to_string(path.to_string()) {
                 Ok(content) => Some(content),
                 Err(e) => {
@@ -275,7 +266,7 @@ pub fn confirm_and_delete_vps_config() -> io::Result<()> {
     let vps_path = config.vps_file;
 
     if !vps_path.exists() {
-        println!("⚠️  VPS config does not exist at {}", vps_path.display());
+        print_warn!("⚠️  VPS config does not exist at {}", vps_path.display());
         return Ok(());
     }
 
@@ -290,10 +281,28 @@ pub fn confirm_and_delete_vps_config() -> io::Result<()> {
 
     if confirm {
         fs::remove_file(&vps_path)?;
-        println!("🗑️  Deleted VPS config: {}", vps_path.display());
+        print_success!("🗑️  Deleted VPS config: {}", vps_path.display());
     } else {
-        println!("❌ Deletion canceled.");
+        print_warn!("❌ Deletion canceled.");
     }
 
     Ok(())
+}
+
+pub fn vps_command_list() -> io::Result<()> {
+    let vps_entries = get_vps_entries()?;
+
+    if vps_entries.is_empty() {
+        print_warn!("⚠️  No VPS entries found in your configuration.");
+        return Ok(());
+    }
+
+    print_info!("\n📋 Configured VPS instances:\n");
+    list_vps_entries(&vps_entries);
+    Ok(())
+}
+
+fn get_vps_entries() -> io::Result<Vec<VPSConfig>> {
+    let config = TranquilityConfig::load_or_init()?;
+    load_vps_entries(&config.vps_file)
 }

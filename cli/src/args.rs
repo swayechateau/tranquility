@@ -6,11 +6,9 @@ use strum::Display;
 use crate::{
     categories::{list_categories, Category},
     command::{
-        apps::{install::install_apps_command, uninstall::uninstall_apps_command},
-        config, doctor, font, logs,
-        vps::{
-            confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
-        },
+        self, apps::{install::install_apps_command, uninstall::uninstall_apps_command}, config, doctor, font, logs, vps::{
+            confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps, vps_command_list,
+        }
     },
     config::TranquilityConfig,
     model::application::list_supported_applications,
@@ -51,6 +49,31 @@ pub enum Commands {
         #[arg(long)]
         reset: bool,
     },
+    /// Configuration management
+    Config {
+        #[arg(long)]
+        override_config: Option<PathBuf>,
+        #[arg(long)]
+        override_applications: Option<PathBuf>,
+
+        #[arg(long)]
+        override_vps: Option<PathBuf>,
+    },
+
+    /// Show tranquility logs
+    Logs {
+        #[arg(long, default_value = "50")]
+        tail: usize,
+
+        #[arg(long, value_enum, default_value = "info")]
+        level: LogLevel,
+
+        #[arg(long)]
+        json: bool,
+
+        #[arg(long)]
+        date: Option<String>,
+    },
     /// Application management
     Apps {
         #[command(subcommand)]
@@ -76,29 +99,9 @@ pub enum Commands {
         delete: bool,
     },
 
-    Config {
-        #[arg(long)]
-        override_config: Option<PathBuf>,
-        #[arg(long)]
-        override_applications: Option<PathBuf>,
-
-        #[arg(long)]
-        override_vps: Option<PathBuf>,
-    },
-
-    /// Show tranquility logs
-    Logs {
-        #[arg(long, default_value = "50")]
-        tail: usize,
-
-        #[arg(long, value_enum, default_value = "info")]
-        level: LogLevel,
-
-        #[arg(long)]
-        json: bool,
-
-        #[arg(long)]
-        date: Option<String>,
+    List {
+        #[command(subcommand)]
+        action: Option<ListAction>,
     },
 }
 
@@ -169,6 +172,26 @@ pub enum FontAction {
         #[arg(long)]
         all: bool,
     },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ListAction {
+    Apps {
+        #[arg(long)]
+        server: bool,
+        #[arg(long)]
+        category: Vec<Category>,
+    },
+    Fonts {
+        /// Show only installed fonts
+        #[arg(long)]
+        installed: bool,
+        /// Show available and installed fonts
+        #[arg(long)]
+        all: bool,
+    },
+    Vps {},
+    Categories {},
 }
 
 #[derive(Subcommand, Debug)]
@@ -325,6 +348,20 @@ pub fn handle_args(args: TranquilityArgs) {
                 }
             }
         }
+
+        Some(Commands::List { action }) => match action {
+            Some(ListAction::Apps { server, category }) => {
+                list_supported_applications(server, category)
+            }
+            Some(ListAction::Fonts { installed, all }) => {
+                font::list(installed, all);
+            }
+            Some(ListAction::Vps {}) => {
+                let _ = vps_command_list();
+            }
+            Some(ListAction::Categories {}) => list_categories(),
+            None => print_info!("Use a subcommand like apps or fonts for 'list'"),
+        },
 
         None => {}
     }
