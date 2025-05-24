@@ -1,10 +1,10 @@
 // src/model/config.rs
 use dirs::config_dir;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self};
 use std::path::PathBuf;
-use schemars::JsonSchema;
 
 use crate::{print_success, print_warn};
 
@@ -22,23 +22,22 @@ impl TranquilityConfig {
         })
     }
 
-pub fn default() -> io::Result<Self> {
-    let base_dir = Self::config_dir()?;
-    let logs_dir = base_dir.join("logs");
-    fs::create_dir_all(&logs_dir)?;
+    pub fn default() -> io::Result<Self> {
+        let base_dir = Self::config_dir()?;
+        let logs_dir = base_dir.join("logs");
+        fs::create_dir_all(&logs_dir)?;
 
-    let log_file = logs_dir.join(format!(
-        "tranquility-{}.log",
-        chrono::Local::now().format("%Y-%m-%d")
-    ));
+        let log_file = logs_dir.join(format!(
+            "tranquility-{}.log",
+            chrono::Local::now().format("%Y-%m-%d")
+        ));
 
-    Ok(TranquilityConfig {
-        applications_file: base_dir.join("applications.json"),
-        vps_file: base_dir.join("vps.json"),
-        log_file: log_file,
-    })
-}
-
+        Ok(TranquilityConfig {
+            applications_file: base_dir.join("applications.json"),
+            vps_file: base_dir.join("vps.json"),
+            log_file: log_file,
+        })
+    }
 
     pub fn load_or_init() -> io::Result<Self> {
         let path = Self::config_dir()?.join("config.json");
@@ -47,7 +46,25 @@ pub fn default() -> io::Result<Self> {
             print_success!("✅ Config file exists.");
             let content = fs::read_to_string(&path)?;
             Self::validate_schema(&content)?;
-            let cfg: Self = serde_json::from_str(&content)?;
+
+            let mut cfg: TranquilityConfig = serde_json::from_str(&content)?;
+
+            // Patch: If log_file is missing, assign a default path
+            if cfg.log_file.as_os_str().is_empty() {
+                let base_dir = Self::config_dir()?;
+                let logs_dir = base_dir.join("logs");
+                fs::create_dir_all(&logs_dir)?;
+                cfg.log_file = logs_dir.join(format!(
+                    "tranquility-{}.log",
+                    chrono::Local::now().format("%Y-%m-%d")
+                ));
+
+                // Save patched config back to file
+                let patched_json = serde_json::to_string_pretty(&cfg)?;
+                fs::write(&path, patched_json)?;
+                print_warn!("⚠️  Patched missing log_file in config.");
+            }
+
             Ok(cfg)
         } else {
             print_warn!("⚠️  Config file not found. Creating default config.");
