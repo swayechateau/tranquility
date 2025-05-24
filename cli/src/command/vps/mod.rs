@@ -140,10 +140,10 @@ fn connect(vps: &VPSConfig, script_mode: bool) -> io::Result<()> {
         args.insert(0, "-tt"); // Force pseudo-terminal
         args.push(&remote);
 
-        std::process::Command::new("ssh")
-            .args(args)
-            .spawn()?
-            .wait()?;
+        ShellCommand::new("ssh")
+    .with_args(args)
+    .run_interactive(false)?; // Replace false with a dry_run var if needed
+
     }
 
     Ok(())
@@ -166,6 +166,7 @@ pub fn prompt_and_add_vps(
     username: Option<String>,
     port: Option<String>,
     private_key: Option<String>,
+    dry_run: bool,
 ) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
     let path = &config.vps_file;

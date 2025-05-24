@@ -1,7 +1,7 @@
 // src/shell/command.rs
-use std::process::{Command, Stdio, Output};
-use colored::Colorize;
 use crate::{print_error, print_info, print_warn};
+use colored::Colorize;
+use std::process::{Command, Output, Stdio};
 
 #[derive(Debug)]
 pub struct ShellCommand {
@@ -126,7 +126,10 @@ impl ShellCommand {
                 if output.status.success() {
                     Some(Ok(()))
                 } else {
-                    Some(Err(std::io::Error::new(std::io::ErrorKind::Other, "Command failed")))
+                    Some(Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Command failed",
+                    )))
                 }
             }
             Err(e) => Some(Err(e)),
@@ -151,6 +154,41 @@ impl ShellCommand {
 
     pub fn from_args(args: &[&str]) -> Vec<String> {
         args.iter().map(|s| s.to_string()).collect()
+    }
+
+    pub fn run_interactive(&self, dry_run: bool) -> std::io::Result<()> {
+        if dry_run {
+            self.dry_run();
+            return Ok(());
+        }
+
+        let mut cmd;
+
+        if cfg!(target_os = "windows") {
+            let full_cmd = format!("{} {}", self.command, self.args.join(" "));
+            cmd = Command::new("cmd");
+            cmd.args(&["/C", &full_cmd]);
+        } else {
+            let mut full_cmd = if self.requires_sudo {
+                vec!["sudo".to_string(), self.command.clone()]
+            } else {
+                vec![self.command.clone()]
+            };
+            full_cmd.extend(self.args.clone());
+
+            cmd = Command::new(&full_cmd[0]);
+            for arg in &full_cmd[1..] {
+                cmd.arg(arg);
+            }
+        }
+
+        cmd.stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+
+        let mut child = cmd.spawn()?;
+        child.wait()?;
+        Ok(())
     }
 }
 
@@ -194,7 +232,9 @@ pub fn run_shell_command(command: &str) {
     println!("🚀 Running: {}", command.cyan());
 
     let status = if cfg!(target_os = "windows") {
-        Command::new("powershell").args(&["-Command", command]).status()
+        Command::new("powershell")
+            .args(&["-Command", command])
+            .status()
     } else {
         Command::new("sh").args(&["-c", command]).status()
     };

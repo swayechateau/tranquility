@@ -6,7 +6,7 @@ use strum::Display;
 use crate::{
     categories::{list_categories, Category},
     command::{
-        self, apps::{install::install_apps_command, uninstall::uninstall_apps_command}, config, doctor, font, logs, vps::{
+        apps::{install::install_apps_command, uninstall::uninstall_apps_command}, config, doctor, font, logs, vps::{
             confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps, vps_command_list,
         }
     },
@@ -207,6 +207,9 @@ pub enum VpsAction {
         port: Option<String>,
         #[arg(long = "private-key")]
         private_key: Option<String>,
+
+        #[arg(long = "dry-run")]
+        dry_run: bool,
     },
 }
 
@@ -336,8 +339,9 @@ pub fn handle_args(args: TranquilityArgs) {
                     username,
                     port,
                     private_key,
+                    dry_run,
                 }) => {
-                    if let Err(e) = prompt_and_add_vps(name, host, username, port, private_key) {
+                    if let Err(e) = prompt_and_add_vps(name, host, username, port, private_key, dry_run) {
                         print_error!("❌ Failed to add VPS entry: {e}");
                     }
                 }
