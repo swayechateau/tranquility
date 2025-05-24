@@ -6,7 +6,7 @@ use std::fs;
 use std::io::{self};
 use std::path::PathBuf;
 
-use crate::{print_success, print_warn};
+use crate::logger::log_event;
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct TranquilityConfig {
@@ -43,7 +43,7 @@ impl TranquilityConfig {
         let path = Self::config_dir()?.join("config.json");
 
         if path.exists() {
-            print_success!("✅ Config file exists.");
+            log_event("info", "load", "config", "✅ Config file exists.", None);
             let content = fs::read_to_string(&path)?;
             Self::validate_schema(&content)?;
 
@@ -62,16 +62,18 @@ impl TranquilityConfig {
                 // Save patched config back to file
                 let patched_json = serde_json::to_string_pretty(&cfg)?;
                 fs::write(&path, patched_json)?;
-                print_warn!("⚠️  Patched missing log_file in config.");
+                log_event("warn", "patch", "config", "⚠️  Patched missing log_file in config.", None);
+                
             }
 
             Ok(cfg)
         } else {
-            print_warn!("⚠️  Config file not found. Creating default config.");
+            log_event("warn", "load", "config", "⚠️  Config file not found. Creating default config.", None);
             let default = Self::default()?;
             let json = serde_json::to_string_pretty(&default)?;
             fs::create_dir_all(path.parent().unwrap())?;
             fs::write(&path, json)?;
+            log_event("info", "create", "config", "✅ Default config created.", None);
             Ok(default)
         }
     }
