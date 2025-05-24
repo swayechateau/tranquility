@@ -3,6 +3,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 use strum::{Display, EnumIter, IntoEnumIterator};
+use tabled::{Table, Tabled};
 
 /// Software categories
 #[derive(
@@ -63,12 +64,41 @@ impl Category {
             _ => self.to_string(),
         }
     }
+
+    /// Returns the ValueEnum representation (kebab-case CLI style)
+    pub fn cli_name(&self) -> String {
+        format!("{self:?}").to_lowercase().replace('_', "-")
+    }
+
+    /// Returns the Serde PascalCase name
+    pub fn serde_name(&self) -> String {
+        format!("{self:?}")
+    }
+
 }
 
 /// Print out all categories with display names
+/// Printable row for tabled
+#[derive(Tabled)]
+struct CategoryRow {
+    #[tabled(rename = "Display Name")]
+    display: String,
+    #[tabled(rename = "CLI (--category)")]
+    cli: String,
+    #[tabled(rename = "Serde (PascalCase)")]
+    serde: String,
+}
+
+/// Print out all categories using tabled
 pub fn list_categories() {
-    println!("📦 Available Categories:");
-    for category in Category::iter() {
-        println!("- {}", category.display());
-    }
+    let rows: Vec<CategoryRow> = Category::iter()
+        .map(|cat| CategoryRow {
+            display: cat.display(),
+            cli: cat.cli_name(),
+            serde: cat.serde_name(),
+        })
+        .collect();
+
+    let table = Table::new(rows).to_string();
+    println!("📦 Available Categories:\n{table}");
 }
