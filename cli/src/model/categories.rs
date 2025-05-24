@@ -3,7 +3,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 use strum::{Display, EnumIter, IntoEnumIterator};
-use tabled::{Table, Tabled};
+use tabled::{settings::Style, Table, Tabled};
 
 /// Software categories
 #[derive(
@@ -99,6 +99,6 @@ pub fn list_categories() {
         })
         .collect();
 
-    let table = Table::new(rows).to_string();
+    let table = Table::new(rows).with(Style::modern()).to_string();
     println!("📦 Available Categories:\n{table}");
 }
