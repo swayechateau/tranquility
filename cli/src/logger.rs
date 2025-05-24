@@ -8,14 +8,14 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 static LOG_LEVEL: AtomicU8 = AtomicU8::new(1); // 0 = error, 1 = warn, 2 = info
 
-pub fn set_log_level(level: &str) {
-    let value = match level {
-        "error" => 0,
-        "warn" => 1,
-        _ => 2,
-    };
-    LOG_LEVEL.store(value, Ordering::Relaxed);
-}
+// pub fn set_log_level(level: &str) {
+//     let value = match level {
+//         "error" => 0,
+//         "warn" => 1,
+//         _ => 2,
+//     };
+//     LOG_LEVEL.store(value, Ordering::Relaxed);
+// }
 
 fn should_log(level: &str) -> bool {
     let current = LOG_LEVEL.load(Ordering::Relaxed);

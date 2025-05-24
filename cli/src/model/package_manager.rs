@@ -137,31 +137,31 @@ impl PackageManager {
     }
 
 
-    pub fn update(&self, use_sudo: Option<bool>, dry_run: bool) {
-        if matches!(self, Self::Nix) {
-            print_warn!("⚠️ To update Nix packages, run:\n    nix-channel --update && nix-env -u");
-            return;
-        }
+    // pub fn update(&self, use_sudo: Option<bool>, dry_run: bool) {
+    //     if matches!(self, Self::Nix) {
+    //         print_warn!("⚠️ To update Nix packages, run:\n    nix-channel --update && nix-env -u");
+    //         return;
+    //     }
 
-        let (cmd, args): (&str, Vec<&str>) = match self {
-            Self::Apt => ("apt", vec!["update", "-y"]),
-            Self::Dnf => ("dnf", vec!["update", "-y"]),
-            Self::Yum => ("yum", vec!["update", "-y"]),
-            Self::Zypper => ("sh", vec!["-c", "zypper refresh && zypper update -y"]),
-            Self::Portage => ("sh", vec!["-c", "emerge --sync && emerge -avuDN @world"]),
-            Self::Apk => ("sh", vec!["-c", "apk update && apk upgrade"]),
-            Self::Pacman | Self::Yay => (self.name(), vec!["-Syu", "--noconfirm"]),
-            Self::Flatpak => ("flatpak", vec!["update", "-y"]),
-            Self::Snap => ("snap", vec!["refresh"]),
-            Self::Brew => ("sh", vec!["-c", "brew update && brew upgrade"]),
-            Self::Choco => ("choco", vec!["upgrade", "all", "-y"]),
-            Self::Winget => ("winget", vec!["upgrade", "--all"]),
-            Self::Scoop => ("scoop", vec!["update", "*"]),
-            _ => return,
-        };
+    //     let (cmd, args): (&str, Vec<&str>) = match self {
+    //         Self::Apt => ("apt", vec!["update", "-y"]),
+    //         Self::Dnf => ("dnf", vec!["update", "-y"]),
+    //         Self::Yum => ("yum", vec!["update", "-y"]),
+    //         Self::Zypper => ("sh", vec!["-c", "zypper refresh && zypper update -y"]),
+    //         Self::Portage => ("sh", vec!["-c", "emerge --sync && emerge -avuDN @world"]),
+    //         Self::Apk => ("sh", vec!["-c", "apk update && apk upgrade"]),
+    //         Self::Pacman | Self::Yay => (self.name(), vec!["-Syu", "--noconfirm"]),
+    //         Self::Flatpak => ("flatpak", vec!["update", "-y"]),
+    //         Self::Snap => ("snap", vec!["refresh"]),
+    //         Self::Brew => ("sh", vec!["-c", "brew update && brew upgrade"]),
+    //         Self::Choco => ("choco", vec!["upgrade", "all", "-y"]),
+    //         Self::Winget => ("winget", vec!["upgrade", "--all"]),
+    //         Self::Scoop => ("scoop", vec!["update", "*"]),
+    //         _ => return,
+    //     };
 
-        execute_package_cmd(cmd, &args, use_sudo.unwrap_or(self.requires_sudo()), dry_run);
-    }
+    //     execute_package_cmd(cmd, &args, use_sudo.unwrap_or(self.requires_sudo()), dry_run);
+    // }
 
 
     pub fn uninstall(&self, use_sudo: Option<bool>, package: &str, dry_run: bool) {

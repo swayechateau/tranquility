@@ -166,7 +166,7 @@ pub fn prompt_and_add_vps(
     username: Option<String>,
     port: Option<String>,
     private_key: Option<String>,
-    dry_run: bool,
+    _dry_run: bool,
 ) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
     let path = &config.vps_file;
