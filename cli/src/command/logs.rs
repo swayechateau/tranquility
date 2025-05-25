@@ -1,22 +1,47 @@
 // src/command/logs.rs
 use crate::config::TranquilityConfig;
+use crate::logger::default_log_path;
+
 use std::{
     fs::File,
     io::{BufRead, BufReader},
     path::PathBuf,
 };
 
-pub fn show_logs(tail: usize, level: &str, json_only: bool, date: Option<String>) {
-    let config = TranquilityConfig::load_or_init().unwrap();
-    let base_dir = config.log_file.parent().unwrap().to_path_buf();
-
-    let path = match resolve_log_file(&base_dir, date) {
-        Some(p) => p,
-        None => {
-            eprintln!("❌ Could not find matching log file.");
-            return;
+/// Show filtered logs or just print the log path
+pub fn show_logs(
+    tail: usize,
+    level: &str,
+    json_only: bool,
+    date: Option<String>,
+    show_log_path_only: bool,
+) {
+    let config = TranquilityConfig::load_or_init().unwrap_or_else(|_| {
+        // fallback if config fails
+        TranquilityConfig {
+            applications_file: PathBuf::new(),
+            vps_file: PathBuf::new(),
+            log_file: default_log_path(),
         }
-    };
+    });
+
+    let base_dir = config
+        .log_file
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| default_log_path().parent().unwrap().to_path_buf());
+
+    let path = resolve_log_file(&base_dir, date);
+
+    if show_log_path_only {
+        println!("{}", path.display());
+        return;
+    }
+
+    if !path.exists() {
+        eprintln!("❌ Could not find matching log file: {}", path.display());
+        return;
+    }
 
     if let Ok(f) = File::open(&path) {
         let reader = BufReader::new(f);
@@ -52,28 +77,22 @@ pub fn show_logs(tail: usize, level: &str, json_only: bool, date: Option<String>
     }
 }
 
-fn resolve_log_file(logs_dir: &PathBuf, date: Option<String>) -> Option<PathBuf> {
+fn resolve_log_file(logs_dir: &PathBuf, date: Option<String>) -> PathBuf {
     let name = if let Some(date_str) = date {
-        format!("tranquility-{}.log", date_str)
+        format!("{}-tranquility.log", date_str)
     } else {
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        format!("tranquility-{}.log", today)
+        format!("{}-tranquility.log", today)
     };
-    let path = logs_dir.join(name);
-    if path.exists() {
-        Some(path)
-    } else {
-        None
-    }
+
+    logs_dir.join(name)
 }
 
 fn extract_level(line: &str) -> Option<String> {
     if line.trim_start().starts_with('{') {
-        // JSON format
         let json: serde_json::Value = serde_json::from_str(line).ok()?;
         json.get("level")?.as_str().map(|s| s.to_lowercase())
     } else {
-        // human-readable: [2025-05-21T..] [INFO] ...
         line.split_once('[')?
             .1
             .split(']')

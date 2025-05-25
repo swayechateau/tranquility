@@ -6,9 +6,12 @@ use strum::Display;
 use crate::{
     categories::{list_categories, Category},
     command::{
-        apps::{install::install_apps_command, uninstall::uninstall_apps_command}, config, doctor, font, logs, vps::{
-            confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps, vps_command_list,
-        }
+        apps::{install::install_apps_command, uninstall::uninstall_apps_command},
+        config, doctor, font, logs,
+        vps::{
+            confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
+            vps_command_list,
+        },
     },
     config::TranquilityConfig,
     model::application::list_supported_applications,
@@ -62,17 +65,25 @@ pub enum Commands {
 
     /// Show tranquility logs
     Logs {
-        #[arg(long, default_value = "50")]
+        /// Only show JSON lines
+        #[arg(long)]
+        json_only: bool,
+
+        /// Only show the log file path
+        #[arg(long)]
+        path: bool,
+
+        /// Show last N log lines
+        #[arg(long, default_value_t = 50)]
         tail: usize,
 
-        #[arg(long, value_enum, default_value = "info")]
-        level: LogLevel,
-
-        #[arg(long)]
-        json: bool,
-
+        /// Filter logs by date (YYYY-MM-DD)
         #[arg(long)]
         date: Option<String>,
+
+        /// Filter logs by level (error, warn, info)
+        #[arg(long, default_value = "info")]
+        level: String,
     },
     /// Application management
     Apps {
@@ -257,10 +268,11 @@ pub fn handle_args(args: TranquilityArgs) {
         Some(Commands::Logs {
             tail,
             level,
-            json,
+            json_only,
             date,
+            path,
         }) => {
-            logs::show_logs(tail, &level.to_string().to_lowercase(), json, date);
+            logs::show_logs(tail, &level.to_string().to_lowercase(), json_only, date, path);
         }
 
         Some(Commands::Fonts { action }) => match action {
@@ -270,7 +282,7 @@ pub fn handle_args(args: TranquilityArgs) {
             Some(FontAction::Uninstall { all, name }) => {
                 font::uninstall(all, name);
             }
-            Some(FontAction::List { installed , all}) => {
+            Some(FontAction::List { installed, all }) => {
                 font::list(installed, all);
             }
             Some(FontAction::Update {}) => {
@@ -341,7 +353,9 @@ pub fn handle_args(args: TranquilityArgs) {
                     private_key,
                     dry_run,
                 }) => {
-                    if let Err(e) = prompt_and_add_vps(name, host, username, port, private_key, dry_run) {
+                    if let Err(e) =
+                        prompt_and_add_vps(name, host, username, port, private_key, dry_run)
+                    {
                         print_error!("❌ Failed to add VPS entry: {e}");
                     }
                 }
