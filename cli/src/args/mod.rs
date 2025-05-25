@@ -6,21 +6,19 @@ use strum::Display;
 use crate::{
     categories::{list_categories, Category}, command::{
         apps::{install::install_apps_command, uninstall::uninstall_apps_command},
-        config, doctor, font, logs,
-        vps::{
-            confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
-            vps_command_list,
+        config::{
+            config_command_override_application_file, config_command_override_config_file,
+            config_command_override_vps_file, config_command_reset,
         },
-    }, config::TranquilityConfig, logger, model::application::list_supported_applications, print_error, print_info, system::SystemInfo
+        doctor, font, logs,
+        vps::{confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps, vps_command_list},
+    }, log_error, logger, model::application::list_supported_applications, print_info, system::SystemInfo
 };
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct TranquilityArgs {
-    /// Sets a custom config file
-    #[arg(short, long, value_name = "FILE")]
-    pub config: Option<PathBuf>,
-
     /// Turn debugging information on (repeatable)
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     pub debug: bool,
@@ -43,12 +41,12 @@ pub enum Commands {
         /// Fix any issues automatically
         #[arg(long)]
         fix: bool,
-        /// Reset the config to default values
-        #[arg(long)]
-        reset: bool,
     },
     /// Configuration management
     Config {
+        /// Reset the config to default values
+        #[arg(long)]
+        reset: bool,
         #[arg(long)]
         override_config: Option<PathBuf>,
         #[arg(long)]
@@ -104,7 +102,7 @@ pub enum Commands {
         #[arg(long)]
         delete: bool,
     },
-
+    /// List supported applications, fonts, or VPS hosts
     List {
         #[command(subcommand)]
         action: Option<ListAction>,
@@ -213,52 +211,39 @@ pub enum VpsAction {
         port: Option<String>,
         #[arg(long = "private-key")]
         private_key: Option<String>,
-
         #[arg(long = "dry-run")]
         dry_run: bool,
     },
 }
 
 pub fn handle_args(args: TranquilityArgs) {
-    let sys = SystemInfo::new();
     if args.command.is_none() {
-        println!("{}", sys.to_pretty_string());
-        println!();
+        println!("{}\n", SystemInfo::new().to_pretty_string());
         return;
     }
+
     if args.debug {
         logger::set_debug(true);
     }
+
     match args.command {
         Some(Commands::Config {
+            reset,
             override_config,
             override_applications,
             override_vps,
         }) => {
-            let config_path = TranquilityConfig::config_dir()
-                .unwrap_or_default()
-                .join("config.json");
-
+            if reset {
+                config_command_reset();
+            }
             if let Some(path) = override_config {
-                config::override_config_file(path.as_path(), &config_path);
+                config_command_override_config_file(path.as_path());
             }
-
-            // Reload config in case it was overridden
-            let tran_config = TranquilityConfig::load_or_init();
-            let conf = match tran_config {
-                Ok(c) => c,
-                Err(e) => {
-                    print_error!("❌ Failed to load config: {e}");
-                    return;
-                }
-            };
-
             if let Some(path) = override_applications {
-                config::override_application_config_file(path.as_path(), &conf);
+                config_command_override_application_file(path.as_path());
             }
-
             if let Some(path) = override_vps {
-                config::override_vps_config_file(path.as_path(), &conf);
+                config_command_override_vps_file(path.as_path());
             }
         }
 
@@ -271,7 +256,7 @@ pub fn handle_args(args: TranquilityArgs) {
         }) => {
             logs::show_logs(
                 tail,
-                &level.to_string().to_lowercase(),
+                &level.to_lowercase(),
                 json_only,
                 date,
                 path,
@@ -279,51 +264,30 @@ pub fn handle_args(args: TranquilityArgs) {
         }
 
         Some(Commands::Fonts { action }) => match action {
-            Some(FontAction::Install { all, name }) => {
-                font::install(all, name);
-            }
-            Some(FontAction::Uninstall { all, name }) => {
-                font::uninstall(all, name);
-            }
-            Some(FontAction::List { installed, all }) => {
-                font::list(installed, all);
-            }
-            Some(FontAction::Update {}) => {
-                font::update();
-            }
+            Some(FontAction::Install { all, name }) => font::install(all, name),
+            Some(FontAction::Uninstall { all, name }) => font::uninstall(all, name),
+            Some(FontAction::Update {}) => font::update(),
+            Some(FontAction::List { installed, all }) => font::list(installed, all),
             None => font::list(false, false),
         },
-        Some(Commands::Doctor { reset, fix }) => {
-            doctor::run_doctor(reset, fix);
-        }
 
-        Some(Commands::Apps { action }) => match action {
-            Some(AppAction::Install {
-                all,
-                server,
-                dry_run,
-            }) => {
-                if dry_run {
-                    print_info!("💡 Running in dry-run mode. No changes will be made.");
-                }
+        Some(Commands::Doctor { fix }) => doctor::run_doctor(fix),
+
+        Some(Commands::Apps { action: Some(app_action) }) => match app_action {
+            AppAction::Install { all, server, dry_run } => {
+                notify_dry_run(dry_run);
                 install_apps_command(all, server, dry_run);
             }
-            Some(AppAction::Uninstall {
-                all,
-                server,
-                dry_run,
-            }) => {
-                if dry_run {
-                    print_info!("💡 Running in dry-run mode. No changes will be made.");
-                }
+            AppAction::Uninstall { all, server, dry_run } => {
+                notify_dry_run(dry_run);
                 uninstall_apps_command(all, server, dry_run);
             }
-            Some(AppAction::Categories {}) => list_categories(),
-            Some(AppAction::List { server, category }) => {
-                list_supported_applications(server, category)
+            AppAction::Categories {} => list_categories(),
+            AppAction::List { server, category } => {
+                list_supported_applications(server, category);
             }
-            None => print_info!("Use a subcommand like install or list for 'apps'"),
         },
+        Some(Commands::Apps { action: None }) => print_subcommand_help("apps"),
 
         Some(Commands::Vps {
             list,
@@ -342,7 +306,7 @@ pub fn handle_args(args: TranquilityArgs) {
 
             if delete {
                 if let Err(e) = confirm_and_delete_vps_config() {
-                    print_error!("❌ Failed to delete VPS config: {e}");
+                    log_error!("delete", "vps", &format!("❌ Failed to delete VPS config: {e}"));
                 }
                 return;
             }
@@ -356,34 +320,31 @@ pub fn handle_args(args: TranquilityArgs) {
                     private_key,
                     dry_run,
                 }) => {
-                    if let Err(e) =
-                        prompt_and_add_vps(name, host, username, port, private_key, dry_run)
-                    {
-                        print_error!("❌ Failed to add VPS entry: {e}");
+                    if let Err(e) = prompt_and_add_vps(name, host, username, port, private_key, dry_run) {
+                        log_error!("add","vps", &format!("❌ Failed to add VPS entry: {e}"));
                     }
                 }
                 None => {
                     if let Err(e) = connect_to_vps(list, script) {
-                        print_error!("❌ VPS connection failed: {e}");
+                        log_error!("connect","vps", &format!("❌ VPS connection failed: {e}"));
                     }
                 }
             }
         }
 
-        Some(Commands::List { action }) => match action {
-            Some(ListAction::Apps { server, category }) => {
-                list_supported_applications(server, category)
+        Some(Commands::List { action: Some(list_action) }) => match list_action {
+            ListAction::Apps { server, category } => {
+                list_supported_applications(server, category);
             }
-            Some(ListAction::Fonts { installed, all }) => {
+            ListAction::Fonts { installed, all } => {
                 font::list(installed, all);
             }
-            Some(ListAction::Vps {}) => {
+            ListAction::Vps {} => {
                 let _ = vps_command_list();
             }
-            Some(ListAction::Categories {}) => list_categories(),
-            None => print_info!("Use a subcommand like apps or fonts for 'list'"),
+            ListAction::Categories {} => list_categories(),
         },
-
+        Some(Commands::List { action: None }) => print_subcommand_help("list"),
         None => {}
     }
 }
@@ -399,4 +360,20 @@ pub fn handle_arg_errors(err: Error) {
         }
     }
     std::process::exit(1);
+}
+
+fn notify_dry_run(dry_run: bool) {
+    if dry_run {
+        print_info!("💡 Running in dry-run mode. No changes will be made.");
+    }
+}
+
+fn print_subcommand_help(subcommand: &str) {
+    let mut cmd = TranquilityArgs::command();
+    if let Some(sub) = cmd.find_subcommand_mut(subcommand) {
+        sub.print_help().unwrap();
+        println!();
+    } else {
+        eprintln!("❌ Subcommand `{}` not found.", subcommand);
+    }
 }

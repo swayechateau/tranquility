@@ -8,14 +8,9 @@ use crate::{
     print_error, print_success, print_warn,
 };
 use std::{fs, path::Path};
-pub fn run_doctor(reset: bool, fix: bool) {
+pub fn run_doctor(fix: bool) {
     let config_path = TranquilityConfig::config_dir()
     .unwrap_or_else(|_| PathBuf::from("~/.config/tranquility/config.json"));
-
-    if reset {
-        TranquilityConfig::reset().expect("Failed to reset config");
-        print_success!("✅ Config reset to default at {}", config_path.display());
-    }
     
     if fix {
         TranquilityConfig::load_or_init().expect("Failed to initialize config");

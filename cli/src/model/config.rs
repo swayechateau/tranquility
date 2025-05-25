@@ -31,6 +31,11 @@ pub struct TranquilityConfig {
 }
 
 impl TranquilityConfig {
+    /// Gets config file path, e.g. ~/.config/tranquility/config.json
+    pub fn config_file(&self) -> PathBuf {
+        self::config_dir().unwrap().join("config.json")
+    }
+
     /// Gets the user's config directory, e.g. ~/.config/tranquility
     pub fn config_dir() -> io::Result<PathBuf> {
         config_dir().map(|p| p.join("tranquility")).ok_or_else(|| {
