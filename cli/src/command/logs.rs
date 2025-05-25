@@ -1,9 +1,11 @@
 // src/command/logs.rs
-use crate::config::TranquilityConfig;
+use crate::log_error;
+// src/command/logs.rs
 use crate::logger::default_log_path;
+use crate::{config::TranquilityConfig, log_warn};
 
 use std::{
-    fs::File,
+    fs::{File, OpenOptions},
     io::{BufRead, BufReader},
     path::PathBuf,
 };
@@ -16,19 +18,15 @@ pub fn show_logs(
     date: Option<String>,
     show_log_path_only: bool,
 ) {
-    let config = TranquilityConfig::load_or_init().unwrap_or_else(|_| {
-        // fallback if config fails
-        TranquilityConfig {
-            applications_file: PathBuf::new(),
-            vps_file: PathBuf::new(),
-            log_file: default_log_path(),
-        }
+    let config = TranquilityConfig::load_or_init().unwrap_or_else(|e| {
+        log_warn!("fallback", "config", &format!("Using default config due to error: {e}"));
+        TranquilityConfig::default().expect("Failed to generate default config")
     });
 
     let base_dir = config
         .log_file
         .parent()
-        .map(|p| p.to_path_buf())
+        .map(PathBuf::from)
         .unwrap_or_else(|| default_log_path().parent().unwrap().to_path_buf());
 
     let path = resolve_log_file(&base_dir, date);
@@ -39,7 +37,7 @@ pub fn show_logs(
     }
 
     if !path.exists() {
-        eprintln!("❌ Could not find matching log file: {}", path.display());
+        log_warn!("resolve", "log", &format!("❌ Missing: {}", path.display()));
         return;
     }
 
@@ -55,11 +53,9 @@ pub fn show_logs(
                     return false;
                 }
 
-                if let Some(lvl) = extract_level(line) {
-                    matches_log_level(&lvl, level)
-                } else {
-                    true
-                }
+                extract_level(line)
+                    .map(|lvl| matches_log_level(&lvl, level))
+                    .unwrap_or(true)
             })
             .take(tail)
             .collect();
@@ -73,7 +69,7 @@ pub fn show_logs(
             println!("{}", line);
         }
     } else {
-        eprintln!("❌ Could not open log file: {}", path.display());
+        log_error!("open", "log", &format!("❌ Failed: {}", path.display()));
     }
 }
 
@@ -85,7 +81,14 @@ fn resolve_log_file(logs_dir: &PathBuf, date: Option<String>) -> PathBuf {
         format!("{}-tranquility.log", today)
     };
 
-    logs_dir.join(name)
+    let path = logs_dir.join(name);
+
+    // Create the file silently if it doesn't exist
+    if !path.exists() {
+        let _ = OpenOptions::new().create(true).append(true).open(&path);
+    }
+
+    path
 }
 
 fn extract_level(line: &str) -> Option<String> {

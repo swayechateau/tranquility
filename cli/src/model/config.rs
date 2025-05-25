@@ -10,10 +10,24 @@ use crate::{log_info, log_warn};
 use crate::logger::{default_log_path};
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum LogOutput {
+    Primary,
+    Stdout,
+}
+
+impl Default for LogOutput {
+    fn default() -> Self {
+        LogOutput::Primary
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct TranquilityConfig {
     pub applications_file: PathBuf,
     pub vps_file: PathBuf,
     pub log_file: PathBuf,
+    pub log_output: LogOutput,
 }
 
 impl TranquilityConfig {
@@ -39,6 +53,7 @@ impl TranquilityConfig {
             applications_file: base_dir.join("applications.json"),
             vps_file: base_dir.join("vps.json"),
             log_file,
+            log_output: LogOutput::Primary,
         })
     }
 

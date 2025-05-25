@@ -2,25 +2,36 @@
 use std::fs::{self, OpenOptions};
 use std::io::{stderr, stdout, Write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 use chrono::Utc;
+use colored::Colorize;
 use serde::Serialize;
 
+use crate::log_info;
 use crate::model::config::TranquilityConfig;
 
 const MAX_LOG_SIZE: u64 = 5 * 1024 * 1024; // 5 MB
 
 static LOG_LEVEL: AtomicU8 = AtomicU8::new(1); // 0 = error, 1 = warn, 2 = info
+static DEBUG_ENABLED: AtomicBool = AtomicBool::new(false);
 
-/// Enum to represent log destinations
-pub enum LogDestination {
-    File(PathBuf),
-    Stdout,
-    Stderr,
+pub fn set_debug(enabled: bool) {
+    let env_debug = std::env::var("RUST_LOG")
+        .map(|val| val.to_lowercase().contains("debug"))
+        .unwrap_or(false);
+
+    DEBUG_ENABLED.store(enabled || env_debug, Ordering::Relaxed);
+    if DEBUG_ENABLED.load(Ordering::Relaxed) {
+        log_info!("startup", "logger", "Debug mode enabled");
+    }
 }
 
-/// A structured log entry
+pub enum LogDestination {
+    Primary(PathBuf),
+    Stdout,
+}
+
 #[derive(Serialize)]
 pub struct LogEntry<'a> {
     pub timestamp: String,
@@ -32,7 +43,6 @@ pub struct LogEntry<'a> {
     pub source: Option<&'a str>,
 }
 
-/// Determine if a message should be logged based on level
 fn should_log(level: &str) -> bool {
     let current = LOG_LEVEL.load(Ordering::Relaxed);
     let entry_level = match level {
@@ -43,29 +53,24 @@ fn should_log(level: &str) -> bool {
     entry_level <= current
 }
 
-/// Use config-based log destination, fallback to default path
-pub fn log_event(
-    level: &str,
-    action: &str,
-    app: &str,
-    status: &str,
-    duration_secs: Option<f64>,
-) {
+pub fn log_event(level: &str, action: &str, app: &str, status: &str, duration_secs: Option<f64>) {
     let destination = TranquilityConfig::load_or_init()
-        .ok()
-        .map(|cfg| {
-            if cfg.log_file.as_os_str().is_empty() {
-                LogDestination::File(default_log_path())
-            } else {
-                LogDestination::File(cfg.log_file)
+        .map(|cfg| match cfg.log_output {
+            crate::model::config::LogOutput::Stdout => LogDestination::Stdout,
+            crate::model::config::LogOutput::Primary => {
+                let path = if cfg.log_file.as_os_str().is_empty() {
+                    default_log_path()
+                } else {
+                    cfg.log_file
+                };
+                LogDestination::Primary(path)
             }
         })
-        .unwrap_or(LogDestination::File(default_log_path()));
+        .unwrap_or(LogDestination::Primary(default_log_path()));
 
     log_to_full(level, action, app, status, duration_secs, None, destination);
 }
 
-/// Core logger with source and destination
 pub fn log_to_full(
     level: &str,
     action: &str,
@@ -89,37 +94,63 @@ pub fn log_to_full(
         source,
     };
 
+    // Always show errors on stderr
+    if entry.level == "error" {
+        let _ = write_log(&mut stderr(), &entry);
+    }
+
     match destination {
-        LogDestination::File(ref path) => {
+        LogDestination::Primary(ref path) => {
             rotate_if_needed(path);
             if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
                 write_log(&mut file, &entry);
+
+                // Also show info/warn to stdout in debug mode
+                if DEBUG_ENABLED.load(Ordering::Relaxed) {
+                    match entry.level {
+                        "warn" | "info" => {
+                            let _ = write_log(&mut stdout(), &entry);
+                        }
+                        _ => {}
+                    }
+                }
             } else {
-                let mut err = stderr();
-                write_log(&mut err, &entry);
+                let _ = write_log(&mut stderr(), &entry);
             }
         }
         LogDestination::Stdout => {
-            let mut out = stdout();
-            write_log(&mut out, &entry);
-        }
-        LogDestination::Stderr => {
-            let mut err = stderr();
-            write_log(&mut err, &entry);
+            // Don't double-print errors here
+            if entry.level != "error" {
+                let _ = write_log(&mut stdout(), &entry);
+            }
         }
     }
 }
 
-/// Writes human-readable and JSON log
 fn write_log(writer: &mut dyn Write, entry: &LogEntry) {
     let json = serde_json::to_string(entry).unwrap_or_default();
+
+    let colorized_status = match entry.level {
+        "error" => entry.status.red().bold(),
+        "warn" => entry.status.yellow().bold(),
+        "info" => entry.status.blue(),
+        _ => entry.status.normal(),
+    };
+
+    let level_str = match entry.level {
+        "error" => "ERROR".red().bold(),
+        "warn" => "WARN".yellow().bold(),
+        "info" => "INFO".blue(),
+        _ => entry.level.normal(),
+    };
+
     let human = format!(
         "[{}] [{}] {} {} - {} ({:?}){}",
         entry.timestamp,
-        entry.level.to_uppercase(),
+        level_str,
         entry.action,
         entry.app,
-        entry.status,
+        colorized_status,
         entry.duration_secs,
         match entry.source {
             Some(src) => format!(" [{}]", src),
@@ -131,7 +162,6 @@ fn write_log(writer: &mut dyn Write, entry: &LogEntry) {
     let _ = writeln!(writer, "{json}");
 }
 
-/// Rotates the log file if too large
 fn rotate_if_needed(path: &PathBuf) {
     if let Ok(metadata) = fs::metadata(path) {
         if metadata.len() > MAX_LOG_SIZE {
@@ -141,7 +171,6 @@ fn rotate_if_needed(path: &PathBuf) {
     }
 }
 
-/// Returns a default log file path
 pub fn default_log_path() -> PathBuf {
     let base = dirs::config_dir()
         .map(|p| p.join("tranquility"))
@@ -155,4 +184,3 @@ pub fn default_log_path() -> PathBuf {
         chrono::Local::now().format("%Y-%m-%d")
     ))
 }
-

@@ -44,7 +44,7 @@ macro_rules! log {
             $status,
             None,
             source,
-            $crate::logger::LogDestination::File($crate::logger::default_log_path()),
+            $crate::logger::LogDestination::Primary($crate::logger::default_log_path()),
         )
     }};
 

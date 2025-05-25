@@ -4,19 +4,14 @@ use std::path::PathBuf;
 use strum::Display;
 
 use crate::{
-    categories::{list_categories, Category},
-    command::{
+    categories::{list_categories, Category}, command::{
         apps::{install::install_apps_command, uninstall::uninstall_apps_command},
         config, doctor, font, logs,
         vps::{
             confirm_and_delete_vps_config, connect_to_vps, json_schema_example, prompt_and_add_vps,
             vps_command_list,
         },
-    },
-    config::TranquilityConfig,
-    model::application::list_supported_applications,
-    print_error, print_info,
-    system::SystemInfo,
+    }, config::TranquilityConfig, logger, model::application::list_supported_applications, print_error, print_info, system::SystemInfo
 };
 
 #[derive(Parser, Debug)]
@@ -27,8 +22,8 @@ pub struct TranquilityArgs {
     pub config: Option<PathBuf>,
 
     /// Turn debugging information on (repeatable)
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub debug: u8,
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    pub debug: bool,
 
     #[command(subcommand)]
     pub command: Option<Commands>,
@@ -231,7 +226,9 @@ pub fn handle_args(args: TranquilityArgs) {
         println!();
         return;
     }
-
+    if args.debug {
+        logger::set_debug(true);
+    }
     match args.command {
         Some(Commands::Config {
             override_config,
@@ -272,7 +269,13 @@ pub fn handle_args(args: TranquilityArgs) {
             date,
             path,
         }) => {
-            logs::show_logs(tail, &level.to_string().to_lowercase(), json_only, date, path);
+            logs::show_logs(
+                tail,
+                &level.to_string().to_lowercase(),
+                json_only,
+                date,
+                path,
+            );
         }
 
         Some(Commands::Fonts { action }) => match action {
