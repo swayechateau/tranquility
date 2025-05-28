@@ -1,30 +1,27 @@
-//src/main.rs
-mod args;
-mod model;
-mod fonts;
-mod shell;
+// Module: CLI
+// Location: cli/src/main.rs
+mod core;
 mod command;
-mod logger;
+mod model;
+mod shell;
+mod utils;
 mod schema;
-mod print;
-#[macro_use]
-mod libs;
-use model::{categories, config, package_manager, system};
-use clap::{Parser};
-use args::{handle_arg_errors, handle_args, TranquilityArgs};
-use print::tranquility_figlet;
-use logger::{log_event};
+
+use clap::Parser;
+use model::{category, config, package_manager, system};
+use command::{tranquility::{handle_command_errors, handle_commands, TranquilityCommand}};
+use tranquility::log_info;
+use core::{print::tranquility_figlet};
 
 fn main() {
     tranquility_figlet();
-    log_event("info", "Starting", "tranquility", "success", None);
-    match TranquilityArgs::try_parse() {
+    log_info!("Starting", "tranquility", "success");
+    match TranquilityCommand::try_parse() {
         Ok(args) => {
-            handle_args(args);
+            handle_commands(args);
         }
         Err(err) => {
-            handle_arg_errors(err);
+            handle_command_errors(err);
         }
     }
 }
-

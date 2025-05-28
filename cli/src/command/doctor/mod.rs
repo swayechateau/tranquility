@@ -1,20 +1,26 @@
-// src/command/doctor.rs
-use std::path::PathBuf;
+// Module: Command/Doctor
+// Location: cli/src/command/doctor/mod.rs
+use std::{fs, path::{Path}};
+use clap::{arg, Args};
+use super::config::fix_config;
 use crate::{
-    config::TranquilityConfig,
-    model::application::get_apps,
-    package_manager::PackageManager,
-    system::SystemInfo,
-    print_error, print_success, print_warn,
+    config::TranquilityConfig, 
+    model::application::get_apps, 
+    package_manager::PackageManager, 
+    system::SystemInfo
 };
-use std::{fs, path::Path};
-pub fn run_doctor(fix: bool) {
-    let config_path = TranquilityConfig::config_dir()
-    .unwrap_or_else(|_| PathBuf::from("~/.config/tranquility/config.json"));
-    
-    if fix {
-        TranquilityConfig::load_or_init().expect("Failed to initialize config");
-        print_success!("✅ Config initialized at {}", config_path.display());
+use tranquility::{log_error, print_success, print_warn};
+
+#[derive(Args, Debug)]
+pub struct DoctorCommand {
+    /// Fix any issues automatically
+    #[arg(long)]
+    fix: bool,
+}
+
+pub fn doctor_command(cmd: DoctorCommand, dry_run:bool) {
+    if cmd.fix {
+        fix_config();
     }
 
     println!("\n🩺 Running Tranquility System Doctor...\n");
@@ -23,13 +29,11 @@ pub fn run_doctor(fix: bool) {
     match TranquilityConfig::load_or_init() {
         Ok(cfg) => {
             print_success!("✅ Config file loaded");
-            check_writable(&cfg.log_file, "Log file path");
+            check_writable(&cfg.log_file(), "Log file path");
             check_file(&cfg.applications_file, "Applications file");
             check_file(&cfg.vps_file, "VPS config");
         }
-        Err(e) => {
-            print_error!("❌ Failed to load config: {e}");
-        }
+        Err(e) => {log_error!("load","config",&format!("failed: {e}"));}
     }
 
     // System info
@@ -70,6 +74,6 @@ fn check_writable(path: &Path, label: &str) {
     if fs::create_dir_all(parent).is_ok() && fs::OpenOptions::new().create(true).append(true).open(path).is_ok() {
         print_success!("✅ {} is writable: {}", label, path.display());
     } else {
-        print_error!("❌ {} is not writable: {}", label, path.display());
+        log_error!("check-writable",label,&format!("not writable: {}", path.display()));
     }
 }

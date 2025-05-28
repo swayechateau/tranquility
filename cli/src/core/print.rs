@@ -1,4 +1,5 @@
-// src/print.rs
+// Module: Core/Print
+// Location: cli/src/core/print.rs
 use colored::Colorize;
 use figlet_rs::FIGfont;
 

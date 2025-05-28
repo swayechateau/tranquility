@@ -1,4 +1,5 @@
-// src/logger.rs
+// Module: Core/Logger
+// Location: cli/src/core/logger.rs
 use std::fs::{self, OpenOptions};
 use std::io::{stderr, stdout, Write};
 use std::path::PathBuf;
@@ -7,8 +8,8 @@ use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use chrono::Utc;
 use colored::Colorize;
 use serde::Serialize;
+use tranquility::log_info;
 
-use crate::log_info;
 use crate::model::config::TranquilityConfig;
 
 const MAX_LOG_SIZE: u64 = 5 * 1024 * 1024; // 5 MB
@@ -58,10 +59,10 @@ pub fn log_event(level: &str, action: &str, app: &str, status: &str, duration_se
         .map(|cfg| match cfg.log_output {
             crate::model::config::LogOutput::Stdout => LogDestination::Stdout,
             crate::model::config::LogOutput::Primary => {
-                let path = if cfg.log_file.as_os_str().is_empty() {
+                let path = if cfg.log_file().as_os_str().is_empty() {
                     default_log_path()
                 } else {
-                    cfg.log_file
+                    cfg.log_file()
                 };
                 LogDestination::Primary(path)
             }

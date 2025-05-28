@@ -1,4 +1,5 @@
-// src/models/system.rs
+// Module: Model/System
+// Location: cli/src/model/system.rs
 use bitflags::bitflags;
 use colored::Colorize;
 use os_info::{self, Type as OSType};
@@ -34,6 +35,7 @@ impl JsonSchema for OsTypeWrapper {
         String::json_schema(gen)
     }
 }
+
 impl std::fmt::Display for OsTypeWrapper {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.os_type)

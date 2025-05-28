@@ -60,109 +60,138 @@ cd tranquility
 
 ---
 
-## 🚀 CLI Commands
-
-### Install Applications
+## 🚀 Usage
 
 ```bash
-tranquility install --all
+tranquility [OPTIONS] <COMMAND>
 ```
 
-* `--all`: installs all matched apps
-* `--server`: server-safe apps only
-* `--dry-run`: preview without changes
+Use `--help` after any command for more information.
 
-### Uninstall Applications
+---
+
+## 🧭 Command Overview
+
+| Command  | Description                                |
+| -------- | ------------------------------------------ |
+| `doctor` | Diagnose and optionally fix CLI issues     |
+| `config` | Manage and validate configuration files    |
+| `logs`   | View CLI logs                              |
+| `font`   | Install, uninstall, update, and list fonts |
+| `app`    | Install and manage applications            |
+| `vps`    | Manage VPS hosts                           |
+| `list`   | List apps, fonts, VPS, and categories      |
+
+---
+
+## 🩺 `doctor`
+
+Check and fix common CLI issues:
+
+[📘 Full Doctor Command Reference →](./docs/command-doctor.md)
+
+---
+
+## ⚙️ `config`
+
+Manage configuration files for Tranquility. (supports xml, json or yaml [yaml is default])
+
+[📘 Full Config Command Reference →](./docs/command-config.md)
+
+---
+
+## 📜 `logs`
+
+View CLI logs.
+
+[📘 Full Logs Command Reference →](./docs/command-logs.md)
+
+---
+
+## 🖋️ `font`
+
+Manage Nerd Fonts.
+
+[📘 Full Font Command Reference →](./docs/command-font.md)
+
+---
+
+## 🧩 `app`
+
+Manage your application setup.
+
+[📘 Full App Command Reference →](./docs/command-app.md)
+
+---
+
+## 🌐 `vps`
+
+Manage virtual private servers.
+
+[📘 Full VPS Command Reference →](./docs/command-vps.md)
+
+---
+
+## 📦 `list`
+
+List supported resources:
+
+[📘 Full List Command Reference →](./docs/command-list.md)
+
+---
+
+## 🐛 Debugging
+
+Use the global `--debug` flag to enable verbose logging:
 
 ```bash
-tranquility uninstall --all
-```
-
-Reverses install steps if uninstall logic is defined.
-
-### Fonts
-
-```bash
-tranquility fonts
-tranquility fonts --all
-```
-
-Interactive or full bulk Nerd Font install.
-
-### VPS
-
-```bash
-tranquility vps --list
-tranquility vps --add
-tranquility vps --connect
-tranquility vps --delete
+tranquility --debug apps install
 ```
 
 ---
 
-## 🧬 Application Format (JSON Example)
+## 🧪 Example Workflows
 
-```json
-{
-  "applications": [
-    {
-      "name": "Neovim",
-      "categories": ["Editors", "Development"],
-      "supported_systems": ["Linux", "MacOS"],
-      "versions": [
-        {
-          "name": "Stable",
-          "check_command": "nvim",
-          "dependencies": ["curl"],
-          "install_methods": [
-            {
-              "os": "Ubuntu",
-              "package_manager": "Apt",
-              "package_name": "neovim"
-            },
-            {
-              "os": "macOS",
-              "steps": {
-                "install": ["brew install neovim"]
-              }
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
+* Install all fonts and apps in dry-run mode:
+
+  ```bash
+  tranquility font install --all --dry-run
+  tranquility app install --all --dry-run
+  ```
+
+* Override the applications config file:
+
+  ```bash
+  tranquility config override applications --file ./apps.json
+  ```
+
+* Validate a VPS config:
+
+  ```bash
+  tranquility config validate vps --file ./vps.json
+  ```
+
+* Reset the full config to defaults:
+
+  ```bash
+  tranquility config reset
+  ```
 
 ---
 
 ## ✅ Validation Logic
 
-| `steps` | `package_manager` | `package_name` | ✅ Valid? | Notes                  |
-| ------- | ----------------- | -------------- | -------- | ---------------------- |
+| `steps`  | `package_manager`  | `package_name` | ✅ Valid? | Notes                  |
+| -------- | ------------------ | -------------- | --------- | ---------------------- |
 | ❌       | ❌                 | N/A            | ❌        | No way to install      |
 | ✅       | ❌                 | N/A            | ✅        | CLI only               |
-| ❌       | ✅                 | ✅              | ✅        | PM only                |
-| ✅       | ✅                 | ✅/❌            | ✅        | CLI override or hybrid |
+| ❌       | ✅                 | ✅             | ✅        | PM only                |
+| ✅       | ✅                 | ✅/❌          | ✅        | CLI override or hybrid |
 
 Run:
 
 ```bash
-tranquility validate --file ./applications.yaml
-```
-
----
-
-## ☁️ VPS Example
-
-```json
-{
-  "name": "dev-vm",
-  "username": "ubuntu",
-  "host": "10.0.0.5",
-  "private_key": "~/.ssh/id_rsa",
-  "post_connect_script": "echo Connected && uptime"
-}
+tranquility config validate --file ./applications.yaml
 ```
 
 ---

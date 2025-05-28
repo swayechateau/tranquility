@@ -1,29 +1,30 @@
-//src/lib.rs
+// Module: Library
+// Location: cli/src/lib.rs
 #[macro_export]
 macro_rules! print_error {
     ($($arg:tt)*) => {
-        $crate::print::print_with_prefix($crate::print::PrefixColor::RED, "error", format!($($arg)*))
+        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::RED, "error", format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! print_success {
     ($($arg:tt)*) => {
-        $crate::print::print_with_prefix($crate::print::PrefixColor::GREEN, "success", format!($($arg)*))
+        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::GREEN, "success", format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! print_info {
     ($($arg:tt)*) => {
-        $crate::print::print_with_prefix($crate::print::PrefixColor::BLUE, "info", format!($($arg)*))
+        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::BLUE, "info", format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! print_warn {
     ($($arg:tt)*) => {
-        $crate::print::print_with_prefix($crate::print::PrefixColor::YELLOW, "warn", format!($($arg)*))
+        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::YELLOW, "warn", format!($($arg)*))
     };
 }
 
@@ -37,14 +38,14 @@ macro_rules! log {
         } else {
             None
         };
-        $crate::logger::log_to_full(
+        crate::core::logger::log_to_full(
             $level,
             $action,
             $app,
             $status,
             None,
             source,
-            $crate::logger::LogDestination::Primary($crate::logger::default_log_path()),
+            crate::core::logger::LogDestination::Primary(crate::core::logger::default_log_path()),
         )
     }};
 
@@ -55,14 +56,14 @@ macro_rules! log {
         } else {
             None
         };
-        $crate::logger::log_to_full(
+        crate::core::logger::log_to_full(
             $level,
             $action,
             $app,
             $status,
             Some($duration),
             source,
-            $crate::logger::LogDestination::File($crate::logger::default_log_path()),
+            crate::core::logger::LogDestination::Primary(crate::core::logger::default_log_path()),
         )
     }};
 }

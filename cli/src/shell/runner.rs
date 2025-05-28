@@ -1,7 +1,7 @@
-// src/shell/runner.rs
-
+// Module: Shell/Runner
+// Location: cli/src/shell/runner.rs
 use std::time::Instant;
-use crate::{print_info, print_success};
+use tranquility::{print_info, print_success};
 use crate::model::application::{Application, InstallMethod};
 
 pub struct InstallRunner<'a> {

@@ -1,50 +1,140 @@
-// src/schema/application.rs
-use crate::model::application::ApplicationList as ApplicationFile;
+// Module: Schema/Application
+// Location:cli/src/schema/application.rs
+use crate::{model::application::ApplicationList as ApplicationFile, schema::SUPPORTED_EXTS};
 use jsonschema::validator_for;
 use schemars::schema_for;
 use serde_json::Value;
 use std::{fs, path::Path};
+use tranquility::{log_info, log_warn};
 
-pub fn validate_file(path: &str) -> Result<(), String> {
-    let ext = Path::new(path)
+pub fn validate_file(path: &Path) -> bool {
+    let ext = path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
 
-    let raw = fs::read_to_string(path).map_err(|e| format!("Failed to read file: {e}"))?;
+    if !SUPPORTED_EXTS.contains(&ext.as_str()) {
+        log_warn!(
+            "validate",
+            "application",
+            &format!("❌ Unsupported extension: .{ext}")
+        );
+        return false;
+    }
+    let raw = match fs::read_to_string(path) {
+        Ok(r) => r,
+        Err(e) => {
+            log_warn!(
+                "validate",
+                "application",
+                &format!("❌ Failed to read file: {e}")
+            );
+            return false;
+        }
+    };
 
     let json_value: Value = match ext.as_str() {
-        "json" => serde_json::from_str(&raw).map_err(|e| format!("Invalid JSON: {e}"))?,
+        "json" => match serde_json::from_str(&raw) {
+            Ok(v) => v,
+            Err(e) => {
+                log_warn!("validate", "application", &format!("❌ Invalid JSON: {e}"));
+                return false;
+            }
+        },
         "yaml" | "yml" => {
-            let yaml: serde_yaml::Value =
-                serde_yaml::from_str(&raw).map_err(|e| format!("Invalid YAML: {e}"))?;
-            serde_json::to_value(yaml).unwrap()
+            let yaml: serde_yaml::Value = match serde_yaml::from_str(&raw) {
+                Ok(v) => v,
+                Err(e) => {
+                    log_warn!("validate", "application", &format!("❌ Invalid YAML: {e}"));
+                    return false;
+                }
+            };
+
+            match serde_json::to_value(yaml) {
+                Ok(v) => v,
+                Err(e) => {
+                    log_warn!(
+                        "validate",
+                        "application",
+                        &format!("❌ Failed to convert YAML to JSON: {e}")
+                    );
+                    return false;
+                }
+            }
         }
         "xml" => {
-            let parsed: ApplicationFile =
-                quick_xml::de::from_str(&raw).map_err(|e| format!("Invalid XML: {e}"))?;
-            serde_json::to_value(parsed).unwrap()
+            let parsed: ApplicationFile = match quick_xml::de::from_str(&raw) {
+                Ok(v) => v,
+                Err(e) => {
+                    log_warn!("validate", "application", &format!("❌ Invalid XML: {e}"));
+                    return false;
+                }
+            };
+
+            match serde_json::to_value(parsed) {
+                Ok(v) => v,
+                Err(e) => {
+                    log_warn!(
+                        "validate",
+                        "application",
+                        &format!("❌ Failed to convert XML to JSON: {e}")
+                    );
+                    return false;
+                }
+            }
         }
-        _ => return Err(format!("Unsupported file extension: .{}", ext)),
+        _ => {
+            log_warn!(
+                "validate",
+                "application",
+                &format!("❌ Unsupported file extension: .{ext}")
+            );
+            return false;
+        }
     };
 
     let schema = schema_for!(ApplicationFile);
-    let schema_value = serde_json::to_value(&schema.schema).unwrap();
+    let schema_value = match serde_json::to_value(&schema.schema) {
+        Ok(s) => s,
+        Err(e) => {
+            log_warn!(
+                "validate",
+                "schema",
+                &format!("❌ Failed to serialize schema: {e}")
+            );
+            return false;
+        }
+    };
 
-    let validator = validator_for(&schema_value).map_err(|e| format!("Schema error: {e}"))?;
+    let validator = match validator_for(&schema_value) {
+        Ok(v) => v,
+        Err(e) => {
+            log_warn!(
+                "validate",
+                "schema",
+                &format!("❌ Schema generation failed: {e}")
+            );
+            return false;
+        }
+    };
 
-    validator.validate(&json_value).map_err(|_| {
-        validator
-            .iter_errors(&json_value)
-            .map(|e| e.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
-    })?;
+    if let Err(_) = validator.validate(&json_value) {
+        for err in validator.iter_errors(&json_value) {
+            log_warn!("validate", "schema", &format!("Schema violation: {err}"));
+        }
+        return false;
+    }
 
-    validate_custom(&json_value)?;
+    if let Err(custom_errors) = validate_custom(&json_value) {
+        for err in custom_errors.lines() {
+            log_warn!("validate", "custom", &format!("❌ {err}"));
+        }
+        return false;
+    }
 
-    Ok(())
+    log_info!("validate", "application", "✅ Application config is valid.");
+    true
 }
 
 fn validate_custom(json: &Value) -> Result<(), String> {
