@@ -90,13 +90,13 @@ pub fn validate_file(path: &PathBuf) -> bool {
     };
 
     let schema = schema_for!(TranquilityConfig);
-    let schema_value = match serde_json::to_value(&schema.schema) {
+    let schema_value = match serde_json::to_value(&schema) {
         Ok(s) => s,
         Err(e) => {
             log_warn!(
                 "validate",
                 "schema",
-                &format!("❌ Failed to serialize schema: {e}")
+                &format!("❌ Failed to serialize full schema: {e}")
             );
             return false;
         }
@@ -171,7 +171,10 @@ fn validate_custom(json: &Value) -> Result<(), String> {
                 log_warn!(
                     "validate",
                     "config",
-                    &format!("ℹ️  Optional field '{}' is missing. Using default value.", field)
+                    &format!(
+                        "ℹ️  Optional field '{}' is missing. Using default value.",
+                        field
+                    )
                 );
             }
         }
@@ -183,5 +186,3 @@ fn validate_custom(json: &Value) -> Result<(), String> {
         Err(errors.join("\n"))
     }
 }
-
-

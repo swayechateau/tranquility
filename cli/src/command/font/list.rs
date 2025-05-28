@@ -1,4 +1,4 @@
-// Module: command/font/list
+// Module: Command/Font/List
 // Location: cli/src/command/font/list.rs
 
 use tranquility::{log_warn};

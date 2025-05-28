@@ -1,9 +1,9 @@
-// Module: command/list
+// Module: Command/List
 // Location: cli/src/command/list/mod.rs
 
 use clap::{Args, Subcommand};
 
-use crate::model::{application::list_supported_applications, categories::{list_categories, Category}};
+use crate::model::{application::list_supported_applications, category::{list_categories, Category}};
 
 use super::{font, tranquility::print_subcommand_help, vps::list::{vps_command_list, vps_list, VpsListCommad}};
 

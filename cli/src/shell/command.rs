@@ -204,6 +204,10 @@ impl ShellCommand {
             print_error!("❌ {}: {}", "Failed to open URL".red(), err);
         }
     }
+    pub fn from_remote_script(remote: &str, script: &str, sudo: bool) -> Self {
+        let wrapped = format!("ssh {} '{}'", remote, script);
+        Self::from_script(&wrapped, sudo)
+    }
 }
 
 pub fn command_exists(cmd: &str) -> bool {

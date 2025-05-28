@@ -1,4 +1,4 @@
-// Module: command/vps/Delete
+// Module: Command/Vps/Delete
 // Location: cli/src/command/vps/delete.rs
 use clap::Args;
 use tranquility::{log_error, log_warn, print_success, print_warn};

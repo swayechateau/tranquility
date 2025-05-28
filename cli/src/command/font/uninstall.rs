@@ -1,4 +1,4 @@
-// Module: command/font/uninstall
+// Module: Command/Font/Uninstall
 // Location: cli/src/command/font/uninstall.rs
 
 use std::fs;

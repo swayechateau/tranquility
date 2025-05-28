@@ -1,4 +1,4 @@
-// Module: command/tranquility
+// Module: Command/Tranquility
 // Location: cli/src/command/tranquility.rs
 use clap::{error::ErrorKind, CommandFactory, Error, Parser, Subcommand};
 use tranquility::{log_error, print_info};

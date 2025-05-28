@@ -1,4 +1,4 @@
-// Module: command/font
+// Module: Command/Font
 // Location: cli/src/command/font/mod.rs
 pub mod install;
 pub mod uninstall;

@@ -1,4 +1,4 @@
-// Module: command/font/refresh
+// Module: Command/Font/Refresh
 // Location: cli/src/command/font/refresh.rs
 
 use std::process::Command;

@@ -1,4 +1,4 @@
-// Module: command
+// Module: Command
 // Location: cli/src/command/mod.rs
 pub mod tranquility;
 pub mod app;

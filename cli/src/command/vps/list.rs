@@ -1,4 +1,4 @@
-// Module: command/vps/List
+// Module: Command/Vps/List
 // Location: cli/src/command/vps/list.rs
 use clap::Args;
 use std::io;

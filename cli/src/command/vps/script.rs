@@ -1,4 +1,4 @@
-// Module: command/vps/Script
+// Module: Command/Vps/Script
 // Location: cli/src/command/vps/script.rs
 use clap::Args;
 use std::{fs, io, path::Path};

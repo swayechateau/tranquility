@@ -1,4 +1,4 @@
-// Module: command/vps/Update
+// Module: Command/Vps/Update
 // Location: cli/src/command/vps/update.rs
 use clap::Args;
 use tranquility::{log_error, log_warn, print_info, print_success, print_warn};

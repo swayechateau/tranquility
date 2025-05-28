@@ -1,4 +1,5 @@
-// src/model/config.rs
+// Module: Model/Config
+// Location: cli/src/model/config.rs
 use dirs::config_dir;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -115,6 +116,11 @@ impl TranquilityConfig {
 
     pub fn validate_schema(_content: &str, path: &PathBuf) -> io::Result<()> {
         if !crate::schema::config::validate_file(path) {
+            log_warn!(
+                "schema",
+                "config",
+                &format!("⚠️ Schema did not match for {}", path.display())
+            );
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("⚠️ Config validation failed: {}", path.display()),

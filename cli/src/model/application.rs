@@ -1,6 +1,6 @@
 // Module: Model/Application
 // Location: cli/src/model/application.rs
-use crate::categories::Category;
+use crate::category::Category;
 use crate::config::TranquilityConfig;
 use crate::package_manager::PackageManager;
 use crate::shell::command::{command_exists, run_shell_command};

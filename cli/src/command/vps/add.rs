@@ -1,4 +1,4 @@
-// Module: command/Vps/Add
+// Module: Command/Vps/Add
 // Location: cli/src/command/vps/add.rs
 use clap::Args;
 use tranquility::{log_error, print_info, print_success};

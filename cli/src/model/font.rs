@@ -1,4 +1,5 @@
-
+// Module: Model/Font
+// Location: cli/src/model/font.rs
 /// 📦 List of supported Nerd Fonts
 pub const NERD_FONT_LIST: [&str; 69] = [
     "3270", "0xProto", "Agave", "AnonymousPro", "Arimo", "AurulentSansMono", "BigBlueTerminal", "BitstreamVeraSansMono",

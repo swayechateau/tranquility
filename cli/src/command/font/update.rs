@@ -1,4 +1,4 @@
-// Module: command/font/update
+// Module: Command/Font/Update
 // Location: cli/src/command/font/update.rs
 
 use colored::Colorize;

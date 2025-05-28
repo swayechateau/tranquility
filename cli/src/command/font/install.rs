@@ -1,4 +1,5 @@
-// src/command/font/install.rs
+// Module: Command/Font/Install
+// Location: cli/src/command/font/install.rs
 
 use std::{fs::{self, File}, io::Write};
 use colored::Colorize;

@@ -1,4 +1,4 @@
-// Module: command/logs
+// Module: Command/Logs
 // Location: cli/src/command/logs/mod.rs
 use clap::{Args, ValueEnum};
 use strum::Display;

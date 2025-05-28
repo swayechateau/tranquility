@@ -1,4 +1,4 @@
-// Module: core/logger
+// Module: Core/Logger
 // Location: cli/src/core/logger.rs
 use std::fs::{self, OpenOptions};
 use std::io::{stderr, stdout, Write};

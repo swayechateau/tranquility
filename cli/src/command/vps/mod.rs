@@ -1,4 +1,4 @@
-// Module: command/vps
+// Module: Command/Vps
 // Location: cli/src/command/vps/mod.rs
 pub mod add;
 pub mod connect;

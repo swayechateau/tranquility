@@ -1,4 +1,5 @@
-// src/models/system.rs
+// Module: Model/System
+// Location: cli/src/model/system.rs
 use bitflags::bitflags;
 use colored::Colorize;
 use os_info::{self, Type as OSType};

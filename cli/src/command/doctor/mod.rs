@@ -1,4 +1,4 @@
-// Module: command/doctor
+// Module: Command/Doctor
 // Location: cli/src/command/doctor/mod.rs
 use std::{fs, path::{Path}};
 use clap::{arg, Args};

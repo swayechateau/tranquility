@@ -1,7 +1,7 @@
-// Module: command/app
+// Module: Command/App
 // Location: cli/src/command/app/mod.rs
 use clap::{Args, Subcommand};
-use crate::{model::{application::list_supported_applications, categories::{list_categories, Category}}};
+use crate::{model::{application::list_supported_applications, category::{list_categories, Category}}};
 
 use super::tranquility::{print_subcommand_help};
 
