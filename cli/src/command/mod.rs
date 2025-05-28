@@ -1,7 +1,10 @@
-// src/command/mod.rs
-pub mod apps;
+// Module: command
+// Location: cli/src/command/mod.rs
+pub mod tranquility;
+pub mod app;
 pub mod vps;
 pub mod logs;
 pub mod doctor;
 pub mod font;
 pub mod config;
+pub mod list;

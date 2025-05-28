@@ -1,14 +1,45 @@
-// src/command/logs.rs
-use crate::log_error;
-// src/command/logs.rs
-use crate::logger::default_log_path;
-use crate::{config::TranquilityConfig, log_warn};
+// Module: command/logs
+// Location: cli/src/command/logs/mod.rs
+use clap::{Args, ValueEnum};
+use strum::Display;
+use tranquility::{log_error, log_warn};
+
+use crate::{config::TranquilityConfig, core::logger::default_log_path};
 
 use std::{
     fs::{File, OpenOptions},
     io::{BufRead, BufReader},
     path::PathBuf,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum, Display)]
+pub enum LogLevel {
+    Info,
+    Warn,
+    Error,
+}
+
+#[derive(Args, Debug)]
+pub struct LogsCommand {
+    /// Only show JSON lines
+    #[arg(long)]
+    json_only: bool,
+    /// Only show the log file path
+    #[arg(long)]
+    path: bool,
+
+    /// Show last N log lines
+    #[arg(long, default_value_t = 50)]
+    tail: usize,
+
+    /// Filter logs by date (YYYY-MM-DD)
+    #[arg(long)]
+    date: Option<String>,
+
+    /// Filter logs by level
+    #[arg(long, default_value = "info")]
+    level: String,
+}
 
 /// Show filtered logs or just print the log path
 pub fn show_logs(
@@ -24,7 +55,7 @@ pub fn show_logs(
     });
 
     let base_dir = config
-        .log_file
+        .log_file()
         .parent()
         .map(PathBuf::from)
         .unwrap_or_else(|| default_log_path().parent().unwrap().to_path_buf());
@@ -112,4 +143,11 @@ fn matches_log_level(entry: &str, min_level: &str) -> bool {
         _ => 2,
     };
     level_map(entry) <= level_map(min_level)
+}
+
+pub fn handle_logs_command(
+    cmd: LogsCommand,
+    dry_run: bool
+) {
+    show_logs(cmd.tail, &cmd.level, cmd.json_only, cmd.date, cmd.path);
 }

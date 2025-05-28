@@ -1,68 +1,179 @@
-// src/schema/config.rs
+// Module: Schema/Config
+// Location: cli/src/schema/config.rs
 use crate::model::config::TranquilityConfig;
 use jsonschema::validator_for;
 use schemars::schema_for;
 use serde_json::Value;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use tranquility::{log_info, log_warn};
 
-pub fn validate_file(path: &str) -> Result<(), String> {
-    let ext = Path::new(path)
+use super::SUPPORTED_EXTS;
+
+pub fn validate_file(path: &PathBuf) -> bool {
+    let ext = path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
 
-    let raw = fs::read_to_string(path).map_err(|e| format!("Failed to read file: {e}"))?;
+    let raw = match fs::read_to_string(path) {
+        Ok(r) => r,
+        Err(e) => {
+            log_warn!(
+                "validate",
+                "config",
+                &format!("❌ Failed to read file: {e}")
+            );
+            return false;
+        }
+    };
 
     let json_value: Value = match ext.as_str() {
-        "json" => serde_json::from_str(&raw).map_err(|e| format!("Invalid JSON: {e}"))?,
+        "json" => match serde_json::from_str(&raw) {
+            Ok(v) => v,
+            Err(e) => {
+                log_warn!("validate", "config", &format!("❌ Invalid JSON: {e}"));
+                return false;
+            }
+        },
         "yaml" | "yml" => {
-            let yaml: serde_yaml::Value =
-                serde_yaml::from_str(&raw).map_err(|e| format!("Invalid YAML: {e}"))?;
-            serde_json::to_value(yaml).unwrap()
+            let yaml: serde_yaml::Value = match serde_yaml::from_str(&raw) {
+                Ok(v) => v,
+                Err(e) => {
+                    log_warn!("validate", "config", &format!("❌ Invalid YAML: {e}"));
+                    return false;
+                }
+            };
+
+            match serde_json::to_value(yaml) {
+                Ok(v) => v,
+                Err(e) => {
+                    log_warn!(
+                        "validate",
+                        "config",
+                        &format!("❌ Failed to convert YAML to JSON: {e}")
+                    );
+                    return false;
+                }
+            }
         }
         "xml" => {
-            let parsed: TranquilityConfig =
-                quick_xml::de::from_str(&raw).map_err(|e| format!("Invalid XML: {e}"))?;
-            serde_json::to_value(parsed).unwrap()
+            let parsed: TranquilityConfig = match quick_xml::de::from_str(&raw) {
+                Ok(cfg) => cfg,
+                Err(e) => {
+                    log_warn!("validate", "config", &format!("❌ Invalid XML: {e}"));
+                    return false;
+                }
+            };
+
+            match serde_json::to_value(parsed) {
+                Ok(v) => v,
+                Err(e) => {
+                    log_warn!(
+                        "validate",
+                        "config",
+                        &format!("❌ Failed to convert XML to JSON: {e}")
+                    );
+                    return false;
+                }
+            }
         }
-        _ => return Err(format!("Unsupported file extension: .{}", ext)),
+        _ => {
+            log_warn!(
+                "validate",
+                "config",
+                &format!("❌ Unsupported file extension: .{ext}")
+            );
+            return false;
+        }
     };
 
     let schema = schema_for!(TranquilityConfig);
-    let schema_value = serde_json::to_value(&schema.schema).unwrap();
-    let validator = validator_for(&schema_value).map_err(|e| format!("Schema error: {e}"))?;
+    let schema_value = match serde_json::to_value(&schema.schema) {
+        Ok(s) => s,
+        Err(e) => {
+            log_warn!(
+                "validate",
+                "schema",
+                &format!("❌ Failed to serialize schema: {e}")
+            );
+            return false;
+        }
+    };
 
-    validator.validate(&json_value).map_err(|_| {
-        validator
-            .iter_errors(&json_value)
-            .map(|e| e.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
-    })?;
+    let validator = match validator_for(&schema_value) {
+        Ok(v) => v,
+        Err(e) => {
+            log_warn!("validate", "schema", &format!("❌ Invalid schema: {e}"));
+            return false;
+        }
+    };
 
-    validate_custom(&json_value)?;
+    if let Err(_) = validator.validate(&json_value) {
+        for err in validator.iter_errors(&json_value) {
+            log_warn!("validate", "schema", &format!("Schema violation: {err}"));
+        }
+        return false;
+    }
 
-    Ok(())
+    if let Err(custom_errors) = validate_custom(&json_value) {
+        for err in custom_errors.lines() {
+            log_warn!("validate", "custom", &format!("Custom check failed: {err}"));
+        }
+        return false;
+    }
+
+    log_info!("validate", "config", "✅ Config file is valid.");
+    true
 }
 
 fn validate_custom(json: &Value) -> Result<(), String> {
     let mut errors = Vec::new();
+    for field in ["applications_file", "vps_file", "logs_directory"] {
+        match json.get(field) {
+            Some(path_val) => {
+                // Must be a string
+                let path_str = match path_val.as_str() {
+                    Some(s) if s.trim().is_empty() => {
+                        errors.push(format!("Field '{}' must not be empty if provided.", field));
+                        continue;
+                    }
+                    Some(s) => s,
+                    None => {
+                        errors.push(format!("Field '{}' must be a string if provided.", field));
+                        continue;
+                    }
+                };
 
-    for field in ["applications_file", "vps_file", "log_file"] {
-        if let Some(path_val) = json.get(field) {
-            if let Some(path_str) = path_val.as_str() {
-                if path_str.trim().is_empty() {
-                    errors.push(format!("Field '{}' must not be empty.", field));
-                } else if !Path::new(path_str).is_absolute() {
+                // Must be an absolute path
+                if !Path::new(path_str).is_absolute() {
                     errors.push(format!("Field '{}' must be an absolute path.", field));
                 }
-            } else {
-                errors.push(format!("Field '{}' must be a string.", field));
+
+                // Check extension for applications_file and vps_file
+                if field != "logs_directory" {
+                    let ext = Path::new(path_str)
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_lowercase();
+                    if !SUPPORTED_EXTS.contains(&ext.as_str()) {
+                        errors.push(format!(
+                            "Field '{}' must have a supported file extension (json, yaml, yml, xml). Found: .{}",
+                            field, ext
+                        ));
+                    }
+                }
             }
-        } else {
-            errors.push(format!("Field '{}' is missing.", field));
+            None => {
+                // Field is optional — warn that default will be used
+                log_warn!(
+                    "validate",
+                    "config",
+                    &format!("ℹ️  Optional field '{}' is missing. Using default value.", field)
+                );
+            }
         }
     }
 
@@ -72,3 +183,5 @@ fn validate_custom(json: &Value) -> Result<(), String> {
         Err(errors.join("\n"))
     }
 }
+
+

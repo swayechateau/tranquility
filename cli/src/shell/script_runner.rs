@@ -1,56 +1,96 @@
-// src/shell/script_runner.rs
-// use crate::shell::ShellCommand;
-// use colored::Colorize;
-// use std::fs;
+// Module: Shell/ScriptRunner
+// Location: cli/src/shell/script_runner.rs
+use crate::shell::ShellCommand;
+use colored::Colorize;
+use std::fs;
 
-// pub struct ShellScriptRunner {
-//     pub script: String,
-//     pub from_file: bool,
-//     pub use_sudo: bool,
-//     pub dry_run: bool,
-// }
+pub enum ScriptSource {
+    Inline(String),
+    File(String),
+}
 
-// impl ShellScriptRunner {
-//     /// Create a runner from inline script
-//     pub fn from_inline(script: &str, use_sudo: bool, dry_run: bool) -> Self {
-//         Self {
-//             script: script.to_string(),
-//             from_file: false,
-//             use_sudo,
-//             dry_run,
-//         }
-//     }
+pub struct ShellScriptRunner {
+    pub script: String,
+    pub source: ScriptSource,
+    pub remote: Option<String>, // e.g. "user@host"
+    pub use_sudo: bool,
+    pub dry_run: bool,
+}
 
-//     /// Create a runner from a script file (.sh or .ps1)
-//     pub fn from_file(path: &str, use_sudo: bool, dry_run: bool) -> std::io::Result<Self> {
-//         let contents = fs::read_to_string(path)?;
-//         Ok(Self {
-//             script: contents,
-//             from_file: true,
-//             use_sudo,
-//             dry_run,
-//         })
-//     }
+impl ShellScriptRunner {
+    /// Create a runner from inline script content
+    pub fn from_inline(script: &str, use_sudo: bool, dry_run: bool) -> Self {
+        Self {
+            script: script.to_string(),
+            source: ScriptSource::Inline(script.to_string()),
+            remote: None,
+            use_sudo,
+            dry_run,
+        }
+    }
 
-//     /// Run the script with shell and show output
-//     pub fn run_verbose(&self) {
-//         println!(
-//             "📜 Running script {}{}",
-//             if self.from_file { "[file] " } else { "" },
-//             if self.dry_run { "(dry-run)".yellow() } else { "".normal() }
-//         );
+    /// Create a runner from a file path (contents are loaded here)
+    pub fn from_file(path: &str, use_sudo: bool, dry_run: bool) -> std::io::Result<Self> {
+        let contents = fs::read_to_string(path)?;
+        Ok(Self {
+            script: contents.clone(),
+            source: ScriptSource::File(path.to_string()),
+            remote: None,
+            use_sudo,
+            dry_run,
+        })
+    }
 
-//         let cmd = ShellCommand::from_script(&self.script, self.use_sudo);
-//         cmd.run_verbose(self.dry_run);
-//     }
+    /// Set a remote SSH target (e.g. user@host) to run script remotely
+    pub fn with_remote(mut self, remote: &str) -> Self {
+        self.remote = Some(remote.to_string());
+        self
+    }
 
-//     /// Run silently (e.g., for internal use or scripting)
-//     pub fn run_silent(&self) -> Option<std::io::Result<()>> {
-//         ShellCommand::from_script(&self.script, self.use_sudo).run(self.dry_run)
-//     }
+    /// Run the script, verbose output
+    pub fn run_verbose(&self) {
+        let label = match &self.source {
+            ScriptSource::Inline(_) => "[inline]",
+            ScriptSource::File(path) => path,
+        };
 
-//     /// Unified run (default to verbose)
-//     pub fn run(&self) {
-//         self.run_verbose();
-//     }
-// }
+        let remote_label = self
+            .remote
+            .as_ref()
+            .map(|r| format!(" over SSH ({})", r))
+            .unwrap_or_default();
+
+        println!(
+            "📜 Running script {}{}{}",
+            label.cyan(),
+            if self.dry_run { " (dry-run)" } else { "" },
+            remote_label
+        );
+
+        let command = if let Some(remote_target) = &self.remote {
+            let wrapped = format!("ssh {} '{}'", remote_target, self.script);
+            ShellCommand::from_script(&wrapped, self.use_sudo)
+        } else {
+            ShellCommand::from_script(&self.script, self.use_sudo)
+        };
+
+        command.run_verbose(self.dry_run);
+    }
+
+    /// Run the script quietly
+    pub fn run_silent(&self) -> Option<std::io::Result<()>> {
+        let command = if let Some(remote_target) = &self.remote {
+            let wrapped = format!("ssh {} '{}'", remote_target, self.script);
+            ShellCommand::from_script(&wrapped, self.use_sudo)
+        } else {
+            ShellCommand::from_script(&self.script, self.use_sudo)
+        };
+
+        command.run(self.dry_run)
+    }
+
+    /// Default entry point (verbose by default)
+    pub fn run(&self) {
+        self.run_verbose();
+    }
+}

@@ -1,11 +1,10 @@
-// src/model/application.rs
-
+// Module: Model/Application
+// Location: cli/src/model/application.rs
 use crate::categories::Category;
 use crate::config::TranquilityConfig;
 use crate::package_manager::PackageManager;
 use crate::shell::command::{command_exists, run_shell_command};
 use crate::system::{OsSupport, SystemInfo, SystemSupport};
-use crate::{print_error, print_info};
 use colored::Colorize;
 use dialoguer::Confirm;
 use heck::ToKebabCase;
@@ -14,6 +13,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tabled::settings::Style;
 use tabled::{Table, Tabled};
+use tranquility::{log_error, print_error, print_info};
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct ApplicationList {
@@ -167,6 +167,7 @@ impl InstallMethod {
             pm.uninstall(None, pkg, dry_run);
         } else {
             print_error!("❌ No uninstall steps or valid package manager fallback provided.");
+            log_error!("uninstall", "app", "No uninstall steps or valid package manager fallback provided.");
         }
     }
 }

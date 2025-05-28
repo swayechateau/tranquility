@@ -1,4 +1,5 @@
-// src/shell/mod.rs
+// Module: Shell
+// Location: cli/src/shell/mod.rs
 pub mod command;
 pub mod runner;
 pub mod script_runner;

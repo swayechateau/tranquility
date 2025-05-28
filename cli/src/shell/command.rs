@@ -1,7 +1,8 @@
-// src/shell/command.rs
-use crate::{print_error, print_info, print_warn};
+// Module: Shell/Command
+// Location: cli/src/shell/command.rs
 use colored::Colorize;
 use std::process::{Command, Output, Stdio};
+use tranquility::{print_error, print_info, print_warn};
 
 #[derive(Debug)]
 pub struct ShellCommand {
@@ -115,26 +116,26 @@ impl ShellCommand {
     //     self.execute().ok().map(|out| out.status.success())
     // }
 
-    // pub fn run(&self, dry_run: bool) -> Option<std::io::Result<()>> {
-    //     if dry_run {
-    //         self.dry_run();
-    //         return Some(Ok(()));
-    //     }
+    pub fn run(&self, dry_run: bool) -> Option<std::io::Result<()>> {
+        if dry_run {
+            self.dry_run();
+            return Some(Ok(()));
+        }
 
-    //     match self.execute() {
-    //         Ok(output) => {
-    //             if output.status.success() {
-    //                 Some(Ok(()))
-    //             } else {
-    //                 Some(Err(std::io::Error::new(
-    //                     std::io::ErrorKind::Other,
-    //                     "Command failed",
-    //                 )))
-    //             }
-    //         }
-    //         Err(e) => Some(Err(e)),
-    //     }
-    // }
+        match self.execute() {
+            Ok(output) => {
+                if output.status.success() {
+                    Some(Ok(()))
+                } else {
+                    Some(Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Command failed",
+                    )))
+                }
+            }
+            Err(e) => Some(Err(e)),
+        }
+    }
 
     pub fn from_script(script: &str, sudo: bool) -> Self {
         if cfg!(windows) {
@@ -190,6 +191,19 @@ impl ShellCommand {
         child.wait()?;
         Ok(())
     }
+    pub fn open_url(url: &str) {
+        let result = if cfg!(target_os = "windows") {
+            Command::new("cmd").args(&["/C", "start", "", url]).spawn()
+        } else if cfg!(target_os = "macos") {
+            Command::new("open").arg(url).spawn()
+        } else {
+            Command::new("xdg-open").arg(url).spawn()
+        };
+
+        if let Err(err) = result {
+            print_error!("❌ {}: {}", "Failed to open URL".red(), err);
+        }
+    }
 }
 
 pub fn command_exists(cmd: &str) -> bool {
@@ -213,20 +227,6 @@ pub fn check_command(cmd: &str, friendly_name: &str) -> bool {
 
     ok
 }
-
-// pub fn open_url(url: &str) {
-//     let result = if cfg!(target_os = "windows") {
-//         Command::new("cmd").args(&["/C", "start", "", url]).spawn()
-//     } else if cfg!(target_os = "macos") {
-//         Command::new("open").arg(url).spawn()
-//     } else {
-//         Command::new("xdg-open").arg(url).spawn()
-//     };
-
-//     if let Err(err) = result {
-//         print_error!("❌ {}: {}", "Failed to open URL".red(), err);
-//     }
-// }
 
 pub fn run_shell_command(command: &str) {
     println!("🚀 Running: {}", command.cyan());
@@ -261,21 +261,3 @@ pub fn execute_package_cmd(cmd: &str, args: &[&str], sudo: bool, dry_run: bool) 
         .with_sudo(sudo)
         .run_verbose(dry_run);
 }
-
-// pub fn check_sudo() -> bool {
-//     if cfg!(target_os = "windows") {
-//         Command::new("net")
-//             .arg("session")
-//             .status()
-//             .map(|s| s.success())
-//             .unwrap_or(false)
-//     } else {
-//         match Command::new("id").arg("-u").output() {
-//             Ok(output) if output.status.success() => {
-//                 let uid = String::from_utf8_lossy(&output.stdout);
-//                 uid.trim() == "0"
-//             }
-//             _ => false,
-//         }
-//     }
-// }
