@@ -1,0 +1,4 @@
+applications_file: /home/chatsw/.config/tranquility/applications.yaml
+vps_file: /home/chatsw/.config/tranquility/vps.yaml
+log_directory: /home/chatsw/.config/tranquility/logs
+log_output: primary

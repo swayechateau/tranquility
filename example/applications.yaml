@@ -1,0 +1,96 @@
+applications:
+  - id: certbot
+    name: Certbot
+    categories: ["utilities"]
+    server_compatible: true
+    supported_systems: ["Ubuntu", "Debian"]
+    versions:
+      - name: "1.0.0"
+        install_methods:
+          - os: Ubuntu
+            package_manager: apt
+            package_name: certbot
+      - name: "1.1.0"
+        install_methods:
+          - os: Debian
+            package_manager: apt
+            package_name: python3-certbot
+
+  - id: nodejs
+    name: Node.js
+    categories: ["devtools"]
+    server_compatible: true
+    supported_systems: ["Ubuntu", "Debian"]
+    versions:
+      - name: "18.x"
+        install_methods:
+          - os: Ubuntu
+            package_manager: apt
+            package_name: nodejs
+          - os: Debian
+            steps:
+              preinstall_steps:
+                - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+              install:
+                - apt install -y nodejs
+
+  - id: docker
+    name: Docker
+    categories: ["containers"]
+    server_compatible: true
+    supported_systems: ["Ubuntu"]
+    versions:
+      - name: "20.10"
+        install_methods:
+          - os: Ubuntu
+            steps:
+              install:
+                - sudo apt-get update
+                - sudo apt-get install -y ca-certificates curl gnupg
+                - sudo install -m 0755 -d /etc/apt/keyrings
+                - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+                - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                - sudo apt-get update
+                - sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              uninstall:
+                - sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+                - sudo rm -rf /var/lib/docker
+                - sudo rm -rf /var/lib/containerd
+
+  - id: nginx
+    name: Nginx
+    categories: ["web server"]
+    server_compatible: true
+    supported_systems: ["Fedora", "Ubuntu"]
+    versions:
+      - name: "1.20.2"
+        install_methods:
+          - os: Fedora
+            package_manager: dnf
+            package_name: nginx
+            steps:
+              uninstall:
+                - echo Uninstalling...
+          - os: Ubuntu
+            package_manager: apt
+            package_name: nginx
+
+  - id: rust
+    name: Rust
+    categories: ["devtools"]
+    server_compatible: true
+    supported_systems: ["Linux", "macOS"]
+    versions:
+      - name: latest
+        install_methods:
+          - os:
+              - Linux
+              - macOS
+            steps:
+              preinstall_steps:
+                - echo Installing Rust...
+              install:
+                - curl https://sh.rustup.rs -sSf | sh -s -- -y
+              postinstall_steps:
+                - source $HOME/.cargo/env
+                - rustc --version
