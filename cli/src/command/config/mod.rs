@@ -28,7 +28,7 @@ pub enum ConfigSubcommand {
     /// Override a config file with a custom file
     Override {
         /// Target to override: config, applications, or vps
-        #[arg(value_enum)]
+        #[arg(value_enum, default_value = "config")]
         target: ConfigTarget,
 
         /// Path to the override file
@@ -39,7 +39,7 @@ pub enum ConfigSubcommand {
     /// Validate a config file
     Validate {
         /// Target to validate: config, applications, or vps
-        #[arg(value_enum)]
+        #[arg(value_enum, default_value = "config")]
         target: ConfigTarget,
 
         /// Path to the file to validate

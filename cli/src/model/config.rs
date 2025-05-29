@@ -1,14 +1,18 @@
 // Module: Model/Config
 // Location: cli/src/model/config.rs
+
 use dirs::config_dir;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tranquility::{log_info, log_warn};
 
 use crate::schema::SUPPORTED_EXTS;
+
+use super::application::ApplicationList;
+use super::vps::VPSList;
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -27,20 +31,27 @@ impl Default for LogOutput {
 pub struct TranquilityConfig {
     pub applications_file: PathBuf,
     pub vps_file: PathBuf,
-    pub logs_directory: PathBuf,
+    pub log_directory: PathBuf,
     pub log_output: LogOutput,
 }
 
 impl TranquilityConfig {
+    fn config_file_base_name() -> &'static str {
+        "config"
+    }
+
+    fn file_with_ext(base: &Path, name: &str, ext: &str) -> PathBuf {
+        base.join(format!("{name}.{ext}"))
+    }
+
     pub fn config_path() -> io::Result<PathBuf> {
         let base = Self::config_dir()?;
-        for ext in &SUPPORTED_EXTS {
-            let candidate = base.join(format!("config.{ext}"));
-            if candidate.exists() {
-                return Ok(candidate);
-            }
-        }
-        Ok(base.join("config.yaml"))
+        Ok(
+            resolve_config_file_with_extensions(&base, Self::config_file_base_name())
+                .unwrap_or_else(|| {
+                    Self::file_with_ext(&base, Self::config_file_base_name(), "yaml")
+                }),
+        )
     }
 
     pub fn config_dir() -> io::Result<PathBuf> {
@@ -49,8 +60,13 @@ impl TranquilityConfig {
         })
     }
 
+    fn default_file_path(base_dir: &Path, name: &str) -> PathBuf {
+        resolve_config_file_with_extensions(base_dir, name)
+            .unwrap_or_else(|| base_dir.join(format!("{name}.yaml")))
+    }
+
     pub fn log_file(&self) -> PathBuf {
-        self.logs_directory.join(format!(
+        self.log_directory.join(format!(
             "{}-tranquility.log",
             chrono::Local::now().format("%Y-%m-%d")
         ))
@@ -58,13 +74,13 @@ impl TranquilityConfig {
 
     pub fn default() -> io::Result<Self> {
         let base_dir = Self::config_dir()?;
-        let logs_directory = base_dir.join("logs");
-        fs::create_dir_all(&logs_directory)?;
+        let log_directory = base_dir.join("logs");
+        fs::create_dir_all(&log_directory)?;
 
-        Ok(TranquilityConfig {
-            applications_file: base_dir.join("applications.json"),
-            vps_file: base_dir.join("vps.json"),
-            logs_directory,
+        Ok(Self {
+            applications_file: Self::default_file_path(&base_dir, "applications"),
+            vps_file: Self::default_file_path(&base_dir, "vps"),
+            log_directory,
             log_output: LogOutput::Primary,
         })
     }
@@ -83,13 +99,13 @@ impl TranquilityConfig {
 
             let mut cfg = deserialize_config(&path, &content)?;
 
-            if cfg.logs_directory.as_os_str().is_empty() {
-                cfg.logs_directory = Self::config_dir()?.join("logs");
+            if cfg.log_directory.as_os_str().is_empty() {
+                cfg.log_directory = Self::config_dir()?.join("logs");
                 write_config(&path, &cfg)?;
                 log_warn!(
                     "patch",
                     "config",
-                    "⚠️  Patched missing logs_directory in config."
+                    "⚠️  Patched missing log_directory in config."
                 );
             }
 
@@ -101,11 +117,26 @@ impl TranquilityConfig {
                 "⚠️  Config file not found. Creating default config."
             );
             let default = Self::default()?;
-            let path = Self::config_path()?;
             write_config(&path, &default)?;
             log_info!("create", "config", "✅ Default config created.");
             Ok(default)
         }
+    }
+
+    pub fn load_applications(&self) -> io::Result<ApplicationList> {
+        let path = resolve_config_file_with_extensions(&Self::config_dir()?, "applications")
+            .unwrap_or_else(|| self.applications_file.clone());
+
+        let content = fs::read_to_string(&path)?;
+        serde_yaml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    }
+
+    pub fn load_vps(&self) -> io::Result<VPSList> {
+        let path = resolve_config_file_with_extensions(&Self::config_dir()?, "vps")
+            .unwrap_or_else(|| self.vps_file.clone());
+
+        let content = fs::read_to_string(&path)?;
+        serde_yaml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
     pub fn reset() -> io::Result<()> {
@@ -138,19 +169,20 @@ impl TranquilityConfig {
             match deserialize_config(&path, &content) {
                 Ok(mut cfg) => {
                     let mut changed = false;
+                    let base = Self::config_dir()?;
 
-                    if cfg.logs_directory.as_os_str().is_empty() {
-                        cfg.logs_directory = Self::config_dir()?.join("logs");
+                    if cfg.log_directory.as_os_str().is_empty() {
+                        cfg.log_directory = base.join("logs");
                         changed = true;
                     }
 
                     if cfg.applications_file.as_os_str().is_empty() {
-                        cfg.applications_file = Self::config_dir()?.join("applications.yaml");
+                        cfg.applications_file = Self::default_file_path(&base, "applications");
                         changed = true;
                     }
 
                     if cfg.vps_file.as_os_str().is_empty() {
-                        cfg.vps_file = Self::config_dir()?.join("vps.yaml");
+                        cfg.vps_file = Self::default_file_path(&base, "vps");
                         changed = true;
                     }
 
@@ -239,4 +271,14 @@ fn write_config(path: &PathBuf, config: &TranquilityConfig) -> io::Result<()> {
 
     fs::write(path, content)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to write config: {e}")))
+}
+
+fn resolve_config_file_with_extensions(base: &Path, name: &str) -> Option<PathBuf> {
+    for ext in &SUPPORTED_EXTS {
+        let candidate = base.join(format!("{name}.{ext}"));
+        if candidate.exists() {
+            return Some(candidate);
+        }
+    }
+    None
 }

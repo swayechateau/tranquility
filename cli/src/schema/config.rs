@@ -130,7 +130,7 @@ pub fn validate_file(path: &PathBuf) -> bool {
 
 fn validate_custom(json: &Value) -> Result<(), String> {
     let mut errors = Vec::new();
-    for field in ["applications_file", "vps_file", "logs_directory"] {
+    for field in ["applications_file", "vps_file", "log_directory"] {
         match json.get(field) {
             Some(path_val) => {
                 // Must be a string
@@ -152,7 +152,7 @@ fn validate_custom(json: &Value) -> Result<(), String> {
                 }
 
                 // Check extension for applications_file and vps_file
-                if field != "logs_directory" {
+                if field != "log_directory" {
                     let ext = Path::new(path_str)
                         .extension()
                         .and_then(|e| e.to_str())
