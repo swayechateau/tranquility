@@ -1,22 +1,24 @@
-<vps>
-  <item>
+<config>
+  <vps>
     <id>dev-vm</id>
     <name>Dev VM</name>
     <host>10.0.0.5</host>
-  </item>
-  <item>
+  </vps>
+  <vps>
+    <id>staging</id>
     <name>staging</name>
     <user>root</user>
     <host>staging.example.com</host>
     <private_key>~/.ssh/staging_id_rsa</private_key>
     <post_connect_script>./scripts/bootstrap.sh</post_connect_script>
-  </item>
-  <item>
+  </vps>
+  <vps>
+    <id>prod</id>
     <name>prod</name>
     <user>deploy</user>
-    <host>prod.example.com</host>
     <port>2222</port>
+    <host>prod.example.com</host>
     <private_key>~/.ssh/staging_id_rsa</private_key>
     <post_connect_script>echo Connected &amp;&amp; uptime</post_connect_script>
-  </item>
-</vps>
+  </vps>
+</config>

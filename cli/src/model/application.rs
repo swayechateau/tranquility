@@ -1,10 +1,14 @@
 // Module: Model/Application
 // Location: cli/src/model/application.rs
-use crate::category::Category;
-use crate::config::TranquilityConfig;
-use crate::package_manager::PackageManager;
-use crate::shell::command::{command_exists, run_shell_command};
-use crate::system::{OsSupport, SystemInfo, SystemSupport};
+use crate::{
+    model::{
+        category::Category,
+        config::TranquilityConfig,
+        package_manager::PackageManager,
+        system::{OsSupport, SystemInfo, SystemSupport},
+    },
+    shell::command::{command_exists, run_shell_command},
+};
 use colored::Colorize;
 use dialoguer::Confirm;
 use heck::ToKebabCase;
@@ -167,7 +171,11 @@ impl InstallMethod {
             pm.uninstall(None, pkg, dry_run);
         } else {
             print_error!("❌ No uninstall steps or valid package manager fallback provided.");
-            log_error!("uninstall", "app", "No uninstall steps or valid package manager fallback provided.");
+            log_error!(
+                "uninstall",
+                "app",
+                "No uninstall steps or valid package manager fallback provided."
+            );
         }
     }
 }
@@ -286,10 +294,7 @@ fn default_apps() -> Vec<Application> {
                 dependencies: vec![],
                 install_methods: vec![InstallMethod {
                     fallback: false,
-                    os: vec![
-                        OSType::Linux.into(), 
-                        OSType::Macos.into()
-                    ],
+                    os: vec![OSType::Linux.into(), OSType::Macos.into()],
                     package_manager: Some(PackageManager::Apt),
                     package_name: Some("fish".to_string()),
                     is_cask: None,
@@ -309,10 +314,7 @@ fn default_apps() -> Vec<Application> {
                 dependencies: vec![],
                 install_methods: vec![InstallMethod {
                     fallback: false,
-                    os: vec![
-                        OSType::Linux.into(), 
-                        OSType::Macos.into()
-                    ],
+                    os: vec![OSType::Linux.into(), OSType::Macos.into()],
                     package_manager: Some(PackageManager::Apt),
                     package_name: Some("zsh".to_string()),
                     is_cask: None,

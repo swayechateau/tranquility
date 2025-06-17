@@ -1,18 +1,23 @@
 // Module: Command/Vps/List
 // Location: cli/src/command/vps/list.rs
+
 use clap::Args;
+use tabled::settings::Style;
 use std::io;
 use tabled::{Table, Tabled};
 use tranquility::{print_info, print_warn};
 
-use crate::model::vps::{get_vps_entries, VPSConfig};
+use crate::model::vps::json::{VpsConfig, VpsEntry};
+use crate::model::config::TranquilityConfig;
 
 #[derive(Args, Debug)]
-pub struct VpsListCommad {
+pub struct VpsListCommand {
     #[arg(long)]
     user: Option<String>,
     #[arg(long)]
     host: Option<String>,
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Tabled)]
@@ -29,13 +34,15 @@ struct VPSDisplay {
     port: String,
 }
 
-pub fn vps_command_list(cmd: VpsListCommad, dry_run: bool) {
+pub fn vps_command_list(cmd: VpsListCommand, dry_run: bool) {
     if let Err(e) = vps_list(cmd.user, cmd.host, dry_run) {
         print_warn!("❌ Failed to list VPS entries: {e}");
     }
 }
 
 pub fn vps_list(user: Option<String>, host: Option<String>, dry_run: bool) -> io::Result<()> {
+    let mut vps_entries: Vec<VpsEntry>;
+
     if dry_run {
         print_warn!("[dry run] Simulating VPS list output.");
 
@@ -47,8 +54,7 @@ pub fn vps_list(user: Option<String>, host: Option<String>, dry_run: bool) -> io
             print_info!("Would filter by host: {h}");
         }
 
-        // Simulated entry (optional)
-        let simulated = VPSConfig {
+        vps_entries = vec![VpsEntry {
             id: Some("dry-run-id".into()),
             name: Some("DryRunVPS".into()),
             user: Some("dryuser".into()),
@@ -56,32 +62,11 @@ pub fn vps_list(user: Option<String>, host: Option<String>, dry_run: bool) -> io
             port: Some("2222".into()),
             private_key: None,
             post_connect_script: None,
-        };
-
-        let mut simulated_entries = vec![simulated];
-
-        // Apply filters in dry-run mode too
-        if let Some(u) = user {
-            simulated_entries.retain(|v| v.user.as_deref().unwrap_or("user") == u);
-        }
-
-        if let Some(h) = host {
-            simulated_entries.retain(|v| v.host == h);
-        }
-
-        if simulated_entries.is_empty() {
-            print_warn!("⚠️  No simulated entries match the specified filters.");
-            return Ok(());
-        }
-
-        list_vps_entries(&simulated_entries);
-        return Ok(());
-    }
-    let mut vps_entries=get_vps_entries()?;
-
-    if vps_entries.is_empty() {
-        print_warn!("⚠️  No VPS entries found in your configuration.");
-        return Ok(());
+        }];
+    } else {
+        let config = TranquilityConfig::load_or_init()?;
+        let vps_config = VpsConfig::load_from_file(&config.vps_file)?;
+        vps_entries = vps_config.vps;
     }
 
     // Apply filters
@@ -103,18 +88,20 @@ pub fn vps_list(user: Option<String>, host: Option<String>, dry_run: bool) -> io
     Ok(())
 }
 
-fn list_vps_entries(vps_entries: &[VPSConfig]) {
+fn list_vps_entries(vps_entries: &[VpsEntry]) {
     let table_data: Vec<VPSDisplay> = vps_entries
         .iter()
         .enumerate()
         .map(|(i, vps)| VPSDisplay {
             id: vps.id.clone().unwrap_or_else(|| format!("{}", i + 1)),
             name: vps.name.clone().unwrap_or_else(|| "-".into()),
-            username: vps.user.clone().unwrap_or_else(|| "user".into()),
+            username: vps.effective_user(),
             host: vps.host.clone(),
-            port: vps.port.clone().unwrap_or_else(|| "22".into()),
+            port: vps.effective_port().to_string(),
         })
         .collect();
 
-    println!("{}", Table::new(table_data));
+    let mut table = Table::new(table_data);
+    table.with(Style::modern());
+    println!("{}", table);
 }

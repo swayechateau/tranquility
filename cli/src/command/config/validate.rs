@@ -1,7 +1,7 @@
 // Module: Command/Config/Validate
 // Location:cli/src/command/config/validate.rs
 use std::path::PathBuf;
-use tranquility::{log_warn, log_info, print_error, print_success};
+use tranquility::{print_error, print_success};
 use crate::{ schema};
 
 pub fn validate_config(path: PathBuf) {

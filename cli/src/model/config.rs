@@ -9,10 +9,8 @@ use std::io::{self};
 use std::path::{Path, PathBuf};
 use tranquility::{log_info, log_warn};
 
+use crate::model::vps::json::VpsConfig;
 use crate::schema::SUPPORTED_EXTS;
-
-use super::application::ApplicationList;
-use super::vps::VPSList;
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -123,20 +121,19 @@ impl TranquilityConfig {
         }
     }
 
-    pub fn load_applications(&self) -> io::Result<ApplicationList> {
-        let path = resolve_config_file_with_extensions(&Self::config_dir()?, "applications")
-            .unwrap_or_else(|| self.applications_file.clone());
+    // pub fn load_applications(&self) -> io::Result<ApplicationList> {
+    //     let path = resolve_config_file_with_extensions(&Self::config_dir()?, "applications")
+    //         .unwrap_or_else(|| self.applications_file.clone());
 
-        let content = fs::read_to_string(&path)?;
-        serde_yaml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-    }
+    //     let content = fs::read_to_string(&path)?;
+    //     serde_yaml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    // }
 
-    pub fn load_vps(&self) -> io::Result<VPSList> {
+    pub fn load_vps(&self) -> io::Result<VpsConfig> {
         let path = resolve_config_file_with_extensions(&Self::config_dir()?, "vps")
             .unwrap_or_else(|| self.vps_file.clone());
 
-        let content = fs::read_to_string(&path)?;
-        serde_yaml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        VpsConfig::load_from_file(&path)
     }
 
     pub fn reset() -> io::Result<()> {

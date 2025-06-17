@@ -1,7 +1,9 @@
 // Module: Model/PackageManager
 // Location: cli/src/model/package_manager.rs
-use crate::shell::command::{check_command, command_exists, execute_package_cmd, run_shell_command};
-use crate::system::SystemInfo;
+use crate::{
+    model::system::SystemInfo,
+    shell::command::{check_command, command_exists, execute_package_cmd, run_shell_command}
+};
 use tranquility::{print_error, print_warn};
 
 use colored::Colorize;

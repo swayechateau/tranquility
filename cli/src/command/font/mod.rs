@@ -7,6 +7,7 @@ pub mod list;
 pub mod refresh;
 
 use clap::{Args, Subcommand};
+use tranquility::print_warn;
 
 #[derive(Args, Debug)]
 pub struct FontCommand {
@@ -50,6 +51,11 @@ pub enum FontSubcommand {
 }
 
 pub fn handle_fonts_command(cmd: FontCommand, dry_run:bool) {
+    if dry_run {
+        print_warn!("[dry run] Simulating font command.");
+
+        println!("Would show font command options: {:?}", cmd);
+    }
     match cmd.command {
         Some(FontSubcommand::Install { all, name }) => install::install(all, name),
         Some(FontSubcommand::Uninstall { all, name }) => uninstall::uninstall(all, name),

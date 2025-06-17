@@ -8,7 +8,6 @@ mod utils;
 mod schema;
 
 use clap::Parser;
-use model::{category, config, package_manager, system};
 use command::{tranquility::{handle_command_errors, handle_commands, TranquilityCommand}};
 use tranquility::log_info;
 use core::{print::tranquility_figlet};

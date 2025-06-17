@@ -3,11 +3,14 @@
 
 use clap::{Args, Subcommand};
 
-use crate::model::{application::list_supported_applications, category::{list_categories, Category}};
-
-use super::{font, tranquility::print_subcommand_help, vps::list::{vps_command_list, vps_list, VpsListCommad}};
-
-
+use crate::command::vps::list::VpsListCommand;
+use crate::{
+    command::{font, tranquility::print_subcommand_help, vps::list::vps_command_list},
+    model::{
+        application::list_supported_applications,
+        category::{list_categories, Category},
+    },
+};
 #[derive(Args, Debug)]
 pub struct ListCommand {
     #[command(subcommand)]
@@ -30,11 +33,11 @@ pub enum ListSubCommand {
         #[arg(long)]
         all: bool,
     },
-    Vps (VpsListCommad),
+    Vps(VpsListCommand),
     Categories {},
 }
 
-pub fn handle_list_command(cmd: ListCommand, dry_run:bool) {
+pub fn handle_list_command(cmd: ListCommand, dry_run: bool) {
     match cmd.command {
         Some(ListSubCommand::Apps { server, category }) => {
             list_supported_applications(server, category);
@@ -42,7 +45,7 @@ pub fn handle_list_command(cmd: ListCommand, dry_run:bool) {
         Some(ListSubCommand::Fonts { installed, all }) => {
             font::list::list(installed, all);
         }
-        Some(ListSubCommand::Vps(vps)) => {vps_command_list(vps, dry_run)}
+        Some(ListSubCommand::Vps(vps)) => vps_command_list(vps, dry_run),
         Some(ListSubCommand::Categories {}) => list_categories(),
         None => print_subcommand_help("list"),
     }

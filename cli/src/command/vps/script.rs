@@ -1,14 +1,16 @@
 // Module: Command/Vps/Script
 // Location: cli/src/command/vps/script.rs
+
 use clap::Args;
 use std::{fs, io, path::Path};
+use dialoguer::{Select, theme::ColorfulTheme};
 
 use crate::{
-    config::TranquilityConfig,
-    model::vps::{load_vps_entries},
+    model::config::TranquilityConfig,
+    model::vps::json::{VpsConfig},
     shell::script_runner::{ScriptSource, ShellScriptRunner},
 };
-use tranquility::{log_error, print_error, print_warn};
+use tranquility::{log_error, print_warn};
 use shellexpand::tilde;
 
 #[derive(Args, Debug)]
@@ -28,47 +30,67 @@ pub fn vps_command_script(cmd: VpsScriptCommand, dry_run: bool) {
 }
 
 fn run_vps_script(cmd: VpsScriptCommand, dry_run: bool) -> io::Result<()> {
-    let id = match cmd.id {
-        Some(id) => id,
+    let config = TranquilityConfig::load_or_init()?;
+    let mut vps_config = VpsConfig::load_from_file(&config.vps_file)?;
+    vps_config.fix();
+
+    // STEP 1: Resolve VPS entry
+    let vps = match &cmd.id {
+        Some(ref id) => vps_config.vps.iter().find(|v| v.id.as_deref() == Some(id)),
         None => {
-            print_warn!("❌ --id is required to identify which VPS to target.");
-            return Ok(());
+            if vps_config.vps.is_empty() {
+                print_warn!("⚠️ No VPS entries found in your configuration.");
+                return Ok(());
+            }
+
+            let options: Vec<String> = vps_config.vps.iter().map(|v| {
+                let user = v.effective_user();
+                let name = v.name.clone().unwrap_or_else(|| "-".into());
+                format!("{}@{} ({})", user, v.host, name)
+            }).collect();
+
+            let selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("💻 Select a VPS to run the script on")
+                .items(&options)
+                .default(0)
+                .interact()
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Prompt failed: {e}")))?;
+
+            Some(&vps_config.vps[selection])
         }
     };
 
-    let config = TranquilityConfig::load_or_init()?;
-    let vps_entries = load_vps_entries(&config.vps_file)?;
-
-    let vps = match vps_entries.into_iter().find(|v| v.id.as_deref() == Some(&id)) {
+    let vps = match vps {
         Some(v) => v,
         None => {
-            print_warn!("❌ No VPS found with ID: {}", id);
+            print_warn!("❌ No VPS found with the specified ID.");
             return Ok(());
         }
     };
 
-    let script = match resolve_script(cmd.inline, cmd.file) {
-        Ok(Some(script)) => script,
-        Ok(None) => {
-            print_warn!("⚠️ No script provided via --inline or --file.");
-            return Ok(());
-        }
-        Err(e) => {
-            print_error!("❌ Failed to resolve script: {e}");
-            return Ok(());
+    // STEP 2: Resolve script source: inline > file > post_connect_script
+    let script = match resolve_script(cmd.inline, cmd.file)? {
+        Some(script) => script,
+        None => {
+            if let Some(script_str) = &vps.post_connect_script {
+                ScriptSource::Inline(script_str.clone())
+            } else {
+                print_warn!("⚠️ No script provided via --inline, --file, or VPS config. Aborting.");
+                return Ok(());
+            }
         }
     };
 
-    let remote = match &vps.user {
-        Some(user) => format!("{}@{}", user, vps.host),
-        None => vps.host.clone(),
+    // STEP 3: Prepare and run script
+    let remote = format!("{}@{}", vps.effective_user(), vps.host);
+
+    let script_content = match &script {
+        ScriptSource::Inline(content) => content.clone(),
+        ScriptSource::File(path) => fs::read_to_string(path)?,
     };
 
     let runner = ShellScriptRunner {
-        script: match &script {
-            ScriptSource::Inline(content) => content.clone(),
-            ScriptSource::File(path) => std::fs::read_to_string(path)?,
-        },
+        script: script_content,
         source: script,
         remote: Some(remote),
         use_sudo: false,
@@ -92,7 +114,10 @@ fn resolve_script(inline: Option<String>, file: Option<String>) -> io::Result<Op
             .to_string();
 
         if !Path::new(&expanded).exists() {
-            return Err(io::Error::new(io::ErrorKind::NotFound, format!("Script file not found: {}", expanded)));
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("Script file not found: {}", expanded),
+            ));
         }
 
         return Ok(Some(ScriptSource::File(expanded)));
@@ -100,4 +125,3 @@ fn resolve_script(inline: Option<String>, file: Option<String>) -> io::Result<Op
 
     Ok(None)
 }
-

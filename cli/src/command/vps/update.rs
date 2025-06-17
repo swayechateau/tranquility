@@ -3,17 +3,16 @@
 use clap::Args;
 use tranquility::{log_error, log_warn, print_info, print_success, print_warn};
 
-use std::{fs, io};
+use std::{io};
 
 use crate::{
-    config::TranquilityConfig,
-    model::vps::{VPSConfig, VPSList},
+    core::expand_home, model::{config::TranquilityConfig, vps::json::VpsConfig}
 };
 
 #[derive(Args, Debug)]
 pub struct VpsUpdateCommand {
     #[arg(long)]
-    id: Option<String>, // Required to identify which VPS to update
+    id: Option<String>,
     #[arg(long)]
     name: Option<String>,
     #[arg(long)]
@@ -48,7 +47,7 @@ fn update_vps_entry(cmd: VpsUpdateCommand, dry_run: bool) -> io::Result<()> {
         return Ok(());
     }
 
-    let mut list = VPSList::load_from_file(path)?;
+    let mut list = VpsConfig::load_from_file(path)?;
 
     let index = match list.vps.iter().position(|v| v.id.as_deref() == Some(&id)) {
         Some(i) => i,
@@ -60,26 +59,41 @@ fn update_vps_entry(cmd: VpsUpdateCommand, dry_run: bool) -> io::Result<()> {
 
     let entry = &mut list.vps[index];
 
-    // Show the original entry
-    print_info!("✏️ Updating VPS entry: {}@{}", entry.user.as_deref().unwrap_or("user"), entry.host);
+    print_info!("✏️ Updating VPS entry: {}@{}", entry.effective_user(), entry.host);
+
+    let mut changed = false;
 
     if let Some(name) = cmd.name {
         entry.name = Some(name);
-    }
-    if let Some(host) = cmd.host {
-        entry.host = host;
-    }
-    if let Some(user) = cmd.user {
-        entry.user = Some(user);
-    }
-    if let Some(port) = cmd.port {
-        entry.port = Some(port);
-    }
-    if let Some(pk) = cmd.private_key {
-        entry.private_key = Some(pk.into());
+        changed = true;
     }
 
-    // Show the result
+    if let Some(host) = cmd.host {
+        entry.host = host;
+        changed = true;
+    }
+
+    if let Some(user) = cmd.user {
+        entry.user = Some(user);
+        changed = true;
+    }
+
+    if let Some(port) = cmd.port {
+        entry.port = Some(port.into());
+        changed = true;
+    }
+
+    if let Some(pk) = cmd.private_key {
+        let expanded = expand_home(&pk);
+        entry.private_key = Some(expanded);
+        changed = true;
+    }
+
+    if !changed {
+        print_warn!("⚠️ No updates were provided. Entry remains unchanged.");
+        return Ok(());
+    }
+
     println!("\n🔄 Updated entry:");
     println!("{}", serde_json::to_string_pretty(&entry).unwrap());
 

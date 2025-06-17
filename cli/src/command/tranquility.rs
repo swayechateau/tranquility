@@ -3,7 +3,7 @@
 use clap::{error::ErrorKind, CommandFactory, Error, Parser, Subcommand};
 use tranquility::{log_error, print_info};
 
-use crate::{command::doctor, core::logger, system::SystemInfo};
+use crate::{command::doctor, core::logger, model::system::SystemInfo};
 
 use super::{
     app,
