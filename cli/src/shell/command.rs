@@ -48,32 +48,32 @@ impl ShellCommand {
         println!("💡 [Dry Run] {}", self.as_string().cyan());
     }
 
-    pub fn execute(&self) -> std::io::Result<Output> {
-        let mut cmd = if cfg!(target_os = "windows") {
+    fn build_command(&self) -> Command {
+        if cfg!(windows) {
             let full_cmd = format!("{} {}", self.command, self.args.join(" "));
-            let mut c = Command::new("cmd");
-            c.args(&["/C", &full_cmd]);
-            c
+            let mut cmd = Command::new("cmd");
+            cmd.args(["/C", &full_cmd]);
+            cmd
         } else {
-            let mut full_cmd = if self.requires_sudo {
-                vec!["sudo".to_string(), self.command.clone()]
+            let mut cmd = if self.requires_sudo {
+                let mut c = Command::new("sudo");
+                c.arg(&self.command);
+                c
             } else {
-                vec![self.command.clone()]
+                Command::new(&self.command)
             };
-            full_cmd.extend(self.args.clone());
-            let mut c = Command::new(&full_cmd[0]);
-            for arg in &full_cmd[1..] {
-                c.arg(arg);
-            }
-            c
-        };
+            cmd.args(&self.args);
+            cmd
+        }
+    }
 
-        cmd.output()
+    pub fn execute(&self) -> std::io::Result<Output> {
+        self.build_command().output()
     }
 
     pub fn execute_with_dry_run(&self, dry_run: bool) -> Option<std::io::Result<Output>> {
         if dry_run {
-            println!("💡 [Dry Run] Would run: {}", self.as_string().cyan());
+            self.dry_run();
             None
         } else {
             Some(self.execute())
@@ -107,15 +107,6 @@ impl ShellCommand {
         }
     }
 
-    // pub fn run_status_only(&self, dry_run: bool) -> Option<bool> {
-    //     if dry_run {
-    //         self.dry_run();
-    //         return Some(true);
-    //     }
-
-    //     self.execute().ok().map(|out| out.status.success())
-    // }
-
     pub fn run(&self, dry_run: bool) -> Option<std::io::Result<()>> {
         if dry_run {
             self.dry_run();
@@ -137,63 +128,26 @@ impl ShellCommand {
         }
     }
 
-    pub fn from_script(script: &str, sudo: bool) -> Self {
-        if cfg!(windows) {
-            Self {
-                command: "powershell".to_string(),
-                args: vec!["-Command".to_string(), script.to_string()],
-                requires_sudo: sudo,
-            }
-        } else {
-            Self {
-                command: "sh".to_string(),
-                args: vec!["-c".to_string(), script.to_string()],
-                requires_sudo: sudo,
-            }
-        }
-    }
-
-    pub fn from_args(args: &[&str]) -> Vec<String> {
-        args.iter().map(|s| s.to_string()).collect()
-    }
-
     pub fn run_interactive(&self, dry_run: bool) -> std::io::Result<()> {
         if dry_run {
             self.dry_run();
             return Ok(());
         }
 
-        let mut cmd;
-
-        if cfg!(target_os = "windows") {
-            let full_cmd = format!("{} {}", self.command, self.args.join(" "));
-            cmd = Command::new("cmd");
-            cmd.args(&["/C", &full_cmd]);
-        } else {
-            let mut full_cmd = if self.requires_sudo {
-                vec!["sudo".to_string(), self.command.clone()]
-            } else {
-                vec![self.command.clone()]
-            };
-            full_cmd.extend(self.args.clone());
-
-            cmd = Command::new(&full_cmd[0]);
-            for arg in &full_cmd[1..] {
-                cmd.arg(arg);
-            }
-        }
-
-        cmd.stdin(Stdio::inherit())
+        let mut child = self
+            .build_command()
+            .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit());
+            .stderr(Stdio::inherit())
+            .spawn()?;
 
-        let mut child = cmd.spawn()?;
         child.wait()?;
         Ok(())
     }
+
     pub fn open_url(url: &str) {
-        let result = if cfg!(target_os = "windows") {
-            Command::new("cmd").args(&["/C", "start", "", url]).spawn()
+        let result = if cfg!(windows) {
+            Command::new("cmd").args(["/C", "start", "", url]).spawn()
         } else if cfg!(target_os = "macos") {
             Command::new("open").arg(url).spawn()
         } else {
@@ -204,6 +158,19 @@ impl ShellCommand {
             print_error!("❌ {}: {}", "Failed to open URL".red(), err);
         }
     }
+
+    pub fn from_script(script: &str, sudo: bool) -> Self {
+        if cfg!(windows) {
+            Self::new("powershell")
+                .with_args(["-Command", script])
+                .with_sudo(sudo)
+        } else {
+            Self::new("sh")
+                .with_args(["-c", script])
+                .with_sudo(sudo)
+        }
+    }
+
     pub fn from_remote_script(remote: &str, script: &str, sudo: bool) -> Self {
         let wrapped = format!("ssh {} '{}'", remote, script);
         Self::from_script(&wrapped, sudo)
@@ -235,12 +202,10 @@ pub fn check_command(cmd: &str, friendly_name: &str) -> bool {
 pub fn run_shell_command(command: &str) {
     println!("🚀 Running: {}", command.cyan());
 
-    let status = if cfg!(target_os = "windows") {
-        Command::new("powershell")
-            .args(&["-Command", command])
-            .status()
+    let status = if cfg!(windows) {
+        Command::new("powershell").args(["-Command", command]).status()
     } else {
-        Command::new("sh").args(&["-c", command]).status()
+        Command::new("sh").args(["-c", command]).status()
     };
 
     match status {
@@ -261,7 +226,7 @@ pub fn run_shell_command(command: &str) {
 
 pub fn execute_package_cmd(cmd: &str, args: &[&str], sudo: bool, dry_run: bool) {
     ShellCommand::new(cmd)
-        .with_args(ShellCommand::from_args(args))
+        .with_args(args.iter().copied())
         .with_sudo(sudo)
         .run_verbose(dry_run);
 }

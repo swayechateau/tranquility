@@ -31,7 +31,7 @@ impl ShellScriptRunner {
     pub fn from_file(path: &str, use_sudo: bool, dry_run: bool) -> std::io::Result<Self> {
         let contents = fs::read_to_string(path)?;
         Ok(Self {
-            script: contents.clone(),
+            script: contents,
             source: ScriptSource::File(path.to_string()),
             remote: None,
             use_sudo,
@@ -50,8 +50,7 @@ impl ShellScriptRunner {
             ScriptSource::File(path) => path,
         };
 
-        let remote_label = self
-            .remote
+        let remote_label = self.remote
             .as_ref()
             .map(|r| format!(" over SSH ({})", r))
             .unwrap_or_default();
@@ -63,13 +62,11 @@ impl ShellScriptRunner {
             remote_label
         );
 
-        let command = self.to_command();
-        command.run_verbose(self.dry_run);
+        self.to_command().run_verbose(self.dry_run);
     }
 
     pub fn run_silent(&self) -> Option<std::io::Result<()>> {
-        let command = self.to_command();
-        command.run(self.dry_run)
+        self.to_command().run(self.dry_run)
     }
 
     pub fn run(&self) {
@@ -78,9 +75,7 @@ impl ShellScriptRunner {
 
     fn to_command(&self) -> ShellCommand {
         match &self.remote {
-            Some(remote_target) => {
-                ShellCommand::from_remote_script(remote_target, &self.script, self.use_sudo)
-            }
+            Some(remote) => ShellCommand::from_remote_script(remote, &self.script, self.use_sudo),
             None => ShellCommand::from_script(&self.script, self.use_sudo),
         }
     }

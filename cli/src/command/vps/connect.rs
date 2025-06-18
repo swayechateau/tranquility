@@ -1,13 +1,14 @@
 // Module: Command/Vps/Connect
-// Location:cli/src/command/vps/connect.rs
+// Location: cli/src/command/vps/connect.rs
+
 use clap::Args;
-use tranquility::{log_error, print_info, print_warn};
-use dialoguer::{Select, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Select};
 use std::io;
+use tranquility::{log_error, print_info, print_warn};
 
 use crate::{
-    config::TranquilityConfig,
-    model::vps::{load_vps_entries},
+    model::config::TranquilityConfig,
+    model::vps::json::{VpsConfig},
     shell::ShellCommand,
 };
 
@@ -25,19 +26,22 @@ pub fn vps_command_connect(cmd: VpsConnectCommand, dry_run: bool) {
 
 fn connect_to_vps(id: Option<String>, dry_run: bool) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
-    let entries = load_vps_entries(&config.vps_file)?;
+    let mut vps_config = VpsConfig::load_from_file(&config.vps_file)?;
+    vps_config.fix();
 
-    if entries.is_empty() {
+    if vps_config.vps.is_empty() {
         print_warn!("⚠️ No VPS entries found in your configuration.");
         return Ok(());
     }
 
     let vps = match id {
-        Some(ref id) => entries.into_iter().find(|v| v.id.as_deref() == Some(id)),
+        Some(ref id) => vps_config.vps.iter().find(|v| v.id.as_deref() == Some(id)),
         None => {
-            let options: Vec<String> = entries.iter()
+            let options: Vec<String> = vps_config
+                .vps
+                .iter()
                 .map(|v| {
-                    let user = v.user.as_deref().unwrap_or("<system user>");
+                    let user = v.effective_user();
                     let name = v.name.clone().unwrap_or_else(|| "-".into());
                     format!("{}@{} ({})", user, v.host, name)
                 })
@@ -50,7 +54,7 @@ fn connect_to_vps(id: Option<String>, dry_run: bool) -> io::Result<()> {
                 .interact()
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Prompt failed: {e}")))?;
 
-            Some(entries.into_iter().nth(selection).unwrap())
+            Some(&vps_config.vps[selection])
         }
     };
 
@@ -62,27 +66,23 @@ fn connect_to_vps(id: Option<String>, dry_run: bool) -> io::Result<()> {
         }
     };
 
-    let port = vps.port.as_deref().unwrap_or("22");
+    let port = vps.effective_port().to_string();
+    let user = vps.effective_user();
     let host = &vps.host;
 
     let mut args = vec!["-tt"];
 
     if let Some(ref key) = vps.private_key {
         args.push("-i");
-        args.push(key.to_str().unwrap());
+        args.push(key);
     }
 
     if port != "22" {
         args.push("-p");
-        args.push(port);
+        args.push(&port);
     }
 
-    // Format SSH destination: "user@host" or just "host"
-    let remote = match vps.user.as_deref() {
-        Some(user) => format!("{user}@{host}"),
-        None => host.to_string(),
-    };
-
+    let remote = format!("{user}@{host}");
     args.push(&remote);
 
     if dry_run {

@@ -7,7 +7,7 @@ pub mod validate;
 use std::path::PathBuf;
 
 use clap::{Args, Subcommand};
-use crate::config::TranquilityConfig;
+use crate::model::config::TranquilityConfig;
 use tranquility::{log_error, log_info, print_info};
 
 #[derive(Debug, Args)]
@@ -28,7 +28,7 @@ pub enum ConfigSubcommand {
     /// Override a config file with a custom file
     Override {
         /// Target to override: config, applications, or vps
-        #[arg(value_enum)]
+        #[arg(value_enum, default_value = "config")]
         target: ConfigTarget,
 
         /// Path to the override file
@@ -39,7 +39,7 @@ pub enum ConfigSubcommand {
     /// Validate a config file
     Validate {
         /// Target to validate: config, applications, or vps
-        #[arg(value_enum)]
+        #[arg(value_enum, default_value = "config")]
         target: ConfigTarget,
 
         /// Path to the file to validate
@@ -56,6 +56,9 @@ pub enum ConfigTarget {
 }
 
 pub fn handle_config_command(cmd: ConfigCommand, dry_run: bool) {
+    if dry_run {
+        print_info!("🔍 Dry run mode enabled. No changes will be made.");
+    }
     match cmd.command {
         Some(ConfigSubcommand::Reset { target }) => {
             match target {

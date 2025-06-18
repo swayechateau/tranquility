@@ -1,0 +1,6 @@
+<config>
+  <applications_file>/home/chatsw/.config/tranquility/applications.xml</applications_file>
+  <vps_file>/home/chatsw/.config/tranquility/vps.xml</vps_file>
+  <log_directory>/home/chatsw/.config/tranquility/logs</log_directory>
+  <log_output>primary</log_output>
+</config>

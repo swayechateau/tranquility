@@ -1,14 +1,15 @@
 // Module: Command/Vps/Delete
 // Location: cli/src/command/vps/delete.rs
+
 use clap::Args;
-use tranquility::{log_error, log_warn, print_success, print_warn};
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use tranquility::{log_error, log_warn, print_success, print_warn};
 
 use std::{fs, io};
 
 use crate::{
-    config::TranquilityConfig,
-    model::vps::{VPSList},
+    model::config::TranquilityConfig,
+    model::vps::json::VpsConfig,
 };
 
 #[derive(Args, Debug)]
@@ -32,22 +33,21 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
         return Ok(());
     }
 
-    let mut list = VPSList::load_from_file(path)?;
+    let mut vps_config = VpsConfig::load_from_file(path)?;
 
-    if list.vps.is_empty() {
+    if vps_config.vps.is_empty() {
         print_warn!("⚠️ No VPS entries to delete.");
         return Ok(());
     }
 
-    // Delete by ID with no prompt
+    // Direct deletion by --id
     if let Some(ref id) = cmd.id {
-        if let Some(index) = list.vps.iter().position(|v| v.id.as_deref() == Some(id)) {
-            let entry = &list.vps[index];
-
+        if let Some(index) = vps_config.vps.iter().position(|v| v.id.as_deref() == Some(id)) {
+            let entry = &vps_config.vps[index];
             print_warn!(
                 "🗑️ Deleting entry with ID '{}': {}@{}",
                 id,
-                entry.user.as_deref().unwrap_or("user"),
+                entry.effective_user(),
                 entry.host
             );
 
@@ -56,24 +56,22 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
                 return Ok(());
             }
 
-            list.vps.remove(index);
-            list.save_to_file(path)?;
+            vps_config.vps.remove(index);
+            vps_config.save_to_file(path)?;
             print_success!("✅ VPS entry with ID '{}' deleted.", id);
-            return Ok(());
         } else {
             print_warn!("❌ No VPS entry found with ID: {}", id);
-            return Ok(());
         }
+        return Ok(());
     }
 
-    // No --id, prompt to select entry
-    let items: Vec<String> = list
+    // Interactive deletion if --id is not provided
+    let items: Vec<String> = vps_config
         .vps
         .iter()
-        .map(|vps| {
-            let name = vps.name.clone().unwrap_or_else(|| "-".into());
-            let user = vps.user.clone().unwrap_or_else(|| "user".into());
-            format!("{}@{} ({})", user, vps.host, name)
+        .map(|v| {
+            let name = v.name.as_deref().unwrap_or("-");
+            format!("{}@{} ({})", v.effective_user(), v.host, name)
         })
         .collect();
 
@@ -84,12 +82,13 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
         .interact()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Prompt failed: {e}")))?;
 
-    let entry = &list.vps[selection];
+    let entry = &vps_config.vps[selection];
 
     print_warn!(
-        "❗ Entry to delete: {}@{}",
-        entry.user.as_deref().unwrap_or("user"),
-        entry.host
+        "❗ Entry to delete: {}@{} ({})",
+        entry.effective_user(),
+        entry.host,
+        entry.name.as_deref().unwrap_or("-")
     );
 
     let confirm = Confirm::new()
@@ -108,13 +107,12 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
         return Ok(());
     }
 
-    list.vps.remove(selection);
-    list.save_to_file(path)?;
-
+    vps_config.vps.remove(selection);
+    vps_config.save_to_file(path)?;
     print_success!("🗑️ VPS entry deleted from {}", path.display());
+
     Ok(())
 }
-
 
 pub fn confirm_and_delete_vps_config(dry_run: bool) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;

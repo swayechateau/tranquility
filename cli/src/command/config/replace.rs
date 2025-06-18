@@ -60,22 +60,26 @@ fn override_application_file(path: PathBuf) -> io::Result<()> {
     Ok(())
 }
 
-fn override_vps_file(path: PathBuf) -> io::Result<()> {
-    let config = get_config();
-    let file_path = &path;
-    if !schema::vps::validate_file(&file_path) {
+pub fn override_vps_file(path: PathBuf) -> io::Result<()> {
+    // Validate the file before replacing
+    if !schema::vps::validate_file(&path) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("❌ Validation failed for {}", path.display()),
+            format!("❌ Validation failed for file: {}", path.display()),
         ));
     }
 
-    fs::copy(file_path, &config.vps_file)?;
+    let config = get_config();
+
+    // Attempt to copy validated file into config location
+    fs::copy(&path, &config.vps_file)?;
+
     log_info!(
         "override",
         "vps_config_file",
-        &format!("✅ Overrode VPS file with {:?}", file_path)
+        &format!("✅ VPS config overridden with file: {}", path.display())
     );
+
     Ok(())
 }
 

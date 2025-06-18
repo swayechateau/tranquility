@@ -4,7 +4,7 @@ use clap::{Args, ValueEnum};
 use strum::Display;
 use tranquility::{log_error, log_warn};
 
-use crate::{config::TranquilityConfig, core::logger::default_log_path};
+use crate::{model::config::TranquilityConfig, core::logger::default_log_path};
 
 use std::{
     fs::{File, OpenOptions},
@@ -149,5 +149,9 @@ pub fn handle_logs_command(
     cmd: LogsCommand,
     dry_run: bool
 ) {
+    if dry_run {
+        println!("Would show logs with options: {:?}", cmd);
+        return;
+    }
     show_logs(cmd.tail, &cmd.level, cmd.json_only, cmd.date, cmd.path);
 }
