@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# This script is used to test the application
+# It will run the application and check the output
+
+# First, we need to build the application
+./install
+
+# Doctor commands to test are:
+# doctor - checks the application and reports any issues
+./run doctor
+# doctor --fix - fixes any issues it can with the application
+./run doctor --fix
+# Config commands to test are:
+
+
+# VPS commands to test are:
+# vps list - list all VPS, takes --user to filter by user or --host to filter by host, both are optional and can be used together
+./run vps list
+./run vps list --user $(whoami)
+./run vps list --host example.com
+./run vps list --user $(whoami) --host example.com
+# vps add - add a new VPS, provide the id, name, host, user, passkey and post_connect_script, only name and host are required
+./run vps add --id test-vps --name "Test VPS" --host example.com
+
+# vps update - update the VPS, select the VPS to update or provide --id
+./run vps update --id test-vps --name "Updated Test VPS"
+# vps delete - delete the VPS, select the VPS to delete or provide --id
+./run vps delete --id test-vps
+# vps connect - connect to the VPS, select the VPS to connect to or provide --id
+./run vps connect --id test-vps
+# vps script - run a script on the VPS, either a file or a command
+./run vps script --id test-vps --file "test.sh"
+
+# Font commands to test are:
+# font list - list all fonts
+# font install - install a font, provide the font file to install
+# font uninstall - uninstall a font, select the font to uninstall or provide --id
+# font update - update a font, select the font to update or provide --id
+# font refresh - refresh the font cache
+
+# List commands to test are:
+# list apps - list all apps
+# list fonts - list all fonts
+# list vps - list all VPS, see VPS commands to test
+# list categories - list all categories
+
+# App commands to test are:
