@@ -27,10 +27,10 @@
 ./run vps update --id test-vps --name "Updated Test VPS"
 # vps delete - delete the VPS, select the VPS to delete or provide --id
 ./run vps delete --id test-vps
-# vps connect - connect to the VPS, select the VPS to connect to or provide --id
-./run vps connect --id test-vps
 # vps script - run a script on the VPS, either a file or a command
-./run vps script --id test-vps --file "test.sh"
+./run vps script --file "test.sh"
+# vps connect - connect to the VPS, select the VPS to connect to or provide --id
+./run vps connect
 
 # Font commands to test are:
 # font list - list all fonts
