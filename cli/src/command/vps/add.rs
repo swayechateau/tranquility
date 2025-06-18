@@ -209,7 +209,7 @@ fn prompt_and_add_vps(cmd: VpsAddCommand, dry_run: bool) -> io::Result<()> {
     }
 
     vps_config.push(new_vps);
-    vps_config.fix_and_save(path)?;
+    vps_config.save_to_file(path)?;
 
     print_success!("✅ VPS entry saved to {}", path.display());
     Ok(())
