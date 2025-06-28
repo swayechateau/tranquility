@@ -7,8 +7,10 @@ use std::io;
 use tranquility::{log_error, print_info, print_warn};
 
 use crate::{
-    model::config::TranquilityConfig,
-    model::vps::json::{VpsConfig},
+    model::{
+        config::TranquilityConfig,
+        vps::json::{VpsConfig, VpsEntry},
+    },
     shell::ShellCommand,
 };
 
@@ -16,15 +18,17 @@ use crate::{
 pub struct VpsConnectCommand {
     #[arg(long)]
     id: Option<String>,
+    #[arg(long, num_args = 0..=1, default_missing_value = "")]
+    copy_id: Option<String>,
 }
 
 pub fn vps_command_connect(cmd: VpsConnectCommand, dry_run: bool) {
-    if let Err(e) = connect_to_vps(cmd.id, dry_run) {
+    if let Err(e) = connect_to_vps(cmd.id, cmd.copy_id, dry_run) {
         log_error!("connect", "vps", &format!("❌ Failed to connect: {e}"));
     }
 }
 
-fn connect_to_vps(id: Option<String>, dry_run: bool) -> io::Result<()> {
+fn connect_to_vps(id: Option<String>, copy_id: Option<String>, dry_run: bool) -> io::Result<()> {
     let config = TranquilityConfig::load_or_init()?;
     let mut vps_config = VpsConfig::load_from_file(&config.vps_file)?;
     vps_config.fix();
@@ -69,31 +73,67 @@ fn connect_to_vps(id: Option<String>, dry_run: bool) -> io::Result<()> {
     let port = vps.effective_port().to_string();
     let user = vps.effective_user();
     let host = &vps.host;
-
-    let mut args = vec!["-tt"];
-
-    if let Some(ref key) = vps.private_key {
-        args.push("-i");
-        args.push(key);
-    }
-
-    if port != "22" {
-        args.push("-p");
-        args.push(&port);
-    }
-
     let remote = format!("{user}@{host}");
-    args.push(&remote);
 
+    /* ---------- build the ssh args ---------- */
+    let mut ssh_args = vec!["-tt"];
+    if let Some(ref key) = vps.private_key {
+        ssh_args.push("-i");
+        ssh_args.push(key);
+    }
+    if port != "22" {
+        ssh_args.push("-p");
+        ssh_args.push(&port);
+    }
+    ssh_args.push(&remote);
+
+    /* ---------- optional ssh-copy-id ---------- */
+    if copy_id.is_some() {
+        let pub_key_opt = resolve_pub_key(&copy_id, vps);
+
+        let mut copy_args: Vec<&str> = Vec::new();
+        if port != "22" {
+            copy_args.push("-p");
+            copy_args.push(&port);
+        }
+        if let Some(ref key_path) = pub_key_opt {
+            copy_args.push("-i");
+            copy_args.push(key_path);
+        }
+        copy_args.push(&remote);
+
+        if dry_run {
+            print_warn!("(dry run) Would run: ssh-copy-id {}", copy_args.join(" "));
+        } else {
+            ShellCommand::new("ssh-copy-id")
+                .with_args(copy_args)
+                .run_interactive(false)?;
+        }
+    }
+
+    /* ---------- connect ---------- */
     if dry_run {
-        print_warn!("(dry run) Would run: ssh {}", args.join(" "));
+        print_warn!("(dry run) Would run: ssh {}", ssh_args.join(" "));
         return Ok(());
     }
 
     print_info!("🔌 Connecting to {remote} on port {port}...");
     ShellCommand::new("ssh")
-        .with_args(args)
+        .with_args(ssh_args)
         .run_interactive(false)?;
 
     Ok(())
+}
+
+/// Decide which public-key file should be copied to the server.
+///
+/// Rules:
+/// 1. If user gave `--copy-id <path>` *and it isn't empty*, use that.
+/// 2. Else if the VPS has `private_key`, use `<private_key>.pub`.
+/// 3. Otherwise return `None` → call ssh-copy-id with no -i flag.
+fn resolve_pub_key(copy_id: &Option<String>, vps: &VpsEntry) -> Option<String> {
+    match copy_id {
+        Some(s) if !s.trim().is_empty() => Some(s.clone()),
+        _ => vps.private_key.as_ref().map(|k| format!("{k}.pub")),
+    }
 }
