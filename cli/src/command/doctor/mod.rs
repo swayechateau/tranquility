@@ -31,17 +31,11 @@ pub fn doctor_command(cmd: DoctorCommand, dry_run: bool) {
     println!("\n🩺 Running Tranquility System Doctor...\n");
 
     // Config file check
-    match TranquilityConfig::load_or_init() {
-        Ok(cfg) => {
-            print_success!("✅ Config file loaded");
-            check_writable(&cfg.log_file(), "Log file path");
-            check_file(&cfg.applications_file, "Applications file");
-            check_file(&cfg.vps_file, "VPS config");
-        }
-        Err(e) => {
-            log_error!("load", "config", &format!("failed: {e}"));
-        }
-    }
+    let cfg = TranquilityConfig::load_once();
+    print_success!("✅ Config file loaded");
+    check_writable(&cfg.log_file(), "Log file path");
+    check_file(&cfg.applications_file, "Applications file");
+    check_file(&cfg.vps_file, "VPS config");
 
     // System info
     let sys = SystemInfo::new();

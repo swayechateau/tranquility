@@ -182,29 +182,29 @@ impl InstallMethod {
 
 pub fn get_apps() -> ApplicationList {
     let mut apps = default_apps();
-    if let Ok(config) = TranquilityConfig::load_or_init() {
-        print_info!(
-            "📄 Applications file path: {}",
-            config.applications_file.display()
-        );
-        if config.applications_file.exists() {
-            if let Ok(data) = std::fs::read_to_string(&config.applications_file) {
-                match serde_json::from_str::<ApplicationList>(&data) {
-                    Ok(user_apps) => {
-                        print_info!(
-                            "📄 Loaded {} applications from {}",
-                            user_apps.applications.len(),
-                            config.applications_file.display()
-                        );
-                        apps.extend(user_apps.applications);
-                    }
-                    Err(e) => {
-                        print_error!("❌ Failed to parse applications.json: {e}");
-                    }
+    let config = TranquilityConfig::load_once();
+    print_info!(
+        "📄 Applications file path: {}",
+        config.applications_file.display()
+    );
+    if config.applications_file.exists() {
+        if let Ok(data) = std::fs::read_to_string(&config.applications_file) {
+            match serde_json::from_str::<ApplicationList>(&data) {
+                Ok(user_apps) => {
+                    print_info!(
+                        "📄 Loaded {} applications from {}",
+                        user_apps.applications.len(),
+                        config.applications_file.display()
+                    );
+                    apps.extend(user_apps.applications);
+                }
+                Err(e) => {
+                    print_error!("❌ Failed to parse applications.json: {e}");
                 }
             }
         }
     }
+
     ApplicationList { applications: apps }
 }
 

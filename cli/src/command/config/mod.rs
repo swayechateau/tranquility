@@ -93,7 +93,7 @@ pub fn handle_config_command(cmd: ConfigCommand, dry_run: bool) {
 
 
 fn get_config() -> TranquilityConfig {
-    TranquilityConfig::load_or_init().expect("Failed to load config")
+    (*TranquilityConfig::load_once()).clone()
 }
 
 pub fn fix_config() {

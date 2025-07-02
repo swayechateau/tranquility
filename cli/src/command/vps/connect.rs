@@ -29,7 +29,7 @@ pub fn vps_command_connect(cmd: VpsConnectCommand, dry_run: bool) {
 }
 
 fn connect_to_vps(id: Option<String>, copy_id: Option<String>, dry_run: bool) -> io::Result<()> {
-    let config = TranquilityConfig::load_or_init()?;
+    let config = TranquilityConfig::load_once();
     let mut vps_config = VpsConfig::load_from_file(&config.vps_file)?;
     vps_config.fix();
 

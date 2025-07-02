@@ -8,11 +8,13 @@ use std::fs;
 use std::io::{self};
 use std::path::{Path, PathBuf};
 use tranquility::{log_info, log_warn};
+use once_cell::sync::OnceCell;
 
-use crate::model::vps::json::VpsConfig;
 use crate::schema::SUPPORTED_EXTS;
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+static CONFIG: OnceCell<TranquilityConfig> = OnceCell::new();
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum LogOutput {
     Primary,
@@ -25,7 +27,7 @@ impl Default for LogOutput {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 pub struct TranquilityConfig {
     pub applications_file: PathBuf,
     pub vps_file: PathBuf,
@@ -83,40 +85,35 @@ impl TranquilityConfig {
         })
     }
 
-    pub fn load_or_init() -> io::Result<Self> {
+    pub fn load_once() -> &'static TranquilityConfig {
+        CONFIG.get_or_init(|| {
+            match Self::load_internal() {
+                Ok(cfg) => cfg,
+                Err(err) => {
+                    eprintln!("⚠️ Failed to load config: {err}");
+                    std::process::exit(1);
+                }
+            }
+        })
+    }
+    
+    fn load_internal() -> io::Result<Self> {
         let path = Self::config_path()?;
 
         if path.exists() {
-            log_info!(
-                "load",
-                "config",
-                &format!("✅ Config file exists at {:?}", path)
-            );
             let content = fs::read_to_string(&path)?;
             Self::validate_schema(&content, &path)?;
-
             let mut cfg = deserialize_config(&path, &content)?;
 
             if cfg.log_directory.as_os_str().is_empty() {
                 cfg.log_directory = Self::config_dir()?.join("logs");
                 write_config(&path, &cfg)?;
-                log_warn!(
-                    "patch",
-                    "config",
-                    "⚠️  Patched missing log_directory in config."
-                );
             }
 
             Ok(cfg)
         } else {
-            log_warn!(
-                "load",
-                "config",
-                "⚠️  Config file not found. Creating default config."
-            );
             let default = Self::default()?;
             write_config(&path, &default)?;
-            log_info!("create", "config", "✅ Default config created.");
             Ok(default)
         }
     }
@@ -129,12 +126,12 @@ impl TranquilityConfig {
     //     serde_yaml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     // }
 
-    pub fn load_vps(&self) -> io::Result<VpsConfig> {
-        let path = resolve_config_file_with_extensions(&Self::config_dir()?, "vps")
-            .unwrap_or_else(|| self.vps_file.clone());
+    // pub fn load_vps(&self) -> io::Result<VpsConfig> {
+    //     let path = resolve_config_file_with_extensions(&Self::config_dir()?, "vps")
+    //         .unwrap_or_else(|| self.vps_file.clone());
 
-        VpsConfig::load_from_file(&path)
-    }
+    //     VpsConfig::load_from_file(&path)
+    // }
 
     pub fn reset() -> io::Result<()> {
         let path = Self::config_path()?;

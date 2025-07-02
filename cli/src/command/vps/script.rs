@@ -30,7 +30,7 @@ pub fn vps_command_script(cmd: VpsScriptCommand, dry_run: bool) {
 }
 
 fn run_vps_script(cmd: VpsScriptCommand, dry_run: bool) -> io::Result<()> {
-    let config = TranquilityConfig::load_or_init()?;
+    let config = TranquilityConfig::load_once();
     let mut vps_config = VpsConfig::load_from_file(&config.vps_file)?;
     vps_config.fix();
 

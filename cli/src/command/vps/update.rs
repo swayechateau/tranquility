@@ -32,7 +32,7 @@ pub fn vps_command_update(cmd: VpsUpdateCommand, dry_run: bool) {
 }
 
 fn update_vps_entry(cmd: VpsUpdateCommand, dry_run: bool) -> io::Result<()> {
-    let config = TranquilityConfig::load_or_init()?;
+    let config = TranquilityConfig::load_once();
     let path = &config.vps_file;
 
     if cmd.id.is_none() {

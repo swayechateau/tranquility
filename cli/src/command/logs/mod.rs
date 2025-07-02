@@ -49,10 +49,7 @@ pub fn show_logs(
     date: Option<String>,
     show_log_path_only: bool,
 ) {
-    let config = TranquilityConfig::load_or_init().unwrap_or_else(|e| {
-        log_warn!("fallback", "config", &format!("Using default config due to error: {e}"));
-        TranquilityConfig::default().expect("Failed to generate default config")
-    });
+    let config = TranquilityConfig::load_once();
 
     let base_dir = config
         .log_file()

@@ -8,9 +8,8 @@ use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use chrono::Utc;
 use colored::Colorize;
 use serde::Serialize;
-use tranquility::log_info;
 
-use crate::model::config::TranquilityConfig;
+use crate::model::config::{LogOutput, TranquilityConfig};
 
 const MAX_LOG_SIZE: u64 = 5 * 1024 * 1024; // 5 MB
 
@@ -22,9 +21,11 @@ pub fn set_debug(enabled: bool) {
         .map(|val| val.to_lowercase().contains("debug"))
         .unwrap_or(false);
 
-    DEBUG_ENABLED.store(enabled || env_debug, Ordering::Relaxed);
-    if DEBUG_ENABLED.load(Ordering::Relaxed) {
-        log_info!("startup", "logger", "Debug mode enabled");
+    let active = enabled || env_debug;
+    DEBUG_ENABLED.store(active, Ordering::Relaxed);
+
+    if active {
+        eprintln!("[logger] Debug mode enabled");
     }
 }
 
@@ -54,22 +55,36 @@ fn should_log(level: &str) -> bool {
     entry_level <= current
 }
 
-pub fn log_event(level: &str, action: &str, app: &str, status: &str, duration_secs: Option<f64>) {
-    let destination = TranquilityConfig::load_or_init()
-        .map(|cfg| match cfg.log_output {
-            crate::model::config::LogOutput::Stdout => LogDestination::Stdout,
-            crate::model::config::LogOutput::Primary => {
-                let path = if cfg.log_file().as_os_str().is_empty() {
-                    default_log_path()
-                } else {
-                    cfg.log_file()
-                };
-                LogDestination::Primary(path)
-            }
-        })
-        .unwrap_or(LogDestination::Primary(default_log_path()));
+pub fn log_event(
+    level: &str,
+    action: &str,
+    app: &str,
+    status: &str,
+    duration_secs: Option<f64>,
+    source: Option<&str>,
+) {
+    let cfg = TranquilityConfig::load_once();
+    let destination = match cfg.log_output {
+        LogOutput::Stdout => LogDestination::Stdout,
+        LogOutput::Primary => {
+            let path = if cfg.log_file().as_os_str().is_empty() {
+                default_log_path()
+            } else {
+                cfg.log_file()
+            };
+            LogDestination::Primary(path)
+        }
+    };
 
-    log_to_full(level, action, app, status, duration_secs, None, destination);
+    log_to_full(
+        level,
+        action,
+        app,
+        status,
+        duration_secs,
+        source,
+        destination,
+    );
 }
 
 pub fn log_to_full(
@@ -174,11 +189,14 @@ fn rotate_if_needed(path: &PathBuf) {
 
 pub fn default_log_path() -> PathBuf {
     let base = dirs::config_dir()
-        .map(|p| p.join("tranquility"))
+        .and_then(|p| Some(p.join("tranquility")))
         .unwrap_or_else(|| PathBuf::from("/tmp/tranquility"));
 
     let logs = base.join("logs");
-    let _ = fs::create_dir_all(&logs);
+    if let Err(e) = fs::create_dir_all(&logs) {
+        eprintln!("Failed to create log directory: {}", e);
+        return PathBuf::from("/tmp/tranquility/default.log");
+    }
 
     logs.join(format!(
         "{}-tranquility.log",

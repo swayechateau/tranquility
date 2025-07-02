@@ -1,4 +1,21 @@
 #!/bin/bash
 set -e
 
-git pull && clear && ./build && ./run "$@"
+git pull && clear && ./build 
+
+# ask if want to install to bin or run locally
+echo "Do you want to install tranquility to /usr/local/bin? [y/N]"
+read choice
+
+# convert choice to lowercase
+choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
+
+if [ "$choice" = "y" ] || [ "$choice" = "yes" ]; then
+	# if install to bin
+	sudo cp ./cli/target/release/tranquility /usr/local/bin/tquil
+	echo "tranquility has been installed. You can now run the 'tquil' command."
+else
+	# run locally
+	echo "You can now use the ./run script to run tranquility commands."
+	echo "Please refer to the documentation for more details."
+fi

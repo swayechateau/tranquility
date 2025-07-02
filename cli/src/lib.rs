@@ -31,42 +31,40 @@ macro_rules! print_warn {
 /// Log Macros
 #[macro_export]
 macro_rules! log {
-    // No duration
+    // no duration
     ($level:expr, $action:expr, $app:expr, $status:expr) => {{
         let source = if $level == "error" {
             Some(concat!(file!(), ":", line!()))
         } else {
             None
         };
-        crate::core::logger::log_to_full(
+        crate::core::logger::log_event(
             $level,
             $action,
             $app,
             $status,
             None,
             source,
-            crate::core::logger::LogDestination::Primary(crate::core::logger::default_log_path()),
         )
     }};
-
-    // With duration
+    // with duration
     ($level:expr, $action:expr, $app:expr, $status:expr, $duration:expr) => {{
         let source = if $level == "error" {
             Some(concat!(file!(), ":", line!()))
         } else {
             None
         };
-        crate::core::logger::log_to_full(
+        crate::core::logger::log_event(
             $level,
             $action,
             $app,
             $status,
             Some($duration),
             source,
-            crate::core::logger::LogDestination::Primary(crate::core::logger::default_log_path()),
         )
     }};
 }
+
 
 #[macro_export]
 macro_rules! log_info {

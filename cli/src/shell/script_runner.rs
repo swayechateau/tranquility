@@ -2,7 +2,7 @@
 // Location: cli/src/shell/script_runner.rs
 use crate::shell::ShellCommand;
 use colored::Colorize;
-use std::fs;
+// use std::fs;
 
 pub enum ScriptSource {
     Inline(String),
@@ -18,31 +18,31 @@ pub struct ShellScriptRunner {
 }
 
 impl ShellScriptRunner {
-    pub fn from_inline(script: &str, use_sudo: bool, dry_run: bool) -> Self {
-        Self {
-            script: script.to_string(),
-            source: ScriptSource::Inline(script.to_string()),
-            remote: None,
-            use_sudo,
-            dry_run,
-        }
-    }
+    // pub fn from_inline(script: &str, use_sudo: bool, dry_run: bool) -> Self {
+    //     Self {
+    //         script: script.to_string(),
+    //         source: ScriptSource::Inline(script.to_string()),
+    //         remote: None,
+    //         use_sudo,
+    //         dry_run,
+    //     }
+    // }
 
-    pub fn from_file(path: &str, use_sudo: bool, dry_run: bool) -> std::io::Result<Self> {
-        let contents = fs::read_to_string(path)?;
-        Ok(Self {
-            script: contents,
-            source: ScriptSource::File(path.to_string()),
-            remote: None,
-            use_sudo,
-            dry_run,
-        })
-    }
+    // pub fn from_file(path: &str, use_sudo: bool, dry_run: bool) -> std::io::Result<Self> {
+    //     let contents = fs::read_to_string(path)?;
+    //     Ok(Self {
+    //         script: contents,
+    //         source: ScriptSource::File(path.to_string()),
+    //         remote: None,
+    //         use_sudo,
+    //         dry_run,
+    //     })
+    // }
 
-    pub fn with_remote(mut self, remote: &str) -> Self {
-        self.remote = Some(remote.to_string());
-        self
-    }
+    // pub fn with_remote(mut self, remote: &str) -> Self {
+    //     self.remote = Some(remote.to_string());
+    //     self
+    // }
 
     pub fn run_verbose(&self) {
         let label = match &self.source {
@@ -65,13 +65,13 @@ impl ShellScriptRunner {
         self.to_command().run_verbose(self.dry_run);
     }
 
-    pub fn run_silent(&self) -> Option<std::io::Result<()>> {
-        self.to_command().run(self.dry_run)
-    }
+    // pub fn run_silent(&self) -> Option<std::io::Result<()>> {
+    //     self.to_command().run(self.dry_run)
+    // }
 
-    pub fn run(&self) {
-        self.run_verbose();
-    }
+    // pub fn run(&self) {
+    //     self.run_verbose();
+    // }
 
     fn to_command(&self) -> ShellCommand {
         match &self.remote {

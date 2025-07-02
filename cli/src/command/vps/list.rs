@@ -64,7 +64,7 @@ pub fn vps_list(user: Option<String>, host: Option<String>, dry_run: bool) -> io
             post_connect_script: None,
         }];
     } else {
-        let config = TranquilityConfig::load_or_init()?;
+        let config = TranquilityConfig::load_once();
         let vps_config = VpsConfig::load_from_file(&config.vps_file)?;
         vps_entries = vps_config.vps;
     }
@@ -91,9 +91,8 @@ pub fn vps_list(user: Option<String>, host: Option<String>, dry_run: bool) -> io
 fn list_vps_entries(vps_entries: &[VpsEntry]) {
     let table_data: Vec<VPSDisplay> = vps_entries
         .iter()
-        .enumerate()
-        .map(|(i, vps)| VPSDisplay {
-            id: vps.id.clone().unwrap_or_else(|| format!("{}", i + 1)),
+        .map(|vps| VPSDisplay {
+            id: vps.effective_id().to_string(),
             name: vps.name.clone().unwrap_or_else(|| "-".into()),
             username: vps.effective_user(),
             host: vps.host.clone(),

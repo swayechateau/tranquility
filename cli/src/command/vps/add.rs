@@ -36,7 +36,7 @@ pub fn vps_command_add(cmd: VpsAddCommand, dry_run: bool) {
     }
 }
 fn prompt_and_add_vps(cmd: VpsAddCommand, dry_run: bool) -> io::Result<()> {
-    let config = TranquilityConfig::load_or_init()?;
+    let config = TranquilityConfig::load_once();
     let path = &config.vps_file;
     let mut vps_config = VpsConfig::load_from_file(path).unwrap_or_else(|_| VpsConfig { vps: vec![] });
 

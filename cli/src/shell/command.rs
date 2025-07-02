@@ -107,26 +107,26 @@ impl ShellCommand {
         }
     }
 
-    pub fn run(&self, dry_run: bool) -> Option<std::io::Result<()>> {
-        if dry_run {
-            self.dry_run();
-            return Some(Ok(()));
-        }
+    // pub fn run(&self, dry_run: bool) -> Option<std::io::Result<()>> {
+    //     if dry_run {
+    //         self.dry_run();
+    //         return Some(Ok(()));
+    //     }
 
-        match self.execute() {
-            Ok(output) => {
-                if output.status.success() {
-                    Some(Ok(()))
-                } else {
-                    Some(Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "Command failed",
-                    )))
-                }
-            }
-            Err(e) => Some(Err(e)),
-        }
-    }
+    //     match self.execute() {
+    //         Ok(output) => {
+    //             if output.status.success() {
+    //                 Some(Ok(()))
+    //             } else {
+    //                 Some(Err(std::io::Error::new(
+    //                     std::io::ErrorKind::Other,
+    //                     "Command failed",
+    //                 )))
+    //             }
+    //         }
+    //         Err(e) => Some(Err(e)),
+    //     }
+    // }
 
     pub fn run_interactive(&self, dry_run: bool) -> std::io::Result<()> {
         if dry_run {
@@ -145,19 +145,19 @@ impl ShellCommand {
         Ok(())
     }
 
-    pub fn open_url(url: &str) {
-        let result = if cfg!(windows) {
-            Command::new("cmd").args(["/C", "start", "", url]).spawn()
-        } else if cfg!(target_os = "macos") {
-            Command::new("open").arg(url).spawn()
-        } else {
-            Command::new("xdg-open").arg(url).spawn()
-        };
+    // pub fn open_url(url: &str) {
+    //     let result = if cfg!(windows) {
+    //         Command::new("cmd").args(["/C", "start", "", url]).spawn()
+    //     } else if cfg!(target_os = "macos") {
+    //         Command::new("open").arg(url).spawn()
+    //     } else {
+    //         Command::new("xdg-open").arg(url).spawn()
+    //     };
 
-        if let Err(err) = result {
-            print_error!("❌ {}: {}", "Failed to open URL".red(), err);
-        }
-    }
+    //     if let Err(err) = result {
+    //         print_error!("❌ {}: {}", "Failed to open URL".red(), err);
+    //     }
+    // }
 
     pub fn from_script(script: &str, sudo: bool) -> Self {
         if cfg!(windows) {

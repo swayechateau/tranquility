@@ -25,7 +25,7 @@ pub fn vps_command_delete(cmd: VpsDeleteCommand, dry_run: bool) {
 }
 
 fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Result<()> {
-    let config = TranquilityConfig::load_or_init()?;
+    let config = TranquilityConfig::load_once();
     let path = &config.vps_file;
 
     if !path.exists() {
@@ -115,8 +115,8 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
 }
 
 pub fn confirm_and_delete_vps_config(dry_run: bool) -> io::Result<()> {
-    let config = TranquilityConfig::load_or_init()?;
-    let vps_path = config.vps_file;
+    let config = TranquilityConfig::load_once();
+    let vps_path = config.vps_file.clone();
 
     if !vps_path.exists() {
         log_warn!(

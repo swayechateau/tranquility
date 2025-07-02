@@ -61,7 +61,7 @@ pub fn handle_vps_command(cmd: VpsCommand, dry_run: bool) {
 
 /// Fixes and updates the VPS config file in place, if needed
 pub fn fix_vps() -> std::io::Result<()> {
-    let config = TranquilityConfig::load_or_init()?;
+    let config = TranquilityConfig::load_once();
     let path = &config.vps_file;
 
     let mut vps_config = VpsConfig::load_from_file(path)?;
