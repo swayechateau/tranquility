@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+
+
+
+# ask if want to install to bin or run locally
+echo "Do you want to uninstall tranquility from /usr/local/bin? [y/N]"
+read choice
+
+# convert choice to lowercase
+choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
+
+if [ "$choice" = "y" ] || [ "$choice" = "yes" ]; then
+	sudo rm /usr/local/bin/tquil
+	echo "tranquility has been uninstalled."
+else
+	echo "Abouting unistallation!"
+fi
