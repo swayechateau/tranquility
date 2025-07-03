@@ -96,11 +96,8 @@ impl TranquilityConfig {
     }
 
     fn load_internal() -> io::Result<Self> {
-        println!("we in load_internal");
         let path = Self::config_path()?;
-        println!("we got te path");
         if path.exists() {
-            println!("path exists");
             let content = fs::read_to_string(&path)?;
             Self::validate_schema(&content, &path)?;
             let mut cfg = deserialize_config(&path, &content)?;
@@ -112,7 +109,6 @@ impl TranquilityConfig {
 
             Ok(cfg)
         } else {
-            println!("path not exist");
             let default = Self::default()?;
             write_config(&path, &default)?;
             Ok(default)
