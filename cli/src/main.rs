@@ -12,6 +12,7 @@ use command::{tranquility::{handle_command_errors, handle_commands, TranquilityC
 use core::{print::tranquility_figlet};
 
 fn main() {
+    model::config::TranquilityConfig::load_once();
     tranquility_figlet();
     match TranquilityCommand::try_parse() {
         Ok(args) => {

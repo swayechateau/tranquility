@@ -1,18 +1,18 @@
 // Module: Model/Config
 // Location: cli/src/model/config.rs
 
+use crate::schema::SUPPORTED_EXTS;
 use dirs::config_dir;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::io::{self};
-use std::path::{Path, PathBuf};
-use tranquility::{log_info, log_warn};
+use std::{
+    fs,
+    io::{self},
+    path::{Path, PathBuf}
+};
+
 use once_cell::sync::OnceCell;
-
-use crate::schema::SUPPORTED_EXTS;
-
-static CONFIG: OnceCell<TranquilityConfig> = OnceCell::new();
+pub static CONFIG: OnceCell<TranquilityConfig> = OnceCell::new();
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 #[serde(rename_all = "lowercase")]
@@ -86,21 +86,21 @@ impl TranquilityConfig {
     }
 
     pub fn load_once() -> &'static TranquilityConfig {
-        CONFIG.get_or_init(|| {
-            match Self::load_internal() {
-                Ok(cfg) => cfg,
-                Err(err) => {
-                    eprintln!("⚠️ Failed to load config: {err}");
-                    std::process::exit(1);
-                }
+        CONFIG.get_or_init(|| match Self::load_internal() {
+            Ok(cfg) => cfg,
+            Err(err) => {
+                eprintln!("⚠️ Failed to load config: {err}");
+                std::process::exit(1);
             }
         })
     }
-    
-    fn load_internal() -> io::Result<Self> {
-        let path = Self::config_path()?;
 
+    fn load_internal() -> io::Result<Self> {
+        println!("we in load_internal");
+        let path = Self::config_path()?;
+        println!("we got te path");
         if path.exists() {
+            println!("path exists");
             let content = fs::read_to_string(&path)?;
             Self::validate_schema(&content, &path)?;
             let mut cfg = deserialize_config(&path, &content)?;
@@ -112,26 +112,12 @@ impl TranquilityConfig {
 
             Ok(cfg)
         } else {
+            println!("path not exist");
             let default = Self::default()?;
             write_config(&path, &default)?;
             Ok(default)
         }
     }
-
-    // pub fn load_applications(&self) -> io::Result<ApplicationList> {
-    //     let path = resolve_config_file_with_extensions(&Self::config_dir()?, "applications")
-    //         .unwrap_or_else(|| self.applications_file.clone());
-
-    //     let content = fs::read_to_string(&path)?;
-    //     serde_yaml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-    // }
-
-    // pub fn load_vps(&self) -> io::Result<VpsConfig> {
-    //     let path = resolve_config_file_with_extensions(&Self::config_dir()?, "vps")
-    //         .unwrap_or_else(|| self.vps_file.clone());
-
-    //     VpsConfig::load_from_file(&path)
-    // }
 
     pub fn reset() -> io::Result<()> {
         let path = Self::config_path()?;
@@ -141,11 +127,7 @@ impl TranquilityConfig {
 
     pub fn validate_schema(_content: &str, path: &PathBuf) -> io::Result<()> {
         if !crate::schema::config::validate_file(path) {
-            log_warn!(
-                "schema",
-                "config",
-                &format!("⚠️ Schema did not match for {}", path.display())
-            );
+            eprintln!("⚠️ Schema did not match for {}", path.display());
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("⚠️ Config validation failed: {}", path.display()),
@@ -182,35 +164,23 @@ impl TranquilityConfig {
 
                     if changed {
                         write_config(&path, &cfg)?;
-                        log_warn!(
-                            "patch",
-                            "config",
-                            "⚠️  Config was missing fields and has been patched."
-                        );
+                        eprintln!("⚠️  Config was missing fields and has been patched.");
                     } else {
-                        log_info!("check", "config", "✅ Config file is complete.");
+                        eprintln!("✅ Config file is complete.");
                     }
                 }
                 Err(e) => {
-                    log_warn!(
-                        "invalid",
-                        "config",
-                        &format!("⚠️  Config is invalid. Recreating default. Error: {e}")
-                    );
+                    eprintln!("⚠️  Config is invalid. Recreating default. Error: {e}");
                     let default = Self::default()?;
                     write_config(&path, &default)?;
-                    log_info!("create", "config", "✅ Default config recreated.");
+                    eprintln!("✅ Default config recreated.");
                 }
             }
         } else {
-            log_warn!(
-                "missing",
-                "config",
-                "⚠️  Config not found. Creating default."
-            );
+            eprintln!("⚠️  Config not found. Creating default.");
             let default = Self::default()?;
             write_config(&path, &default)?;
-            log_info!("create", "config", "✅ Default config created.");
+            eprintln!("✅ Default config created.");
         }
 
         Ok(())
