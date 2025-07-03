@@ -1,21 +1,88 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# install-tquil.sh – Build and install the “tquil” CLI.
 
-git pull && clear && ./build 
+set -euo pipefail
 
-# ask if want to install to bin or run locally
-echo "Do you want to install tranquility to /usr/local/bin? [y/N]"
-read choice
+PROG_NAME="tquil"
+BUILD_DIR="./cli/target/release"
+SOURCE_BIN="$BUILD_DIR/tranquility"
 
-# convert choice to lowercase
-choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
+COLOR_OK='\e[32m'
+COLOR_ERR='\e[31m'
+COLOR_RST='\e[0m'
 
-if [ "$choice" = "y" ] || [ "$choice" = "yes" ]; then
-	# if install to bin
-	sudo cp ./cli/target/release/tranquility /usr/local/bin/tquil
-	echo "tranquility has been installed. You can now run the 'tquil' command."
+# ── 0. Helper: choose global dir based on platform ───────────────────────────
+choose_global_dir() {
+    case "$(uname -s)" in
+        Linux*) echo "/usr/local/bin" ;;
+        Darwin*)
+            [[ "$(uname -m)" == "arm64" && -d "/opt/homebrew/bin" ]] \
+                && echo "/opt/homebrew/bin" \
+                || echo "/usr/local/bin" ;;
+        *) echo "" ;;  # handled later
+    esac
+}
+
+GLOBAL_DIR="$(choose_global_dir)"
+LOCAL_DIR="$HOME/.local/bin"
+
+# ── 1. Pull & build ──────────────────────────────────────────────────────────
+echo -e "${COLOR_OK}→ Pulling latest code and building…${COLOR_RST}"
+git pull --ff-only
+./build          # or: cargo build --release
+
+[[ -x "$SOURCE_BIN" ]] || {
+    echo -e "${COLOR_ERR}Build failed: $SOURCE_BIN not found.${COLOR_RST}"
+    exit 1
+}
+
+# ── 2. Ask whether to install at all ─────────────────────────────────────────
+echo -e "\nInstall ${COLOR_OK}$PROG_NAME${COLOR_RST}? [y/N] "
+read -r REPLY
+REPLY=${REPLY,,}  # to lowercase
+[[ "$REPLY" == "y" || "$REPLY" == "yes" ]] || {
+    echo "Skipping installation."
+    exit 0
+}
+
+# ── 3. Decide install scope ──────────────────────────────────────────────────
+if [[ $EUID -eq 0 ]]; then
+    # Already root: force global install, no extra prompt
+    INSTALL_DIR="$GLOBAL_DIR"
+    USE_SUDO=""
 else
-	# run locally
-	echo "You can now use the ./run script to run tranquility commands."
-	echo "Please refer to the documentation for more details."
+    while true; do
+        echo -e "Install for ${COLOR_OK}all users${COLOR_RST} (global) or ${COLOR_OK}just you${COLOR_RST} (local)?"
+        echo    "[g]lobal / [l]ocal  (default: local)"
+        read -r SCOPE
+        SCOPE=${SCOPE,,}
+        case "$SCOPE" in
+            ""|"l"|"local")
+                INSTALL_DIR="$LOCAL_DIR"
+                USE_SUDO=""
+                break ;;
+            "g"|"global")
+                INSTALL_DIR="$GLOBAL_DIR"
+                USE_SUDO="sudo"
+                break ;;
+            *)
+                echo "Please answer 'g' or 'l'." ;;
+        esac
+    done
+fi
+
+# ── 4. Ensure target directory exists / is writable ──────────────────────────
+if [[ "$INSTALL_DIR" == "$LOCAL_DIR" && ! -d "$LOCAL_DIR" ]]; then
+    mkdir -p "$LOCAL_DIR"
+fi
+
+echo -e "\nCopying binary to ${COLOR_OK}$INSTALL_DIR/$PROG_NAME${COLOR_RST}"
+$USE_SUDO cp "$SOURCE_BIN" "$INSTALL_DIR/$PROG_NAME"
+$USE_SUDO chmod +x "$INSTALL_DIR/$PROG_NAME"
+
+echo -e "${COLOR_OK}Installation complete.${COLOR_RST}"
+echo    "Run '${PROG_NAME} --help' to get started."
+if [[ "$INSTALL_DIR" == "$LOCAL_DIR" ]]; then
+    echo -e "Make sure $LOCAL_DIR is in your PATH:"
+    echo -e "  export PATH=\"$LOCAL_DIR:\$PATH\""
 fi
