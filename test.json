@@ -1,0 +1,209 @@
+{
+  "applications": [
+    {
+      "name": "Rust (Cargo)",
+      "versions": [
+        {
+          "name": "Default",
+          "check_command": "cargo",
+          "install_methods": [
+            {
+              "os": ["Linux", "macOS"],
+              "steps": {
+                "install": [
+                  "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+                ],
+                "uninstall": [
+                  "rustup self uninstall"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Docker",
+      "versions": [
+        {
+          "name": "Default",
+          "check_command": "docker --version",
+          "install_methods": [
+            {
+              "os": "Ubuntu",
+              "package_manager": "apt",
+              "package_name": "docker-ce",
+              "steps": {
+                "preinstall_steps": [
+                  "sudo apt-get update",
+                  "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common",
+                  "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+                  "sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\""
+                ],
+                "postinstall_steps": [
+                  "sudo usermod -aG docker $USER",
+                  "sudo systemctl enable docker",
+                  "sudo systemctl start docker"
+                ],
+                "postuninstall_steps": [
+                  "sudo apt-get purge -y docker-ce",
+                  "sudo apt-get autoremove -y",
+                  "sudo rm -rf /var/lib/docker"
+                ]
+              }
+            },
+            {
+              "os": "Debian",
+              "package_manager": "apt",
+              "package_name": "docker-ce",
+              "steps": {
+                "preinstall_steps": [
+                  "sudo apt-get update",
+                  "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common",
+                  "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+                  "sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\""
+                ],
+                "install": [
+                  "sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+                ],
+                "postinstall_steps": [
+                  "sudo usermod -aG docker $USER",
+                  "sudo systemctl enable docker",
+                  "sudo systemctl start docker"
+                ],
+                "uninstall": [
+                  "sudo apt-get purge docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras"
+                ],
+                "postuninstall_steps": [
+                  "sudo apt-get autoremove -y",
+                  "sudo rm -rf /var/lib/docker",
+                  "sudo rm -rf /var/lib/containerd",
+                  "sudo rm /etc/apt/sources.list.d/docker.list",
+                  "sudo rm /etc/apt/keyrings/docker.asc"
+                ]
+              }
+            },
+            {
+              "os": "macOS",
+              "package_manager": "brew",
+              "package_name": "docker",
+              "is_cask": true
+            },
+            {
+              "os": "Windows",
+              "package_manager": "winget",
+              "package_name": "Docker.DockerDesktop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Firefox",
+      "versions": [
+        {
+          "name": "Default",
+          "check_command": "firefox --version",
+          "install_methods": [
+            {
+              "os": ["Ubuntu", "Debian"],
+              "package_manager": "apt",
+              "package_name": "firefox",
+              "steps": {
+                "preinstall_steps": [
+                  "sudo add-apt-repository ppa:mozillateam/firefox-next"
+                ],
+                "postuninstall_steps": [
+                  "sudo add-apt-repository --remove ppa:mozillateam/firefox-next"
+                ]
+              }
+            },
+            {
+              "os": ["Fedora", "CentOS"],
+              "package_manager": "dnf",
+              "package_name": "firefox"
+            },
+            {
+              "os": "macOS",
+              "package_manager": "brew",
+              "package_name": "firefox",
+              "is_cask": false
+            },
+            {
+              "os": "Windows",
+              "package_manager": "winget",
+              "package_name": "Mozilla.Firefox"
+            }
+          ]
+        },
+        {
+          "name": "Developer Edition",
+          "check_command": "firefox-developer --version",
+          "install_methods": [
+            {
+              "os": "Linux",
+              "distributions": ["Ubuntu", "Debian"],
+              "package_manager": "apt",
+              "package_name": "firefox-developer",
+              "steps": {
+                "preinstall_steps": [
+                  "sudo add-apt-repository ppa:mozillateam/firefox-next",
+                  "sudo apt update"
+                ],
+                "postuninstall_steps": [
+                  "sudo add-apt-repository --remove ppa:mozillateam/firefox-next"
+                ]
+              }
+            },
+            {
+              "os": "macOS",
+              "package_manager": "brew",
+              "package_name": "firefox-developer-edition",
+              "is_cask": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Visual Studio Code",
+      "versions": [
+        {
+          "name": "Default",
+          "check_command": "code --version",
+          "dependencies": ["curl"],
+          "install_methods": [
+            {
+              "os": "Linux",
+              "distributions": ["Ubuntu", "Debian"],
+              "package_manager": "apt",
+              "package_name": "code",
+              "steps": {
+                "preinstall_steps": [
+                  "curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -",
+                  "echo \"deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main\" | sudo tee /etc/apt/sources.list.d/vscode.list",
+                  "sudo apt update"
+                ],
+                "postuninstall_steps": [
+                  "sudo rm /etc/apt/sources.list.d/vscode.list",
+                  "sudo apt update"
+                ]
+              }
+            },
+            {
+              "os": "macOS",
+              "package_manager": "brew",
+              "package_name": "visual-studio-code",
+              "is_cask": true
+            },
+            {
+              "os": "Windows",
+              "package_manager": "winget",
+              "package_name": "Microsoft.VisualStudioCode"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

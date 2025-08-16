@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# uninstall-tquil.sh – Remove the “tquil” / “tranquility” binary from Linux or macOS.
+
+set -euo pipefail
+
+PROG_NAME="tquil"            # name of the executable to remove
+COLOR_ERR='\e[31m'; COLOR_OK='\e[32m'; COLOR_RST='\e[0m'
+
+# --- 1. Detect platform ------------------------------------------------------
+case "$(uname -s)" in
+    Linux*)  PLATFORM=linux  ;;
+    Darwin*) PLATFORM=mac    ;;
+    *) echo -e "${COLOR_ERR}Unsupported OS: $(uname -s)${COLOR_RST}"; exit 1 ;;
+esac
+
+# --- 2. Assemble likely install paths ----------------------------------------
+CANDIDATE_PATHS=(
+    "/usr/local/bin/$PROG_NAME"
+    "/usr/bin/$PROG_NAME"
+    "$HOME/.local/bin/$PROG_NAME"
+)
+# Homebrew on Apple-silicon lives in /opt/homebrew
+[[ "$PLATFORM" == "mac" ]] && CANDIDATE_PATHS+=("/opt/homebrew/bin/$PROG_NAME")
+
+# --- 3. Find the first existing binary ---------------------------------------
+FOUND=""
+for p in "${CANDIDATE_PATHS[@]}"; do
+    [[ -x "$p" ]] && { FOUND="$p"; break; }
+done
+
+if [[ -z "$FOUND" ]]; then
+    echo -e "${COLOR_ERR}No $PROG_NAME installation was found.${COLOR_RST}"
+    exit 0
+fi
+
+echo -e "Found ${COLOR_OK}$PROG_NAME${COLOR_RST} at: $FOUND"
+read -r -p "Uninstall it? [y/N] " REPLY
+REPLY=${REPLY,,}  # to lowercase
+
+# --- 4. Remove it (needs sudo for system paths) ------------------------------
+if [[ "$REPLY" == "y" || "$REPLY" == "yes" ]]; then
+    # If the file is under the user’s home directory, sudo is unnecessary.
+    if [[ "$FOUND" == "$HOME"* ]]; then
+        rm -v "$FOUND"
+    else
+        sudo rm -v "$FOUND"
+    fi
+    echo -e "${COLOR_OK}$PROG_NAME has been uninstalled.${COLOR_RST}"
+else
+    echo "Aborting uninstallation."
+fi
