@@ -1,0 +1,8 @@
+LICENSE
+Cargo.lock
+target
+README.md
+.gitignore
+.git
+.github
+version.sh
