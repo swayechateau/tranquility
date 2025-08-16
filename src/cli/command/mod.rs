@@ -1,0 +1,10 @@
+// Module: Command
+// Location: cli/src/command/mod.rs
+pub mod app;
+pub mod vps;
+pub mod logs;
+pub mod doctor;
+pub mod fonts;
+pub mod config;
+pub mod list;
+pub mod hosts;

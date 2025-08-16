@@ -1,0 +1,181 @@
+<applications>
+  <item>
+    <id>certbot</id>
+    <name>Certbot</name>
+    <categories>
+      <category>utilities</category>
+    </categories>
+    <server_compatible>true</server_compatible>
+    <supported_systems>
+      <system>Ubuntu</system>
+      <system>Debian</system>
+    </supported_systems>
+    <versions>
+      <version>
+        <name>1.0.0</name>
+        <install_methods>
+          <method>
+            <os>Ubuntu</os>
+            <package_manager>apt</package_manager>
+            <package_name>certbot</package_name>
+          </method>
+        </install_methods>
+      </version>
+      <version>
+        <name>1.1.0</name>
+        <install_methods>
+          <method>
+            <os>Debian</os>
+            <package_manager>apt</package_manager>
+            <package_name>python3-certbot</package_name>
+          </method>
+        </install_methods>
+      </version>
+    </versions>
+  </item>
+
+  <item>
+    <id>nodejs</id>
+    <name>Node.js</name>
+    <categories>
+      <category>devtools</category>
+    </categories>
+    <server_compatible>true</server_compatible>
+    <supported_systems>
+      <system>Ubuntu</system>
+      <system>Debian</system>
+    </supported_systems>
+    <versions>
+      <version>
+        <name>18.x</name>
+        <install_methods>
+          <method>
+            <os>Ubuntu</os>
+            <package_manager>apt</package_manager>
+            <package_name>nodejs</package_name>
+          </method>
+          <method>
+            <os>Debian</os>
+            <steps>
+              <preinstall_steps>
+                <step>curl -fsSL https://deb.nodesource.com/setup_18.x | bash -</step>
+              </preinstall_steps>
+              <install>
+                <step>apt install -y nodejs</step>
+              </install>
+            </steps>
+          </method>
+        </install_methods>
+      </version>
+    </versions>
+  </item>
+
+  <item>
+    <id>docker</id>
+    <name>Docker</name>
+    <categories>
+      <category>containers</category>
+    </categories>
+    <server_compatible>true</server_compatible>
+    <supported_systems>
+      <system>Ubuntu</system>
+    </supported_systems>
+    <versions>
+      <version>
+        <name>20.10</name>
+        <install_methods>
+          <method>
+            <os>Ubuntu</os>
+            <steps>
+              <install>
+                <step>sudo apt-get update</step>
+                <step>sudo apt-get install -y ca-certificates curl gnupg</step>
+                <step>sudo install -m 0755 -d /etc/apt/keyrings</step>
+                <step>curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg</step>
+                <step>echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null</step>
+                <step>sudo apt-get update</step>
+                <step>sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</step>
+              </install>
+              <uninstall>
+                <step>sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</step>
+                <step>sudo rm -rf /var/lib/docker</step>
+                <step>sudo rm -rf /var/lib/containerd</step>
+              </uninstall>
+            </steps>
+          </method>
+        </install_methods>
+      </version>
+    </versions>
+  </item>
+
+  <item>
+    <id>nginx</id>
+    <name>Nginx</name>
+    <categories>
+      <category>web server</category>
+    </categories>
+    <server_compatible>true</server_compatible>
+    <supported_systems>
+      <system>Fedora</system>
+      <system>Ubuntu</system>
+    </supported_systems>
+    <versions>
+      <version>
+        <name>1.20.2</name>
+        <install_methods>
+          <method>
+            <os>Fedora</os>
+            <package_manager>dnf</package_manager>
+            <package_name>nginx</package_name>
+            <steps>
+              <uninstall>
+                <step>echo Uninstalling...</step>
+              </uninstall>
+            </steps>
+          </method>
+          <method>
+            <os>Ubuntu</os>
+            <package_manager>apt</package_manager>
+            <package_name>nginx</package_name>
+          </method>
+        </install_methods>
+      </version>
+    </versions>
+  </item>
+
+  <item>
+    <id>rust</id>
+    <name>Rust</name>
+    <categories>
+      <category>devtools</category>
+    </categories>
+    <server_compatible>true</server_compatible>
+    <supported_systems>
+      <system>Linux</system>
+      <system>macOS</system>
+    </supported_systems>
+    <versions>
+      <version>
+        <name>latest</name>
+        <install_methods>
+          <method>
+            <os>Linux</os>
+            <os>macOS</os>
+            <steps>
+              <preinstall_steps>
+                <step>echo Installing Rust...</step>
+              </preinstall_steps>
+              <install>
+                <step>curl https://sh.rustup.rs -sSf | sh -s -- -y</step>
+              </install>
+              <postinstall_steps>
+                <step>source $HOME/.cargo/env</step>
+                <step>rustc --version</step>
+              </postinstall_steps>
+            </steps>
+          </method>
+        </install_methods>
+      </version>
+    </versions>
+  </item>
+</applications>

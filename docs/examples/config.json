@@ -1,0 +1,6 @@
+{
+  "applications_file": "/home/chatsw/.config/tranquility/applications.json",
+  "vps_file": "/home/chatsw/.config/tranquility/vps.json",
+  "log_directory": "/home/chatsw/.config/tranquility/logs",
+  "log_output": "primary"
+}

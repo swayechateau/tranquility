@@ -1,0 +1,10 @@
+[override]
+prefix="local"
+
+[[domains]]
+root = "example.com"
+services = ["api", "(root)", "blog"]
+
+[[domains]]
+root = "example.org"
+services = ["(root)", "admin"]
