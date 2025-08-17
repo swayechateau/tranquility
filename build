@@ -11,4 +11,4 @@ if ! command -v cargo &> /dev/null; then
     exit 1
 fi
 
-cd cli/src && cargo build --release
+cd src && cargo build --release
