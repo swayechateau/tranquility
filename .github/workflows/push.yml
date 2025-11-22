@@ -42,20 +42,6 @@ jobs:
       - name: Run tests
         run: cargo test --all --all-features --verbose
 
-      - name: Generate coverage
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: 'latest'
-          args: '--all-features --workspace --timeout 120 --out Xml'
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./cobertura.xml
-          fail_ci_if_error: true
-          verbose: true
-
       - name: Security audit
         uses: actions-rs/audit-check@v1
         with:
