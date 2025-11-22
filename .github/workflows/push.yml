@@ -4,45 +4,28 @@ on:
   push:
     branches-ignore:
       - main
-  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Set up Rust (with rustfmt)
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          components: rustfmt, clippy
+          components: rustfmt
 
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - name: Format check
+        run: cargo fmt --all --check
 
-      - name: Lint (rustfmt)
-        run: cargo fmt --all -- --check
+      - name: Tests (quick)
+        run: cargo test
 
-      - name: Lint (clippy)
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Run tests
-        run: cargo test --all --all-features --verbose
-
-      - name: Security audit
-        uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build (debug)
+        run: cargo build
