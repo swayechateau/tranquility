@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  get-version:
+    name: Validate tag and extract version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - name: Validate tag is vMAJOR.MINOR.PATCH
+        id: ver
+        run: |
+          ref="${GITHUB_REF#refs/tags/}"
+          echo "Tag is: $ref"
+
+          if [[ "$ref" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            version="${ref#v}"
+            echo "Validated semver tag: $ref (version: $version)"
+            echo "tag=$ref" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag '$ref' is not a valid vMAJOR.MINOR.PATCH semver tag." >&2
+            exit 1
+          fi
+
+  run-build:
+    name: Run build + release pipeline
+    needs: get-version
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+      tag: ${{ needs.get-version.outputs.tag }}
+      build_docker: true          # or false if you don't always want docker on release
+      do_publish: true
