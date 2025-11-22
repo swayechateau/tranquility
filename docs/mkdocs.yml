@@ -1,0 +1,10 @@
+site_name: Tranquility Docs
+
+# Your markdown lives here: repo_root/docs/pages/*.md
+docs_dir: pages
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
