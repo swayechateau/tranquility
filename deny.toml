@@ -1,0 +1,21 @@
+[advisories]
+vulnerability = "all"
+unmaintained = "all"
+yanked = "all"
+notice = "all"
+
+[advisories.lint]
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "warn"
+notice = "warn"
+
+[licenses]
+allow = []
+
+[licenses.lint]
+unlicensed = "deny"
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
