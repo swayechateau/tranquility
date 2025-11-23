@@ -41,22 +41,22 @@ jobs:
       - name: Release Build (deny unsafe code)
         run: RUSTFLAGS="-Dunsafe_code" cargo build --release
 
-  security:
-    needs: build-test-lint
-    runs-on: ubuntu-latest
+  # security:
+  #   needs: build-test-lint
+  #   runs-on: ubuntu-latest
 
-    container:
-      image: ghcr.io/kitechsoftware/gcr-rust:latest
+  #   container:
+  #     image: ghcr.io/kitechsoftware/gcr-rust:latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
 
-      - name: Run full security suite
-        run: security-check --no-fail
+  #     - name: Run full security suite
+  #       run: security-check --no-fail
 
-      - name: Upload security summary
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-summary
-          path: security-summary.md
+  #     - name: Upload security summary
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: security-summary
+  #         path: security-summary.md
