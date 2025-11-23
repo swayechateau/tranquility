@@ -68,8 +68,11 @@ jobs:
       - name: Install AArch64 linker
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+              sudo apt-get update
+              sudo apt-get install -y \
+                gcc-aarch64-linux-gnu \
+                libc6-dev-arm64-cross \
+                binutils-aarch64-linux-gnu
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable

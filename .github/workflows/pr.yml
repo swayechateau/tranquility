@@ -48,8 +48,22 @@ jobs:
       - name: Build Release Check
         run: RUSTFLAGS="-Dunsafe_code" cargo build --release
 
-      - name: Install cargo-deny
-        run: cargo install cargo-deny --locked
+  security:
+      runs-on: ubuntu-latest
+      needs: pull-request
 
-      - name: Security / dependency checks
-        run: cargo deny check advisories bans licenses
+      container:
+        image: ghcr.io/kitechsoftware/gcr-rust:latest
+
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v6
+
+        - name: Run full Rust security scan
+          run: ./security-check-all.sh
+
+        - name: Upload security summary
+          uses: actions/upload-artifact@v4
+          with:
+            name: security-summary
+            path: security-summary.md
