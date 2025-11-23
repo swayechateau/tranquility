@@ -10,28 +10,8 @@ permissions:
   pull-requests: read
 
 jobs:
-  skip_if_open_pr:
-    runs-on: ubuntu-latest
-    outputs:
-      pr_open: ${{ steps.check.outputs.pr_open }}
-    steps:
-      - name: Check if open PR exists for this branch
-        id: check
-        run: |
-          branch="${GITHUB_REF#refs/heads/}"
-          prs=$(gh pr list --state open --head "$branch" --json number --jq length)
-          if [ "$prs" -gt 0 ]; then
-            echo "pr_open=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "pr_open=false" >> "$GITHUB_OUTPUT"
-          fi
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   push:
     runs-on: ubuntu-latest
-    needs: skip_if_open_pr
-    if: needs.skip_if_open_pr.outputs.pr_open == 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
