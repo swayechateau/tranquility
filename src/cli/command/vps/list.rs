@@ -2,11 +2,15 @@
 // Location: cli/src/command/vps/list.rs
 
 use clap::Args;
-use tabled::settings::Style;
 use std::io;
+use tabled::settings::Style;
 use tabled::{Table, Tabled};
 
-use crate::{print_info, print_warn,models::vps::json::{VpsConfig, VpsEntry},config::TranquilityConfig};
+use crate::{
+    config::TranquilityConfig,
+    models::vps::json::{VpsConfig, VpsEntry},
+    print_info, print_warn,
+};
 
 #[derive(Args, Debug)]
 pub struct VpsListCommand {

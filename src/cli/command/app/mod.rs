@@ -1,7 +1,10 @@
+use crate::models::{
+    application::list_supported_applications,
+    category::{Category, list_categories},
+};
 use clap::{Args, Subcommand};
-use crate::{models::{application::list_supported_applications, category::{list_categories, Category}}};
 
-use crate::cli::{print_subcommand_help};
+use crate::cli::print_subcommand_help;
 
 pub mod install;
 pub mod uninstall;
@@ -19,7 +22,7 @@ pub enum AppSubcommand {
         #[arg(long)]
         all: bool,
         #[arg(long)]
-        server: bool
+        server: bool,
     },
 
     /// Uninstall default applications and from applications.json
@@ -27,7 +30,7 @@ pub enum AppSubcommand {
         #[arg(long)]
         all: bool,
         #[arg(long)]
-        server: bool
+        server: bool,
     },
 
     /// List all categories
@@ -42,7 +45,7 @@ pub enum AppSubcommand {
     },
 }
 
-pub fn handle_app_command(cmd: AppCommand, dry_run:bool) {
+pub fn handle_app_command(cmd: AppCommand, dry_run: bool) {
     match cmd.command {
         Some(AppSubcommand::Install { all, server }) => {
             install::install_apps_command(all, server, dry_run);

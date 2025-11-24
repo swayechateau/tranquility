@@ -1,14 +1,14 @@
 // Module: Model/VPS
 // Location: cli/src/model/vps/json.rs
 
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use quick_xml::de::from_str as from_xml;
 use quick_xml::se::to_string as to_xml;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use serde_yaml;
 use std::{fmt, fs, io, path::PathBuf};
 
-use crate::{log_info, core::expand_home, models::vps::generate_id};
+use crate::{core::expand_home, log_info, models::vps::generate_id};
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct VpsConfig {
@@ -196,16 +196,13 @@ impl VpsEntry {
     }
     /// Returns the port, defaulting to 22 if missing
     pub fn effective_port(&self) -> u16 {
-        self.port
-            .as_ref()
-            .and_then(|p| p.to_u16())
-            .unwrap_or(22)
+        self.port.as_ref().and_then(|p| p.to_u16()).unwrap_or(22)
     }
     /// Returns the ID, defaulting to "<generated>" if missing
     pub fn effective_id(&self) -> &str {
         self.id.as_deref().unwrap_or("<generated>")
     }
-    
+
     pub fn validate(&self) -> Result<(), String> {
         if self
             .name

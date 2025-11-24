@@ -1,7 +1,7 @@
 // Module: Core/Logger
 // Location: cli/src/core/logger.rs
 use std::fs::{self, OpenOptions};
-use std::io::{stderr, stdout, Write};
+use std::io::{Write, stderr, stdout};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 

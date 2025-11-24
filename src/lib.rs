@@ -1,7 +1,7 @@
-pub mod config;
-pub mod models;
-pub mod core;
 pub mod cli;
+pub mod config;
+pub mod core;
+pub mod models;
 
 /// List of supported file extensions for schema validation.
 pub const SUPPORTED_EXTS: [&str; 4] = ["yaml", "yml", "json", "xml"];
@@ -47,16 +47,15 @@ macro_rules! log {
         };
 
         if loaded {
-            crate::core::logger::log_event(
-                $level,
+            crate::core::logger::log_event($level, $action, $app, $status, None, source);
+        } else {
+            eprintln!(
+                "[{}] {} {} - {}",
+                $level.to_uppercase(),
                 $action,
                 $app,
-                $status,
-                None,
-                source,
+                $status
             );
-        } else {
-            eprintln!("[{}] {} {} - {}", $level.to_uppercase(), $action, $app, $status);
         }
     }};
 

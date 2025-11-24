@@ -1,6 +1,6 @@
+pub mod font;
 pub mod logger;
 pub mod print;
-pub mod font;
 pub mod shell;
 pub mod zip;
 

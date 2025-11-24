@@ -1,8 +1,8 @@
 use crate::{
-    print_info, print_warn,
-    models::application::{filter_apps, Application},
-    models::system::SystemInfo,
     core::shell::InstallRunner,
+    models::application::{Application, filter_apps},
+    models::system::SystemInfo,
+    print_info, print_warn,
 };
 
 pub fn install_apps_command(all: bool, server: bool, dry_run: bool) {
@@ -31,11 +31,7 @@ fn install_apps(apps: Vec<Application>, auto: bool, dry_run: bool) {
 
         for version in &app.versions {
             for method in &version.install_methods {
-                if method
-                    .os
-                    .iter()
-                    .any(|os| os.equals_ostype(&current_os))
-                {
+                if method.os.iter().any(|os| os.equals_ostype(&current_os)) {
                     let runner = InstallRunner::new(&app, method, dry_run);
                     runner.run_install();
                     installed = true;
@@ -52,4 +48,3 @@ fn install_apps(apps: Vec<Application>, auto: bool, dry_run: bool) {
         }
     }
 }
-

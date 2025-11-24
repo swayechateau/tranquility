@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     io::{self},
-    path::{Path, PathBuf}
+    path::{Path, PathBuf},
 };
 
 use once_cell::sync::OnceCell;
@@ -225,7 +225,7 @@ fn write_config(path: &PathBuf, config: &TranquilityConfig) -> io::Result<()> {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "Unsupported config format",
-            ))
+            ));
         }
     };
 

@@ -1,14 +1,24 @@
 // Module: Model/Category
 // Location: cli/src/model/category.rs
 use clap::ValueEnum;
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, IntoEnumIterator};
-use tabled::{settings::Style, Table, Tabled};
+use tabled::{Table, Tabled, settings::Style};
 
 /// Software categories
 #[derive(
-    Copy, Clone, Debug, PartialEq, Eq, ValueEnum, Deserialize, Serialize, EnumIter, Display, JsonSchema,
+    Copy,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    ValueEnum,
+    Deserialize,
+    Serialize,
+    EnumIter,
+    Display,
+    JsonSchema,
 )]
 #[serde(rename_all = "PascalCase")]
 pub enum Category {
@@ -75,7 +85,6 @@ impl Category {
     pub fn serde_name(&self) -> String {
         format!("{self:?}")
     }
-
 }
 
 /// Print out all categories with display names

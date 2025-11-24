@@ -1,17 +1,24 @@
 // Module: Command/Font/Install
 // Location: cli/src/command/font/install.rs
 
-use std::{fs::{self, File}, io::Write};
 use colored::Colorize;
 use reqwest::blocking::get;
+use std::{
+    fs::{self, File},
+    io::Write,
+};
 
-use dialoguer::{theme::ColorfulTheme, MultiSelect};
+use dialoguer::{MultiSelect, theme::ColorfulTheme};
 
 use super::refresh::auto_refresh;
 use crate::{
-    log_error, log_info, log_warn, print_error, print_info, print_success, print_warn,
+    core::{
+        font::{get_font_dir, is_font_installed},
+        zip,
+    },
+    log_error, log_info, log_warn,
     models::font::NERD_FONT_LIST,
-    core::{zip,font::{is_font_installed, get_font_dir}},
+    print_error, print_info, print_success, print_warn,
 };
 
 /// 🎯 Handle font install command
@@ -71,15 +78,14 @@ pub fn install_nerd_font(font: &str) {
 
     print_info!("Extracting...");
     if let Err(e) = zip::extract(File::open(&zip_path).unwrap(), &fonts_dir, true) {
-    print_error!("❌ Extraction failed: {}", e);
-    log_error!("install", font, &format!("unzip_failed: {}", e));
-    return;
-}
+        print_error!("❌ Extraction failed: {}", e);
+        log_error!("install", font, &format!("unzip_failed: {}", e));
+        return;
+    }
 
     print_success!("✅ Installed {}", font);
     log_info!("install", font, "success");
 }
-
 
 /// 💬 Prompt-based installer
 pub fn choose_and_install_fonts(all: bool) {

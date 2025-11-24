@@ -3,9 +3,9 @@ use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 
 use std::{fs, io};
 
-use crate::{log_error, log_warn, print_success, print_warn,
-    config::TranquilityConfig,
-    models::vps::json::VpsConfig,
+use crate::{
+    config::TranquilityConfig, log_error, log_warn, models::vps::json::VpsConfig, print_success,
+    print_warn,
 };
 
 #[derive(Args, Debug)]
@@ -16,7 +16,11 @@ pub struct VpsDeleteCommand {
 
 pub fn vps_command_delete(cmd: VpsDeleteCommand, dry_run: bool) {
     if let Err(e) = confirm_and_delete_vps_entry(cmd, dry_run) {
-        log_error!("delete", "vps", &format!("❌ Failed to delete VPS entry: {e}"));
+        log_error!(
+            "delete",
+            "vps",
+            &format!("❌ Failed to delete VPS entry: {e}")
+        );
     }
 }
 
@@ -25,7 +29,11 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
     let path = &config.vps_file;
 
     if !path.exists() {
-        log_warn!("delete", "vps", &format!("⚠️ VPS config does not exist at {}", path.display()));
+        log_warn!(
+            "delete",
+            "vps",
+            &format!("⚠️ VPS config does not exist at {}", path.display())
+        );
         return Ok(());
     }
 
@@ -38,7 +46,11 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
 
     // Direct deletion by --id
     if let Some(ref id) = cmd.id {
-        if let Some(index) = vps_config.vps.iter().position(|v| v.id.as_deref() == Some(id)) {
+        if let Some(index) = vps_config
+            .vps
+            .iter()
+            .position(|v| v.id.as_deref() == Some(id))
+        {
             let entry = &vps_config.vps[index];
             print_warn!(
                 "🗑️ Deleting entry with ID '{}': {}@{}",
@@ -138,7 +150,10 @@ pub fn confirm_and_delete_vps_config(dry_run: bool) -> io::Result<()> {
     }
 
     if dry_run {
-        print_warn!("(dry run) VPS config would have been deleted: {}", vps_path.display());
+        print_warn!(
+            "(dry run) VPS config would have been deleted: {}",
+            vps_path.display()
+        );
         return Ok(());
     }
 

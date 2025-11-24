@@ -1,4 +1,4 @@
-pub mod schema;
 mod application;
+pub mod schema;
 
 pub use application::*;

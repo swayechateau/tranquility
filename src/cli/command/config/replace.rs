@@ -3,7 +3,8 @@ use std::{fs, io, path::PathBuf};
 use crate::{
     cli::command::config::get_config,
     config::{self, TranquilityConfig, deserialize_config},
-    log_error, log_info, models::{application, vps}
+    log_error, log_info,
+    models::{application, vps},
 };
 
 pub fn replace_config(file: PathBuf) {

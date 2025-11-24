@@ -1,7 +1,6 @@
 use crate::{
+    SUPPORTED_EXTS, log_info, log_warn,
     models::vps::{json::VpsConfig, xml::VpsConfigXml},
-    SUPPORTED_EXTS,
-    log_info, log_warn,
 };
 use jsonschema::validator_for;
 use schemars::{Schema, schema_for};

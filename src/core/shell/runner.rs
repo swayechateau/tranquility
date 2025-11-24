@@ -1,6 +1,8 @@
+use crate::{
+    models::application::{Application, InstallMethod},
+    print_info, print_success,
+};
 use std::time::Instant;
-use crate::{print_info, print_success,
-    models::application::{Application, InstallMethod}};
 
 pub struct InstallRunner<'a> {
     pub app: &'a Application,
@@ -10,7 +12,11 @@ pub struct InstallRunner<'a> {
 
 impl<'a> InstallRunner<'a> {
     pub fn new(app: &'a Application, method: &'a InstallMethod, dry_run: bool) -> Self {
-        Self { app, method, dry_run }
+        Self {
+            app,
+            method,
+            dry_run,
+        }
     }
 
     pub fn run_install(&self) -> std::time::Duration {

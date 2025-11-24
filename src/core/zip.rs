@@ -1,7 +1,8 @@
 use std::{
     fs::{self, File},
     io::{self, Read, Seek},
-    path::Path,};
+    path::Path,
+};
 use zip::ZipArchive;
 
 /// Extract a ZIP file safely into a directory

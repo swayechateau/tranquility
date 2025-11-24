@@ -1,12 +1,13 @@
 use std::fs;
 
 use crate::{
-    models::font::NERD_FONT_LIST,
     core::font::{get_font_dir, is_font_installed},
-    log_error, log_info, log_warn, print_info, print_success, print_warn
+    log_error, log_info, log_warn,
+    models::font::NERD_FONT_LIST,
+    print_info, print_success, print_warn,
 };
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, MultiSelect};
+use dialoguer::{MultiSelect, theme::ColorfulTheme};
 
 use super::refresh::auto_refresh;
 /// 🗑️ Handle font uninstall command

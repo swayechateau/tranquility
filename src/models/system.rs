@@ -3,16 +3,13 @@ use std::borrow::Cow;
 use bitflags::bitflags;
 use colored::Colorize;
 use os_info::{self, Type as OSType};
+use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{Deserialize, Serialize};
 use sysinfo::System;
-use schemars::{JsonSchema, SchemaGenerator, Schema};
 
-use crate::{
-    models::package_manager::PackageManager, 
-    core::shell::command::command_exists
-};
+use crate::{core::shell::command::command_exists, models::package_manager::PackageManager};
 
-#[derive(Debug, Deserialize, Serialize,PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct OsTypeWrapper {
     pub os_type: String,
 }
@@ -40,7 +37,6 @@ impl JsonSchema for OsTypeWrapper {
     }
 }
 
-
 impl std::fmt::Display for OsTypeWrapper {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.os_type)
@@ -51,10 +47,11 @@ impl std::str::FromStr for OsTypeWrapper {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self { os_type: s.to_string() })
+        Ok(Self {
+            os_type: s.to_string(),
+        })
     }
 }
-
 
 bitflags! {
     #[derive(Clone, Copy)]

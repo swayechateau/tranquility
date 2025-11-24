@@ -1,13 +1,13 @@
 // Module: Command/Font
 // Location: cli/src/command/font/mod.rs
 pub mod install;
-pub mod uninstall;
-pub mod update;
 pub mod list;
 pub mod refresh;
+pub mod uninstall;
+pub mod update;
 
-use clap::{Args, Subcommand};
 use crate::print_warn;
+use clap::{Args, Subcommand};
 
 #[derive(Args, Debug)]
 pub struct FontCommand {
@@ -50,7 +50,7 @@ pub enum FontSubcommand {
     },
 }
 
-pub fn handle_fonts_command(cmd: FontCommand, dry_run:bool) {
+pub fn handle_fonts_command(cmd: FontCommand, dry_run: bool) {
     if dry_run {
         print_warn!("[dry run] Simulating font command.");
 

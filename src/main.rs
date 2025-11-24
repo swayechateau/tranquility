@@ -1,6 +1,9 @@
 use clap::Parser;
-use tranquility::{cli::{TranquilityCommand, handle_command_errors, handle_commands}, config, core::print::tranquility_figlet};
-
+use tranquility::{
+    cli::{TranquilityCommand, handle_command_errors, handle_commands},
+    config,
+    core::print::tranquility_figlet,
+};
 
 fn main() {
     config::TranquilityConfig::load_once();

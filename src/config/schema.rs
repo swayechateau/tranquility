@@ -1,12 +1,12 @@
 // Module: Schema/Config
 // Location: cli/src/schema/config.rs
 use crate::config::TranquilityConfig;
+use crate::{log_info, log_warn};
 use jsonschema::validator_for;
 use schemars::schema_for;
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::{log_info, log_warn};
 
 use crate::SUPPORTED_EXTS;
 

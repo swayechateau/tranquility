@@ -1,19 +1,11 @@
 // Module: Command/Tranquility
 // Location: cli/src/command/tranquility.rs
-use clap::{error::ErrorKind, CommandFactory, Error, Parser, Subcommand};
 use crate::{log_error, print_info};
+use clap::{CommandFactory, Error, Parser, Subcommand, error::ErrorKind};
 
 use crate::{core::logger, models::system::SystemInfo};
 
-use super::command::{
-    app,
-    config,
-    font,
-    list,
-    vps,
-    logs,
-    doctor
-};
+use super::command::{app, config, doctor, font, list, logs, vps};
 
 /// Tranquility CLI command line parser
 #[derive(Parser, Debug)]
@@ -104,6 +96,10 @@ pub fn print_subcommand_help(subcommand: &str) {
         sub.print_help().unwrap();
         println!();
     } else {
-        log_error!("print","help", &format!("❌ Subcommand `{subcommand}` not found."));
+        log_error!(
+            "print",
+            "help",
+            &format!("❌ Subcommand `{subcommand}` not found.")
+        );
     }
 }

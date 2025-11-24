@@ -1,8 +1,8 @@
 // Module: Shell/Command
 // Location: cli/src/shell/command.rs
+use crate::{print_error, print_info, print_warn};
 use colored::Colorize;
 use std::process::{Command, Output, Stdio};
-use crate::{print_error, print_info, print_warn};
 
 #[derive(Debug)]
 pub struct ShellCommand {
@@ -165,9 +165,7 @@ impl ShellCommand {
                 .with_args(["-Command", script])
                 .with_sudo(sudo)
         } else {
-            Self::new("sh")
-                .with_args(["-c", script])
-                .with_sudo(sudo)
+            Self::new("sh").with_args(["-c", script]).with_sudo(sudo)
         }
     }
 
@@ -203,7 +201,9 @@ pub fn run_shell_command(command: &str) {
     println!("🚀 Running: {}", command.cyan());
 
     let status = if cfg!(windows) {
-        Command::new("powershell").args(["-Command", command]).status()
+        Command::new("powershell")
+            .args(["-Command", command])
+            .status()
     } else {
         Command::new("sh").args(["-c", command]).status()
     };

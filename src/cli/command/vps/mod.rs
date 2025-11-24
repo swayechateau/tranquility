@@ -5,12 +5,14 @@ pub mod add;
 pub mod connect;
 pub mod delete;
 pub mod list;
-pub mod update;
 pub mod script;
+pub mod update;
 
 use clap::{Args, Subcommand};
 
-use crate::{cli::print_subcommand_help, config::TranquilityConfig, log_error, log_info, models::vps};
+use crate::{
+    cli::print_subcommand_help, config::TranquilityConfig, log_error, log_info, models::vps,
+};
 
 #[derive(Args, Debug)]
 pub struct VpsCommand {
@@ -52,9 +54,7 @@ pub fn handle_vps_command(cmd: VpsCommand, dry_run: bool) {
         Some(VpsSubcommand::Update(update)) => update::vps_command_update(update, dry_run),
         Some(VpsSubcommand::Delete(delete)) => delete::vps_command_delete(delete, dry_run),
         Some(VpsSubcommand::Script(script)) => script::vps_command_script(script, dry_run),
-        None => {
-            print_subcommand_help("vps")
-        }
+        None => print_subcommand_help("vps"),
     }
 }
 
@@ -67,10 +67,14 @@ pub fn fix_vps() -> std::io::Result<()> {
     match vps_config.fix_and_save(path) {
         Ok(()) => log_info!("reset", "vps-config-file", "vps config file updated"),
         Err(e) => {
-            log_error!("reset", "vps-config-file", &format!("❌ Failed to update VPS config file: {e}"));
+            log_error!(
+                "reset",
+                "vps-config-file",
+                &format!("❌ Failed to update VPS config file: {e}")
+            );
             return Err(e);
-        },
+        }
     }
-    
+
     Ok(())
 }

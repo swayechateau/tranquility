@@ -1,9 +1,9 @@
 // Module: Model/PackageManager
 // Location: cli/src/model/package_manager.rs
 use crate::{
-    print_error, print_warn,
+    core::shell::command::{check_command, command_exists, execute_package_cmd, run_shell_command},
     models::system::SystemInfo,
-    core::shell::command::{check_command, command_exists, execute_package_cmd, run_shell_command}
+    print_error, print_warn,
 };
 
 use colored::Colorize;
@@ -36,10 +36,20 @@ macro_rules! pm_installer {
         if command_exists($name) {
             true
         } else {
-            let prompt = format!("{} is not installed. Install it?", $name).purple().to_string();
-            if Confirm::new().with_prompt(&prompt).default(true).interact().unwrap() {
+            let prompt = format!("{} is not installed. Install it?", $name)
+                .purple()
+                .to_string();
+            if Confirm::new()
+                .with_prompt(&prompt)
+                .default(true)
+                .interact()
+                .unwrap()
+            {
                 $install_fn();
-                print_warn!("Terminal session may need restarting for {} to be picked up", $name);
+                print_warn!(
+                    "Terminal session may need restarting for {} to be picked up",
+                    $name
+                );
                 true
             } else {
                 false
@@ -52,11 +62,15 @@ impl PackageManager {
     pub fn supported_on_os(os: OSType) -> Vec<Self> {
         use PackageManager::*;
         match os {
-            OSType::Ubuntu | OSType::Debian | OSType::Pop | OSType::Linux => vec![Apt, Snap, Flatpak, Nix],
+            OSType::Ubuntu | OSType::Debian | OSType::Pop | OSType::Linux => {
+                vec![Apt, Snap, Flatpak, Nix]
+            }
             OSType::Fedora => vec![Dnf, Snap, Flatpak, Nix],
             OSType::Redhat => vec![Yum, Nix],
             OSType::Alpine => vec![Apk, Nix],
-            OSType::Arch | OSType::Manjaro | OSType::EndeavourOS => vec![Pacman, Yay, Flatpak, Snap, Nix],
+            OSType::Arch | OSType::Manjaro | OSType::EndeavourOS => {
+                vec![Pacman, Yay, Flatpak, Snap, Nix]
+            }
             OSType::SUSE => vec![Zypper, Nix],
             OSType::Gentoo => vec![Portage, Nix],
             OSType::Macos => vec![Brew, Nix],
@@ -104,7 +118,13 @@ impl PackageManager {
         }
     }
 
-    pub fn install(&self, use_sudo: Option<bool>, package: &str, cask: Option<bool>, dry_run: bool) {
+    pub fn install(
+        &self,
+        use_sudo: Option<bool>,
+        package: &str,
+        cask: Option<bool>,
+        dry_run: bool,
+    ) {
         if matches!(self, Self::Nix) {
             print_warn!(
                 "⚠️ It's recommended to install '{}' using Nix directly:\n    nix-env -iA nixpkgs.{}",
@@ -136,9 +156,13 @@ impl PackageManager {
             _ => return,
         };
 
-        execute_package_cmd(cmd, &args, use_sudo.unwrap_or(self.requires_sudo()), dry_run);
+        execute_package_cmd(
+            cmd,
+            &args,
+            use_sudo.unwrap_or(self.requires_sudo()),
+            dry_run,
+        );
     }
-
 
     // pub fn update(&self, use_sudo: Option<bool>, dry_run: bool) {
     //     if matches!(self, Self::Nix) {
@@ -166,7 +190,6 @@ impl PackageManager {
     //     execute_package_cmd(cmd, &args, use_sudo.unwrap_or(self.requires_sudo()), dry_run);
     // }
 
-
     pub fn uninstall(&self, use_sudo: Option<bool>, package: &str, dry_run: bool) {
         if matches!(self, Self::Nix) {
             print_warn!(
@@ -191,9 +214,13 @@ impl PackageManager {
             _ => return,
         };
 
-        execute_package_cmd(cmd, &args, use_sudo.unwrap_or(self.requires_sudo()), dry_run);
+        execute_package_cmd(
+            cmd,
+            &args,
+            use_sudo.unwrap_or(self.requires_sudo()),
+            dry_run,
+        );
     }
-
 
     fn requires_sudo(&self) -> bool {
         matches!(
@@ -229,7 +256,9 @@ fn default_pm_installed(pm: PackageManager) -> bool {
 
 // Installer functions
 fn install_choco() {
-    run_shell_command("Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))");
+    run_shell_command(
+        "Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))",
+    );
 }
 
 fn install_scoop() {
@@ -237,7 +266,9 @@ fn install_scoop() {
 }
 
 fn install_homebrew() {
-    run_shell_command("/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"");
+    run_shell_command(
+        "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"",
+    );
 }
 
 fn install_yay() {
@@ -274,7 +305,8 @@ fn install_flatpak() {
 }
 
 fn install_nix() {
-    let mut cmd = "sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)".to_string();
+    let mut cmd =
+        "sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)".to_string();
     if SystemInfo::new().os_type() == OSType::Linux {
         let daemon = Confirm::new()
             .with_prompt("Do you want to install the Nix daemon?")

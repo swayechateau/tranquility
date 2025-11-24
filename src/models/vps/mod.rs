@@ -1,6 +1,6 @@
-pub mod xml;
 pub mod json;
 pub mod schema;
+pub mod xml;
 
 mod vps;
 

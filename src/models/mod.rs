@@ -1,6 +1,6 @@
 pub mod application;
-pub mod vps;
-pub mod font;
 pub mod category;
+pub mod font;
 pub mod package_manager;
 pub mod system;
+pub mod vps;

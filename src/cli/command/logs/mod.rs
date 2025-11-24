@@ -3,7 +3,7 @@
 use clap::{Args, ValueEnum};
 use strum::Display;
 
-use crate::{log_error, log_warn, config::TranquilityConfig, core::logger::default_log_path};
+use crate::{config::TranquilityConfig, core::logger::default_log_path, log_error, log_warn};
 
 use std::{
     fs::{File, OpenOptions},
@@ -141,10 +141,7 @@ fn matches_log_level(entry: &str, min_level: &str) -> bool {
     level_map(entry) <= level_map(min_level)
 }
 
-pub fn handle_logs_command(
-    cmd: LogsCommand,
-    dry_run: bool
-) {
+pub fn handle_logs_command(cmd: LogsCommand, dry_run: bool) {
     if dry_run {
         println!("Would show logs with options: {:?}", cmd);
         return;

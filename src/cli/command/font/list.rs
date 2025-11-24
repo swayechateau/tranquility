@@ -1,8 +1,4 @@
-use crate::{
-    log_warn,
-    models::font::NERD_FONT_LIST, 
-    core::font::is_font_installed
-};
+use crate::{core::font::is_font_installed, log_warn, models::font::NERD_FONT_LIST};
 
 /// 📦 List fonts based on filter
 pub fn list(installed: bool, all: bool) {
@@ -45,7 +41,11 @@ pub fn list_fonts(show_installed: Option<bool>) {
             if include {
                 Some(FontRow {
                     name: font,
-                    status: if installed { "✅ Installed" } else { "❌ Not Installed" },
+                    status: if installed {
+                        "✅ Installed"
+                    } else {
+                        "❌ Not Installed"
+                    },
                 })
             } else {
                 None
@@ -55,8 +55,8 @@ pub fn list_fonts(show_installed: Option<bool>) {
 
     if rows.is_empty() {
         match show_installed {
-            Some(true) => log_warn!("list","fonts","No fonts installed."),
-            Some(false) => log_warn!("list","fonts","All fonts are installed."),
+            Some(true) => log_warn!("list", "fonts", "No fonts installed."),
+            Some(false) => log_warn!("list", "fonts", "All fonts are installed."),
             None => log_warn!("list", "fonts", "No fonts found."),
         }
         return;

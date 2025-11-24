@@ -1,4 +1,4 @@
-pub mod command;
 mod cli;
+pub mod command;
 
 pub use cli::*;

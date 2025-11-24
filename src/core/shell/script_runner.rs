@@ -50,7 +50,8 @@ impl ShellScriptRunner {
             ScriptSource::File(path) => path,
         };
 
-        let remote_label = self.remote
+        let remote_label = self
+            .remote
             .as_ref()
             .map(|r| format!(" over SSH ({})", r))
             .unwrap_or_default();

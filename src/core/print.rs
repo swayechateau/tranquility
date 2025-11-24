@@ -24,7 +24,7 @@ pub fn print_with_prefix(color: PrefixColor, prefix: &'static str, message: Stri
         PrefixColor::BLUE => message_prefix.blue(),
         PrefixColor::GREEN => message_prefix.green(),
         PrefixColor::RED => message_prefix.red(),
-        PrefixColor::YELLOW => message_prefix.yellow()
+        PrefixColor::YELLOW => message_prefix.yellow(),
     };
 
     if prefix == "error" {
