@@ -1,0 +1,10 @@
+applications:
+  - name: Rust
+    versions:
+      - name: Default
+        check_command: cargo
+        install_methods:
+          - os: Linux
+            steps:
+              install:
+                - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh

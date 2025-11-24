@@ -1,0 +1,44 @@
+{
+  "applications": [
+    {
+      "name": "ExampleApp",
+      "versions": [
+        {
+          "name": "Default",
+          "check_command": "exampleapp --version",
+          "dependencies": ["curl", "git"],
+          "install_methods": [
+            {
+              "os": ["Ubuntu", "Debian"],
+              "package_manager": "apt",
+              "package_name": "exampleapp",
+              "steps": {
+                "preinstall_steps": ["echo preinstall"],
+                "postinstall_steps": ["echo postinstall"],
+                "postuninstall_steps": ["echo postuninstall"]
+              }
+            },
+            {
+              "os": ["Fedora", "Arch"],
+              "steps": {
+                "install": ["echo custom install"],
+                "uninstall": ["echo uninstall"]
+              }
+            },
+            {
+                "os": "macOS",
+                "package_manager":"brew",
+                "package_name": "app",
+                "is_cask": false
+            },
+            {
+              "os": "Windows",
+              "package_manager": "winget",
+              "package_name": "Example.App"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
