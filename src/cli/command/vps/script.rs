@@ -63,7 +63,7 @@ fn run_vps_script(cmd: VpsScriptCommand, dry_run: bool) -> io::Result<()> {
                 .items(&options)
                 .default(0)
                 .interact()
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Prompt failed: {e}")))?;
+                .map_err(|e| io::Error::other(format!("Prompt failed: {e}")))?;
 
             Some(&vps_config.vps[selection])
         }
@@ -114,15 +114,15 @@ fn resolve_script(
     inline: Option<String>,
     file: Option<String>,
 ) -> io::Result<Option<ScriptSource>> {
-    if let Some(script) = inline {
-        if !script.trim().is_empty() {
-            return Ok(Some(ScriptSource::Inline(script)));
-        }
+    if let Some(script) = inline
+        && !script.trim().is_empty()
+    {
+        return Ok(Some(ScriptSource::Inline(script)));
     }
 
     if let Some(path) = file {
         let expanded = shellexpand::env(tilde(&path).as_ref())
-            .unwrap_or_else(|_| tilde(&path).into())
+            .unwrap_or_else(|_| tilde(&path))
             .to_string();
 
         if !Path::new(&expanded).exists() {

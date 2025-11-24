@@ -74,6 +74,12 @@ pub struct SystemInfo {
     available_package_managers: Vec<PackageManager>,
 }
 
+impl Default for SystemInfo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SystemInfo {
     pub fn new() -> Self {
         let info = os_info::get();
@@ -83,7 +89,7 @@ impl SystemInfo {
         let distro = Some(info.os_type().to_string());
 
         let sys = System::new_all();
-        let cpu = sys.cpus().get(0);
+        let cpu = sys.cpus().first();
 
         let cpu_brand = cpu.map(|c| c.brand().to_owned());
         let cpu_vendor = cpu.map(|c| c.vendor_id().to_owned());

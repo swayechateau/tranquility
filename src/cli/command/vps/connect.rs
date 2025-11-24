@@ -52,7 +52,7 @@ fn connect_to_vps(id: Option<String>, copy_id: Option<String>, dry_run: bool) ->
                 .items(&options)
                 .default(0)
                 .interact()
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Prompt failed: {e}")))?;
+                .map_err(|e| io::Error::other(format!("Prompt failed: {e}")))?;
 
             Some(&vps_config.vps[selection])
         }

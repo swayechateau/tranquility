@@ -1,6 +1,3 @@
-// Module: Model/VPS
-// Location: cli/src/model/vps/json.rs
-
 use quick_xml::de::from_str as from_xml;
 use quick_xml::se::to_string as to_xml;
 use schemars::JsonSchema;
@@ -34,7 +31,7 @@ impl From<VpsConfig> for super::xml::VpsConfigXml {
                     name: entry.name,
                     host: entry.host,
                     user: entry.user,
-                    port: entry.port.map(|p| String::from(p)), // convert FlexibleValue to String
+                    port: entry.port.map(String::from), // convert FlexibleValue to String
                     private_key: entry.private_key,
                     post_connect_script: entry.post_connect_script,
                 })
@@ -54,7 +51,7 @@ impl From<&VpsConfig> for super::xml::VpsConfigXml {
                     name: entry.name.clone(),
                     host: entry.host.clone(),
                     user: entry.user.clone(),
-                    port: entry.port.as_ref().map(|p| String::from(p)),
+                    port: entry.port.as_ref().map(String::from),
                     private_key: entry.private_key.clone(),
                     post_connect_script: entry.post_connect_script.clone(),
                 })
@@ -138,7 +135,7 @@ impl VpsConfig {
                 .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?,
         };
 
-        fs::create_dir_all(path.parent().unwrap_or_else(|| path.as_path()))?;
+        fs::create_dir_all(path.parent().unwrap_or(path.as_path()))?;
         fs::write(path, content)?;
         Ok(())
     }
@@ -204,11 +201,7 @@ impl VpsEntry {
     }
 
     pub fn validate(&self) -> Result<(), String> {
-        if self
-            .name
-            .as_ref()
-            .map_or(true, |name| name.trim().is_empty())
-        {
+        if self.name.as_ref().is_none_or(|name| name.trim().is_empty()) {
             return Err("Missing VPS name".into());
         }
 

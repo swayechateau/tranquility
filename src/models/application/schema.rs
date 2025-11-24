@@ -118,7 +118,7 @@ pub fn validate_file(path: &Path) -> bool {
         }
     };
 
-    if let Err(_) = validator.validate(&json_value) {
+    if validator.validate(&json_value).is_err() {
         for err in validator.iter_errors(&json_value) {
             log_warn!("validate", "schema", &format!("Schema violation: {err}"));
         }
@@ -149,11 +149,11 @@ fn validate_custom(json: &Value) -> Result<(), String> {
 
                             let has_cmd_install = steps
                                 .and_then(|s| s.get("install"))
-                                .map_or(false, |v| !v.is_null());
+                                .is_some_and(|v| !v.is_null());
 
                             let has_cmd_uninstall = steps
                                 .and_then(|s| s.get("uninstall"))
-                                .map_or(false, |v| !v.is_null());
+                                .is_some_and(|v| !v.is_null());
 
                             let has_steps = steps.is_some();
                             let has_pkg_manager = method.get("package_manager").is_some();

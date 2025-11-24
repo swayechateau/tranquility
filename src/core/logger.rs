@@ -112,7 +112,7 @@ pub fn log_to_full(
 
     // Always show errors on stderr
     if entry.level == "error" {
-        let _ = write_log(&mut stderr(), &entry);
+        write_log(&mut stderr(), &entry);
     }
 
     match destination {
@@ -125,19 +125,19 @@ pub fn log_to_full(
                 if DEBUG_ENABLED.load(Ordering::Relaxed) {
                     match entry.level {
                         "warn" | "info" => {
-                            let _ = write_log(&mut stdout(), &entry);
+                            write_log(&mut stdout(), &entry);
                         }
                         _ => {}
                     }
                 }
             } else {
-                let _ = write_log(&mut stderr(), &entry);
+                write_log(&mut stderr(), &entry);
             }
         }
         LogDestination::Stdout => {
             // Don't double-print errors here
             if entry.level != "error" {
-                let _ = write_log(&mut stdout(), &entry);
+                write_log(&mut stdout(), &entry);
             }
         }
     }
@@ -179,17 +179,17 @@ fn write_log(writer: &mut dyn Write, entry: &LogEntry) {
 }
 
 fn rotate_if_needed(path: &PathBuf) {
-    if let Ok(metadata) = fs::metadata(path) {
-        if metadata.len() > MAX_LOG_SIZE {
-            let rotated = path.with_extension("old");
-            let _ = fs::rename(path, rotated);
-        }
+    if let Ok(metadata) = fs::metadata(path)
+        && metadata.len() > MAX_LOG_SIZE
+    {
+        let rotated = path.with_extension("old");
+        let _ = fs::rename(path, rotated);
     }
 }
 
 pub fn default_log_path() -> PathBuf {
     let base = dirs::config_dir()
-        .and_then(|p| Some(p.join("tranquility")))
+        .map(|p| p.join("tranquility"))
         .unwrap_or_else(|| PathBuf::from("/tmp/tranquility"));
 
     let logs = base.join("logs");

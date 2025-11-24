@@ -110,7 +110,7 @@ pub fn validate_file(path: &PathBuf) -> bool {
         }
     };
 
-    if let Err(_) = validator.validate(&json_value) {
+    if validator.validate(&json_value).is_err() {
         for err in validator.iter_errors(&json_value) {
             log_warn!("validate", "schema", &format!("Schema violation: {err}"));
         }

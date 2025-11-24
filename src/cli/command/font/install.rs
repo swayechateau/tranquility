@@ -100,7 +100,7 @@ pub fn choose_and_install_fonts(all: bool) {
 
     let selections = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fonts to install")
-        .items(&NERD_FONT_LIST)
+        .items(NERD_FONT_LIST)
         .interact()
         .unwrap_or_else(|_| {
             print_error!("❌ Font selection failed.");

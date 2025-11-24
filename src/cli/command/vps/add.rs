@@ -153,59 +153,58 @@ fn prompt_and_add_vps(cmd: VpsAddCommand, dry_run: bool) -> io::Result<()> {
         .or_else(|| Some(generate_id(Some(&name), &host, username.as_deref())));
 
     // Check for duplicate ID
-    if let Some(ref id_str) = id {
-        if let Some(existing) = vps_config
+    if let Some(ref id_str) = id
+        && let Some(existing) = vps_config
             .vps
             .iter()
             .find(|v| v.id.as_deref() == Some(id_str))
-        {
-            print_warn!("⚠️ A VPS entry with ID '{}' already exists:", id_str);
-            println!("{}", serde_json::to_string_pretty(&existing).unwrap());
+    {
+        print_warn!("⚠️ A VPS entry with ID '{}' already exists:", id_str);
+        println!("{}", serde_json::to_string_pretty(&existing).unwrap());
 
-            let options = &["Cancel", "Overwrite existing", "Use a different ID"];
-            let choice = dialoguer::Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("What would you like to do?")
-                .items(options)
-                .default(0)
-                .interact()
-                .unwrap();
+        let options = &["Cancel", "Overwrite existing", "Use a different ID"];
+        let choice = dialoguer::Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("What would you like to do?")
+            .items(options)
+            .default(0)
+            .interact()
+            .unwrap();
 
-            match choice {
-                0 => {
-                    print_info!("❌ Aborted. VPS entry not added.");
-                    return Ok(());
-                }
-                1 => {
-                    // Remove old entry with same ID
-                    vps_config.vps.retain(|v| v.id.as_deref() != Some(id_str));
-                    print_info!("🔄 Overwriting existing entry with ID '{}'", id_str);
-                }
-                2 => {
-                    // Auto-suggest a new, available ID
-                    let base = id_str.clone();
-                    let mut count = 1;
-                    let mut suggested = format!("{}-{}", base, count);
-                    let existing_ids: std::collections::HashSet<_> = vps_config
-                        .vps
-                        .iter()
-                        .filter_map(|v| v.id.as_deref())
-                        .collect();
-
-                    while existing_ids.contains(suggested.as_str()) {
-                        count += 1;
-                        suggested = format!("{}-{}", base, count);
-                    }
-
-                    let new_id: String = Input::with_theme(&ColorfulTheme::default())
-                        .with_prompt("Enter a new ID")
-                        .default(suggested)
-                        .interact_text()
-                        .unwrap();
-
-                    id = Some(new_id);
-                }
-                _ => unreachable!(),
+        match choice {
+            0 => {
+                print_info!("❌ Aborted. VPS entry not added.");
+                return Ok(());
             }
+            1 => {
+                // Remove old entry with same ID
+                vps_config.vps.retain(|v| v.id.as_deref() != Some(id_str));
+                print_info!("🔄 Overwriting existing entry with ID '{}'", id_str);
+            }
+            2 => {
+                // Auto-suggest a new, available ID
+                let base = id_str.clone();
+                let mut count = 1;
+                let mut suggested = format!("{}-{}", base, count);
+                let existing_ids: std::collections::HashSet<_> = vps_config
+                    .vps
+                    .iter()
+                    .filter_map(|v| v.id.as_deref())
+                    .collect();
+
+                while existing_ids.contains(suggested.as_str()) {
+                    count += 1;
+                    suggested = format!("{}-{}", base, count);
+                }
+
+                let new_id: String = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Enter a new ID")
+                    .default(suggested)
+                    .interact_text()
+                    .unwrap();
+
+                id = Some(new_id);
+            }
+            _ => unreachable!(),
         }
     }
 

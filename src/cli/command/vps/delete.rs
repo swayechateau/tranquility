@@ -88,7 +88,7 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
         .items(&items)
         .default(0)
         .interact()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Prompt failed: {e}")))?;
+        .map_err(|e| io::Error::other(format!("Prompt failed: {e}")))?;
 
     let entry = &vps_config.vps[selection];
 
@@ -103,7 +103,7 @@ fn confirm_and_delete_vps_entry(cmd: VpsDeleteCommand, dry_run: bool) -> io::Res
         .with_prompt("Are you sure you want to delete this VPS entry?")
         .default(false)
         .interact()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Prompt failed: {e}")))?;
+        .map_err(|e| io::Error::other(format!("Prompt failed: {e}")))?;
 
     if !confirm {
         print_warn!("❌ Deletion canceled.");

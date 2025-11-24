@@ -107,7 +107,7 @@ fn parse_and_convert_to_json(ext: &str, raw: &str) -> Result<(Value, Schema), St
 fn validate_against_schema(json_value: &Value, schema_json: &Value) -> Result<(), Vec<String>> {
     match validator_for(schema_json) {
         Ok(validator) => {
-            if let Err(_) = validator.validate(json_value) {
+            if validator.validate(json_value).is_err() {
                 let errors: Vec<String> = validator
                     .iter_errors(json_value)
                     .map(|e| e.to_string())

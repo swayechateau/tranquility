@@ -9,28 +9,28 @@ pub const SUPPORTED_EXTS: [&str; 4] = ["yaml", "yml", "json", "xml"];
 #[macro_export]
 macro_rules! print_error {
     ($($arg:tt)*) => {
-        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::RED, "error", format!($($arg)*))
+        $crate::core::print::print_with_prefix($crate::core::print::PrefixColor::RED, "error", format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! print_success {
     ($($arg:tt)*) => {
-        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::GREEN, "success", format!($($arg)*))
+        $crate::core::print::print_with_prefix($crate::core::print::PrefixColor::GREEN, "success", format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! print_info {
     ($($arg:tt)*) => {
-        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::BLUE, "info", format!($($arg)*))
+        $crate::core::print::print_with_prefix($crate::core::print::PrefixColor::BLUE, "info", format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! print_warn {
     ($($arg:tt)*) => {
-        crate::core::print::print_with_prefix(crate::core::print::PrefixColor::YELLOW, "warn", format!($($arg)*))
+        $crate::core::print::print_with_prefix($crate::core::print::PrefixColor::YELLOW, "warn", format!($($arg)*))
     };
 }
 
@@ -39,7 +39,7 @@ macro_rules! print_warn {
 macro_rules! log {
     // no duration
     ($level:expr, $action:expr, $app:expr, $status:expr) => {{
-        let loaded = crate::config::CONFIG.get().is_some();
+        let loaded = $crate::config::CONFIG.get().is_some();
         let source = if $level == "error" {
             Some(concat!(file!(), ":", line!()))
         } else {
@@ -47,7 +47,7 @@ macro_rules! log {
         };
 
         if loaded {
-            crate::core::logger::log_event($level, $action, $app, $status, None, source);
+            $crate::core::logger::log_event($level, $action, $app, $status, None, source);
         } else {
             eprintln!(
                 "[{}] {} {} - {}",

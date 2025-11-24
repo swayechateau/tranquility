@@ -61,7 +61,7 @@ pub fn choose_and_uninstall_fonts(all: bool) {
     }
     let selections = MultiSelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Select fonts to uninstall")
-        .items(&NERD_FONT_LIST)
+        .items(NERD_FONT_LIST)
         .interact()
         .unwrap_or_else(|_| {
             print_info!("❌ Prompt failed.");

@@ -8,7 +8,7 @@ use crate::{config::TranquilityConfig, core::logger::default_log_path, log_error
 use std::{
     fs::{File, OpenOptions},
     io::{BufRead, BufReader},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum, Display)]
@@ -70,7 +70,7 @@ pub fn show_logs(
 
     if let Ok(f) = File::open(&path) {
         let reader = BufReader::new(f);
-        let lines: Vec<String> = reader.lines().filter_map(Result::ok).collect();
+        let lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
 
         let filtered: Vec<String> = lines
             .into_iter()
@@ -100,7 +100,7 @@ pub fn show_logs(
     }
 }
 
-fn resolve_log_file(logs_dir: &PathBuf, date: Option<String>) -> PathBuf {
+fn resolve_log_file(logs_dir: &Path, date: Option<String>) -> PathBuf {
     let name = if let Some(date_str) = date {
         format!("{}-tranquility.log", date_str)
     } else {
