@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<applications>
+  <application>
+    <id>example-app</id>
+    <name>ExampleApp</name>
+    <server_compatible>false</server_compatible>
+
+    <categories>
+      <category>Development</category>
+    </categories>
+
+    <supported_systems>
+      <supported_system>Cross</supported_system>
+    </supported_systems>
+
+    <versions>
+      <version>
+        <name>Default</name>
+        <check_command>exampleapp --version</check_command>
+
+        <dependencies>
+          <dependency>curl</dependency>
+          <dependency>git</dependency>
+        </dependencies>
+
+        <install_methods>
+          <install_method>
+            <fallback>false</fallback>
+            <os>Ubuntu</os>
+            <os>Debian</os>
+            <package_manager>Apt</package_manager>
+            <package_name>exampleapp</package_name>
+            <is_cask>false</is_cask>
+            <steps>
+              <preinstall_steps>echo preinstall</preinstall_steps>
+              <install />
+              <postinstall_steps>echo postinstall</postinstall_steps>
+              <uninstall />
+              <postuninstall_steps>echo postuninstall</postuninstall_steps>
+            </steps>
+          </install_method>
+
+          <install_method>
+            <fallback>false</fallback>
+            <os>Fedora</os>
+            <os>Arch</os>
+            <steps>
+              <preinstall_steps />
+              <install>echo custom install</install>
+              <postinstall_steps />
+              <uninstall>echo uninstall</uninstall>
+              <postuninstall_steps />
+            </steps>
+          </install_method>
+
+          <install_method>
+            <fallback>false</fallback>
+            <os>MacOS</os>
+            <package_manager>Brew</package_manager>
+            <package_name>app</package_name>
+            <is_cask>false</is_cask>
+          </install_method>
+
+          <install_method>
+            <fallback>false</fallback>
+            <os>Windows</os>
+            <package_manager>Winget</package_manager>
+            <package_name>Example.App</package_name>
+          </install_method>
+        </install_methods>
+      </version>
+    </versions>
+  </application>
+</applications>
+</xml>

@@ -1,0 +1,57 @@
+applications:
+  - id: example-app
+    name: ExampleApp
+    server_compatible: false
+    categories:
+      - Development
+    supported_systems:
+      - Cross
+    versions:
+      - name: Default
+        check_command: exampleapp --version
+        dependencies:
+          - curl
+          - git
+        install_methods:
+          - fallback: false
+            os:
+              - Ubuntu
+              - Debian
+            package_manager: Apt
+            package_name: exampleapp
+            is_cask: false
+            steps:
+              preinstall_steps:
+                - echo preinstall
+              install: []
+              postinstall_steps:
+                - echo postinstall
+              uninstall: []
+              postuninstall_steps:
+                - echo postuninstall
+
+          - fallback: false
+            os:
+              - Fedora
+              - Arch
+            steps:
+              preinstall_steps: []
+              install:
+                - echo custom install
+              postinstall_steps: []
+              uninstall:
+                - echo uninstall
+              postuninstall_steps: []
+
+          - fallback: false
+            os:
+              - MacOS
+            package_manager: Brew
+            package_name: app
+            is_cask: false
+
+          - fallback: false
+            os:
+              - Windows
+            package_manager: Winget
+            package_name: Example.App
