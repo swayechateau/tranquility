@@ -21,6 +21,7 @@ use tabled::settings::Style;
 use tabled::{Table, Tabled};
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(rename = "applications")]
 pub struct ApplicationList {
     pub applications: Vec<Application>,
 }

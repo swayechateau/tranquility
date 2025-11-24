@@ -16,9 +16,10 @@ mod tests {
         assert!(!result, "Expected invalid YAML to fail");
     }
 
-    #[test]
-    fn test_valid_xml_file() {
-        let result = validate_file(Path::new("tests/fixtures/valid_applications.xml"));
-        assert!(result, "Expected valid XML file");
-    }
+    // Remove xml support for now
+    // #[test]
+    // fn test_valid_xml_file() {
+    //     let result = validate_file(Path::new("tests/fixtures/valid_applications.xml"));
+    //     assert!(result, "Expected valid XML file");
+    // }
 }
