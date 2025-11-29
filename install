@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PROG_NAME="tquil"
+BUILD_DIR="./target/release"
+SOURCE_BIN="$BUILD_DIR/tranquility"
+
+COLOR_OK="\033[32m"
+COLOR_ERR="\033[31m"
+COLOR_RST="\033[0m"
+
+# ── 0. Helper: choose global dir based on platform ───────────────────────────
+choose_global_dir() {
+    case "$(uname -s)" in
+        Linux*) echo "/usr/local/bin" ;;
+        Darwin*)
+            if [[ "$(uname -m)" == "arm64" && -d "/opt/homebrew/bin" ]]; then
+                echo "/opt/homebrew/bin"
+            else
+                echo "/usr/local/bin"
+            fi
+            ;;
+        *) echo "" ;;
+    esac
+}
+
+GLOBAL_DIR="$(choose_global_dir)"
+LOCAL_DIR="$HOME/.local/bin"
+
+# ── 1. Pull & build ──────────────────────────────────────────────────────────
+printf "${COLOR_OK}→ Pulling latest code and building…${COLOR_RST}\n"
+
+if command -v git >/dev/null 2>&1; then
+    git pull --ff-only || printf "${COLOR_ERR}Git pull failed (continuing)…${COLOR_RST}\n"
+fi
+
+if [[ -x ./build ]]; then
+    ./build
+else
+    if command -v cargo >/dev/null 2>&1; then
+        cargo build --release
+    else
+        printf "${COLOR_ERR}No build script and cargo is missing.${COLOR_RST}\n"
+        exit 1
+    fi
+fi
+
+if [[ ! -x "$SOURCE_BIN" ]]; then
+    printf "${COLOR_ERR}Build failed: binary not found at $SOURCE_BIN.${COLOR_RST}\n"
+    exit 1
+fi
+
+# ── 2. Ask whether to install ────────────────────────────────────────────────
+printf "\nInstall ${COLOR_OK}%s${COLOR_RST}? [y/N] " "$PROG_NAME"
+read -r REPLY
+REPLY=$(printf '%s' "$REPLY" | tr '[:upper:]' '[:lower:]')
+
+if [[ "$REPLY" != "y" && "$REPLY" != "yes" ]]; then
+    printf "Skipping installation.\n"
+    exit 0
+fi
+
+# ── 3. Decide install scope ──────────────────────────────────────────────────
+if [[ $EUID -eq 0 ]]; then
+    INSTALL_DIR="$GLOBAL_DIR"
+    USE_SUDO=""
+else
+    while true; do
+        printf "Install for ${COLOR_OK}all users${COLOR_RST} or ${COLOR_OK}just you${COLOR_RST}?\n"
+        printf "[g]lobal / [l]ocal  (default: local): "
+        read -r SCOPE
+        SCOPE=$(printf '%s' "$SCOPE" | tr '[:upper:]' '[:lower:]')
+
+        case "$SCOPE" in
+            ""|"l"|"local")
+                INSTALL_DIR="$LOCAL_DIR"
+                USE_SUDO=""
+                break
+                ;;
+            "g"|"global")
+                INSTALL_DIR="$GLOBAL_DIR"
+                USE_SUDO="sudo"
+                break
+                ;;
+            *)
+                printf "Please answer 'g' or 'l'.\n"
+                ;;
+        esac
+    done
+fi
+
+# ── 4. Ensure target directory exists / is writable ──────────────────────────
+if [[ "$INSTALL_DIR" == "$LOCAL_DIR" && ! -d "$LOCAL_DIR" ]]; then
+    mkdir -p "$LOCAL_DIR"
+fi
+
+if [[ ! -w "$INSTALL_DIR" ]]; then
+    if [[ -n "$USE_SUDO" ]] && ! command -v sudo >/dev/null 2>&1; then
+        printf "${COLOR_ERR}sudo required but not installed.${COLOR_RST}\n"
+        exit 1
+    fi
+fi
+
+# ── 5. Install binary ────────────────────────────────────────────────────────
+printf "\nCopying binary to ${COLOR_OK}%s/%s${COLOR_RST}\n" "$INSTALL_DIR" "$PROG_NAME"
+
+$USE_SUDO cp "$SOURCE_BIN" "$INSTALL_DIR/$PROG_NAME"
+$USE_SUDO chmod +x "$INSTALL_DIR/$PROG_NAME"
+
+printf "${COLOR_OK}Installation complete.${COLOR_RST}\n"
+printf "Run '%s --help' to get started.\n" "$PROG_NAME"
+
+if [[ "$INSTALL_DIR" == "$LOCAL_DIR" ]]; then
+    printf "Make sure %s is in your PATH:\n" "$LOCAL_DIR"
+    printf "  export PATH=\"%s:\$PATH\"\n" "$LOCAL_DIR"
+fi
