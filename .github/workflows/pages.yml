@@ -41,7 +41,7 @@ jobs:
           mkdocs build --strict --config-file docs/mkdocs.yml
 
       - name: Upload built site as artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./docs/site
 
