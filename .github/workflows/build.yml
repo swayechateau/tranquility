@@ -91,7 +91,7 @@ jobs:
           cp "${TARGET_DIR}/${BIN_NAME}" "artifacts/${BIN_NAME}-${{ matrix.target }}"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: tranquility-${{ matrix.target }}
           path: artifacts/*
@@ -126,7 +126,7 @@ jobs:
           cp "${TARGET_DIR}/${BIN_NAME}" "artifacts/${BIN_NAME}-${{ matrix.target }}"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: tranquility-${{ matrix.target }}
           path: artifacts/*
@@ -230,7 +230,7 @@ jobs:
           ls -1 *.tar.gz
 
       - name: Upload tarballs as artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: tranquility-tarballs-${{ github.run_id }}
           path: dist/*.tar.gz
