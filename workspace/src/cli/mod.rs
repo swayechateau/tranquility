@@ -1,104 +1,78 @@
-pub mod command;
+pub mod args;
+pub mod cmd;
 
-use crate::{log_error, print_info};
-use clap::{CommandFactory, Error, Parser, Subcommand, error::ErrorKind};
+use std::process::ExitCode;
+pub type CliResult<T> = Result<T, Error>;
 
-use crate::{core::logger, models::system::SystemInfo};
-/// Tranquility CLI command line parser
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-pub struct TranquilityCommand {
-    /// Turn debugging information on (repeatable)
-    #[arg(long, action = clap::ArgAction::SetTrue)]
-    pub debug: bool,
+use crate::{
+    core::{bootstrap::build_app_context, exit_code, report_error},
+    engine::{Error, ErrorCode},
+};
+use clap::Parser;
+use tracing::Level;
+use tracing_subscriber::{EnvFilter, fmt};
 
-    /// Show verbose output
-    #[arg(long, action = clap::ArgAction::SetTrue)]
-    #[arg(long)]
-    dry_run: bool,
+pub fn run() -> ExitCode {
+    match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime.block_on(async_run()),
+        Err(err) => {
+            let err = ErrorCode::ProcessFailure
+                .error()
+                .with_context_str("runtime", err);
 
-    #[command(subcommand)]
-    pub command: Option<Commands>,
-}
-
-/// Tranquility CLI sub commands
-#[derive(Subcommand, Debug)]
-pub enum Commands {
-    /// Check and fix common issues
-    Doctor(command::doctor::DoctorCommand),
-    /// Configuration management
-    Config(command::config::ConfigCommand),
-    /// Show tranquility logs
-    Logs(command::logs::LogsCommand),
-    /// Application management
-    App(command::app::AppCommand),
-    /// Font management
-    Font(command::font::FontCommand),
-    /// VPS host management
-    Vps(command::vps::VpsCommand),
-    /// List supported applications, fonts, or VPS hosts
-    List(command::list::ListCommand),
-}
-
-/// handle_args function
-pub fn handle_commands(commands: TranquilityCommand) {
-    if commands.command.is_none() {
-        println!("{}\n", SystemInfo::new().to_pretty_string());
-        return;
-    }
-
-    if commands.debug {
-        logger::set_debug(true);
-    }
-
-    if commands.dry_run {
-        print_info!("💡 Running in dry-run mode. No changes will be made.");
-    }
-
-    match commands.command {
-        Some(Commands::Config(config)) => {
-            command::config::handle_config_command(config, commands.dry_run)
-        }
-
-        Some(Commands::Logs(logs)) => command::logs::handle_logs_command(logs, commands.dry_run),
-
-        Some(Commands::Font(font)) => command::font::handle_fonts_command(font, commands.dry_run),
-
-        Some(Commands::Doctor(doctor)) => command::doctor::doctor_command(doctor, commands.dry_run),
-
-        Some(Commands::App(app)) => command::app::handle_app_command(app, commands.dry_run),
-
-        Some(Commands::Vps(vps)) => command::vps::handle_vps_command(vps, commands.dry_run),
-
-        Some(Commands::List(list)) => command::list::handle_list_command(list, commands.dry_run),
-
-        None => {}
-    }
-}
-
-pub fn handle_command_errors(err: Error) {
-    match err.kind() {
-        ErrorKind::UnknownArgument | ErrorKind::InvalidSubcommand => {
-            TranquilityCommand::command().print_help().unwrap();
-            println!();
-        }
-        _ => {
-            err.print().expect("Failed to print error");
+            report_error(&err);
+            exit_code(&err)
         }
     }
-    std::process::exit(1);
 }
 
-pub fn print_subcommand_help(subcommand: &str) {
-    let mut cmd = TranquilityCommand::command();
-    if let Some(sub) = cmd.find_subcommand_mut(subcommand) {
-        sub.print_help().unwrap();
-        println!();
-    } else {
-        log_error!(
-            "print",
-            "help",
-            &format!("❌ Subcommand `{subcommand}` not found.")
-        );
+async fn async_run() -> ExitCode {
+    let cli = args::Cli::parse();
+
+    let default_level = match (cli.global.verbose, cli.global.quiet) {
+        (_, q) if q >= 2 => Level::ERROR,
+        (_, 1) => Level::WARN,
+        (1, _) => Level::INFO,
+        (2, _) => Level::DEBUG,
+        (v, _) if v >= 3 => Level::TRACE,
+        _ => Level::WARN,
+    };
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(default_level.as_str()));
+    fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .init();
+
+    let ctx = match build_app_context(cli.global.into()) {
+        Ok(ctx) => ctx,
+        Err(err) => {
+            let err = ErrorCode::ProcessFailure
+                .error()
+                .with_context_str("app_context", err);
+            report_error(&err);
+            return exit_code(&err);
+        }
+    };
+
+    let result = match cli.command {
+        Some(args::Command::Info) => cmd::info::run(&ctx).await,
+        Some(args::Command::App(args)) => cmd::app::run(&ctx, args).await,
+        Some(args::Command::Font(args)) => cmd::font::run(&ctx, args).await,
+        Some(args::Command::Logs(args)) => cmd::logs::run(&ctx, args).await,
+        Some(args::Command::List(args)) => cmd::list::run(&ctx, args).await,
+        Some(args::Command::Config(args)) => cmd::config::run(&ctx, args).await,
+        Some(args::Command::Doctor(args)) => cmd::doctor::run(&ctx, args).await,
+        Some(args::Command::Vps(args)) => cmd::vps::run(&ctx, args).await,
+        None => cmd::info::run(&ctx).await,
+    };
+
+    if let Err(err) = result {
+        return exit_code(&err);
     }
+
+    ExitCode::SUCCESS
 }

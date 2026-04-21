@@ -1,23 +1,11 @@
-pub mod font;
-pub mod logger;
-pub mod print;
-pub mod shell;
-pub mod zip;
+pub mod bootstrap;
+pub mod context;
+pub mod error;
+pub mod usecases;
 
-pub fn expand_home(input: &str) -> String {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "~".to_string());
+pub use context::Context;
+pub use error::CoreResult;
+pub use error::exit_code;
+pub use error::report_error;
 
-    if input.starts_with("~/") {
-        return input.replacen("~", &home, 1);
-    }
-
-    if input.contains("$HOME") {
-        return input.replace("$HOME", &home);
-    }
-
-    if input.contains("%HOME%") {
-        return input.replace("%HOME%", &home);
-    }
-
-    input.to_string()
-}
+pub use usecases::*;
