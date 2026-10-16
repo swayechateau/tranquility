@@ -32,7 +32,7 @@ heck = "0.5.0"
 thiserror = "2.0.17"
 scriba = { version = "0.5", features = ["prompt", "logger"] }
 
-toml = "0.9.2"
+toml = "1.1.8"
 tokio = { version = "1.28.0", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.17", features = ["fmt", "env-filter"] }
