@@ -135,3 +135,9 @@ cargo version --bump major
 * The `VERSION` file will never drift — it is synced automatically.
 * Formatting inside `Cargo.toml` is preserved.
 * Safe, strict script execution (`set -euo pipefail`).
+
+---
+
+### License
+
+Tranquility is licensed under the Apache License, Version 2.0 (SPDX: `Apache-2.0`). The full text is in [`LICENSE`](LICENSE).
