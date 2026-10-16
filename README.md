@@ -140,4 +140,4 @@ cargo version --bump major
 
 ### License
 
-Tranquility is licensed under the GNU General Public License, version 2 only (SPDX: `GPL-2.0-only`). The full text is in [`LICENSE`](LICENSE). It is not licensed under "any later version".
+Tranquility is licensed under the Apache License, Version 2.0 (SPDX: `Apache-2.0`). The full text is in [`LICENSE`](LICENSE).
