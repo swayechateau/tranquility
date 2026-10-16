@@ -195,26 +195,26 @@ fn detect_default_package_manager(os: OSType) -> Option<PackageManager> {
     match os {
         // Debian-based
         OSType::Ubuntu | OSType::Debian | OSType::Pop => Some(PackageManager::Apt),
-        
+
         // Red Hat-based
         OSType::Fedora => Some(PackageManager::Dnf),
         OSType::Redhat => Some(PackageManager::Yum),
-        
+
         // Independent Linux distros
         OSType::Alpine => Some(PackageManager::Apk),
         OSType::Arch | OSType::Manjaro | OSType::EndeavourOS => Some(PackageManager::Pacman),
         OSType::SUSE | OSType::openSUSE => Some(PackageManager::Zypper),
         OSType::Gentoo => Some(PackageManager::Portage),
-        
+
         // Generic Linux fallback to Apt (most common)
         OSType::Linux => Some(PackageManager::Apt),
-        
+
         // macOS
         OSType::Macos => Some(PackageManager::Brew),
-        
+
         // Windows - prefer winget as it's the Microsoft standard
         OSType::Windows => Some(PackageManager::Winget),
-        
+
         // Unknown OS types
         _ => None,
     }
@@ -282,12 +282,10 @@ fn detect_cpu_info_macos() -> (Option<String>, Option<String>) {
         .arg("-n")
         .arg("machdep.cpu.brand_string")
         .output()
+        && output.status.success()
+        && let Ok(s) = String::from_utf8(output.stdout)
     {
-        if output.status.success() {
-            if let Ok(s) = String::from_utf8(output.stdout) {
-                brand = Some(s.trim().to_string());
-            }
-        }
+        brand = Some(s.trim().to_string());
     }
 
     // Get CPU vendor
@@ -295,12 +293,10 @@ fn detect_cpu_info_macos() -> (Option<String>, Option<String>) {
         .arg("-n")
         .arg("machdep.cpu.vendor")
         .output()
+        && output.status.success()
+        && let Ok(s) = String::from_utf8(output.stdout)
     {
-        if output.status.success() {
-            if let Ok(s) = String::from_utf8(output.stdout) {
-                vendor = Some(s.trim().to_string());
-            }
-        }
+        vendor = Some(s.trim().to_string());
     }
 
     (brand, vendor)
@@ -314,10 +310,7 @@ fn detect_cpu_info_windows() -> (Option<String>, Option<String>) {
     let mut vendor = None;
 
     // Use wmic to get processor info
-    if let Ok(output) = Command::new("wmic")
-        .args(&["cpu", "get", "name"])
-        .output()
-    {
+    if let Ok(output) = Command::new("wmic").args(&["cpu", "get", "name"]).output() {
         if output.status.success() {
             if let Ok(s) = String::from_utf8(output.stdout) {
                 // Extract name from output (skip header and take first line)

@@ -178,7 +178,7 @@ pub async fn install(
     names: Vec<String>,
 ) -> Result<(), Error> {
     let fonts_to_install: Vec<&'static str> = if all {
-        NERD_FONT_LIST.iter().copied().collect()
+        NERD_FONT_LIST.to_vec()
     } else if !names.is_empty() {
         names
             .iter()
@@ -189,7 +189,7 @@ pub async fn install(
             let theme = dialoguer::theme::ColorfulTheme::default();
             dialoguer::MultiSelect::with_theme(&theme)
                 .with_prompt("Select fonts to install")
-                .items(&NERD_FONT_LIST)
+                .items(NERD_FONT_LIST)
                 .interact()
                 .unwrap_or_default()
         })
@@ -314,6 +314,7 @@ pub async fn update(dry_run: bool) -> Result<(), Error> {
 /// - `installed_only = true`  → show only installed fonts
 /// - `all = true`             → show all fonts with install status
 /// - otherwise                → show only fonts that are NOT installed
+///
 /// Row data for font listing — returned to callers for format-aware rendering.
 pub struct FontListRow {
     pub name: &'static str,

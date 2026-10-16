@@ -82,7 +82,7 @@ impl Runtime {
     }
 
     pub fn set_cwd(&mut self, cwd: PathBuf) -> &mut Self {
-        self.cwd = std::fs::canonicalize(&cwd).unwrap_or_else(|_| cwd);
+        self.cwd = std::fs::canonicalize(&cwd).unwrap_or(cwd);
         self
     }
 

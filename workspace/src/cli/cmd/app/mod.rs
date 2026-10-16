@@ -40,16 +40,10 @@ pub enum AppSubcommand {
 
 pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
     match args.subcommand {
-        Some(AppSubcommand::Install) => apps::install(ctx, args.all, args.server)
-            .await
-            .map_err(|e| e.into()),
-        Some(AppSubcommand::Uninstall) => apps::uninstall(ctx, args.all, args.server)
-            .await
-            .map_err(|e| e.into()),
-        Some(AppSubcommand::Categories) => apps::categories(ctx).await.map_err(|e| e.into()),
-        Some(AppSubcommand::List { category }) => apps::list(ctx, args.server, category)
-            .await
-            .map_err(|e| e.into()),
+        Some(AppSubcommand::Install) => apps::install(ctx, args.all, args.server).await,
+        Some(AppSubcommand::Uninstall) => apps::uninstall(ctx, args.all, args.server).await,
+        Some(AppSubcommand::Categories) => apps::categories(ctx).await,
+        Some(AppSubcommand::List { category }) => apps::list(ctx, args.server, category).await,
         None => {
             print_subcommand_help("app");
             Ok(())

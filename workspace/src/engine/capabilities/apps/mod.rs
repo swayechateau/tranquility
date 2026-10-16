@@ -14,22 +14,22 @@ use crate::engine::models::system::{OsSupport, SystemInfo};
 pub fn load_apps(apps_file: Option<&std::path::Path>) -> ApplicationList {
     let mut apps = default_apps();
 
-    if let Some(path) = apps_file {
-        if path.exists() {
-            match std::fs::read_to_string(path) {
-                Ok(data) => match serde_json::from_str::<ApplicationList>(&data) {
-                    Ok(user_apps) => {
-                        tracing::info!(
-                            "Loaded {} applications from {}",
-                            user_apps.applications.len(),
-                            path.display()
-                        );
-                        apps.extend(user_apps.applications);
-                    }
-                    Err(e) => eprintln!("❌ Failed to parse applications file: {e}"),
-                },
-                Err(e) => eprintln!("❌ Failed to read applications file: {e}"),
-            }
+    if let Some(path) = apps_file
+        && path.exists()
+    {
+        match std::fs::read_to_string(path) {
+            Ok(data) => match serde_json::from_str::<ApplicationList>(&data) {
+                Ok(user_apps) => {
+                    tracing::info!(
+                        "Loaded {} applications from {}",
+                        user_apps.applications.len(),
+                        path.display()
+                    );
+                    apps.extend(user_apps.applications);
+                }
+                Err(e) => eprintln!("❌ Failed to parse applications file: {e}"),
+            },
+            Err(e) => eprintln!("❌ Failed to read applications file: {e}"),
         }
     }
 

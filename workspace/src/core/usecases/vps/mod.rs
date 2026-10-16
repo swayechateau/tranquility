@@ -27,7 +27,6 @@ pub async fn add(
         &vps_file_path,
     )
     .await
-    .map_err(|e| e.into())
 }
 
 pub async fn list(ctx: &Context) -> CoreResult<()> {
@@ -71,9 +70,7 @@ pub async fn connect(ctx: &Context, id_or_name: Option<String>) -> CoreResult<()
         .vps_file
         .clone();
 
-    vps::connect(id_or_name, &vps_file_path)
-        .await
-        .map_err(|e| e.into())
+    vps::connect(id_or_name, &vps_file_path).await
 }
 
 pub async fn update(
@@ -102,7 +99,6 @@ pub async fn update(
         &vps_file_path,
     )
     .await
-    .map_err(|e| e.into())
 }
 
 pub async fn delete(ctx: &Context, id_or_name: Option<String>) -> CoreResult<()> {
@@ -113,9 +109,7 @@ pub async fn delete(ctx: &Context, id_or_name: Option<String>) -> CoreResult<()>
         .vps_file
         .clone();
 
-    vps::delete(id_or_name, &vps_file_path)
-        .await
-        .map_err(|e| e.into())
+    vps::delete(id_or_name, &vps_file_path).await
 }
 
 pub async fn script(
@@ -131,9 +125,7 @@ pub async fn script(
         .vps_file
         .clone();
 
-    vps::script(id_or_name, inline_script, script_file, &vps_file_path)
-        .await
-        .map_err(|e| e.into())
+    vps::script(id_or_name, inline_script, script_file, &vps_file_path).await
 }
 
 pub async fn copy(
@@ -156,11 +148,9 @@ pub async fn copy(
         _ => "push",
     };
 
-    vps::copy(id_or_name, source, destination, dir, &vps_file_path)
-        .await
-        .map_err(|e| e.into())
+    vps::copy(id_or_name, source, destination, dir, &vps_file_path).await
 }
 
 pub async fn schema(ctx: &Context) -> CoreResult<()> {
-    vps::schema(ctx).await.map_err(|e| e.into())
+    vps::schema(ctx).await
 }

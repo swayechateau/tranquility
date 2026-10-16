@@ -4,5 +4,5 @@ use crate::{
 };
 
 pub async fn run(ctx: &Context) -> CliResult<()> {
-    info::show(ctx).await.map_err(|e| e.into())
+    info::show(ctx).await
 }

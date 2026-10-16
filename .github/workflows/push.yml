@@ -12,6 +12,9 @@ permissions:
 jobs:
   push:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workspace
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -25,7 +28,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
+            workspace/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Format check

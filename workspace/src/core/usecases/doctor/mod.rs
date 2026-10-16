@@ -15,10 +15,10 @@ pub async fn run(ctx: &Context) -> CoreResult<()> {
         Some(_) => "Config loaded",
         None => "No config loaded — using defaults",
     };
-    
+
     output = output.heading(2, "Configuration");
     output = output.paragraph(config_status);
-    
+
     if let Some(path) = ctx.project_config_path() {
         let status = if path.exists() {
             format!("Project config exists: {}", path.display())
@@ -36,7 +36,7 @@ pub async fn run(ctx: &Context) -> CoreResult<()> {
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join("tranquility")
         .join("logs");
-    
+
     let dir_status = if log_dir.exists() {
         format!("Log directory exists: {}", log_dir.display())
     } else {
@@ -48,11 +48,11 @@ pub async fn run(ctx: &Context) -> CoreResult<()> {
     output = output.heading(2, "System");
     let sys = SystemInfo::new();
     output = output
-        .key_value("OS", &format!("{:?}", sys.os_type()))
+        .key_value("OS", format!("{:?}", sys.os_type()))
         .key_value("Arch", &sys.arch)
-        .key_value("Distro", &sys.distro())
-        .key_value("CPU Vendor", &sys.cpu_vendor())
-        .key_value("CPU Brand", &sys.cpu_brand());
+        .key_value("Distro", sys.distro())
+        .key_value("CPU Vendor", sys.cpu_vendor())
+        .key_value("CPU Brand", sys.cpu_brand());
 
     // --- Package managers ---
     output = output.heading(2, "Package Managers");
@@ -106,25 +106,28 @@ pub async fn fix(ctx: &Context) -> CoreResult<()> {
     if log_dir.exists() {
         output = output.status(
             scriba::StatusKind::Ok,
-            &format!("Log directory already exists: {}", log_dir.display()),
+            format!("Log directory already exists: {}", log_dir.display()),
         );
     } else if ctx.dry_run() {
         output = output.status(
             scriba::StatusKind::Warning,
-            &format!("[dry run] Would create log directory: {}", log_dir.display()),
+            format!(
+                "[dry run] Would create log directory: {}",
+                log_dir.display()
+            ),
         );
     } else {
         match std::fs::create_dir_all(&log_dir) {
             Ok(_) => {
                 output = output.status(
                     scriba::StatusKind::Ok,
-                    &format!("Created log directory: {}", log_dir.display()),
+                    format!("Created log directory: {}", log_dir.display()),
                 );
             }
             Err(e) => {
                 output = output.status(
                     scriba::StatusKind::Warning,
-                    &format!("Failed to create log directory: {}", e),
+                    format!("Failed to create log directory: {}", e),
                 );
             }
         }

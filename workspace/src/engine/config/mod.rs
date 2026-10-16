@@ -116,7 +116,7 @@ impl BaseConfig {
         write_config(&path, &default)
     }
 
-    pub fn validate_schema(_content: &str, path: &PathBuf) -> io::Result<()> {
+    pub fn validate_schema(_content: &str, path: &std::path::Path) -> io::Result<()> {
         if !validate_file(path) {
             eprintln!("⚠️ Schema did not match for {}", path.display());
             return Err(io::Error::new(

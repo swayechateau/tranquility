@@ -138,10 +138,6 @@ impl Ui {
         Meta::default()
     }
 
-    pub fn figlet(&self, text: &str) -> UiResult<String> {
-        scriba::figlet::render(text).map_err(map_scriba_error_to_error)
-    }
-
     pub fn render(&self, output: &Output) -> UiResult<String> {
         render::render_output(self.config.format, output).map_err(map_scriba_error_to_error)
     }

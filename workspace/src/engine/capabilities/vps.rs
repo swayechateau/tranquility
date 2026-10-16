@@ -183,7 +183,7 @@ pub async fn add(
         name: Some(name),
         host,
         user: Some(user),
-        port: port.map(|p| crate::engine::models::vps::FlexibleValue::Number(p)),
+        port: port.map(crate::engine::models::vps::FlexibleValue::Number),
         private_key: _private_key.map(|p| p.to_string_lossy().to_string()),
         post_connect_script: _post_connect_script,
     };
@@ -381,11 +381,11 @@ pub async fn update(
         changed = true;
     }
 
-    if let Some(p) = port {
-        if p > 0 {
-            entry.port = Some(crate::engine::models::vps::FlexibleValue::Number(p));
-            changed = true;
-        }
+    if let Some(p) = port
+        && p > 0
+    {
+        entry.port = Some(crate::engine::models::vps::FlexibleValue::Number(p));
+        changed = true;
     }
 
     if let Some(pk) = private_key {
@@ -442,7 +442,7 @@ pub async fn delete(id_or_name: Option<String>, vps_file_path: &PathBuf) -> Resu
                 })
                 .collect();
 
-            let selection = Select::new()
+            Select::new()
                 .with_prompt("🗑️  Select a VPS to delete")
                 .items(&options)
                 .default(0)
@@ -452,9 +452,7 @@ pub async fn delete(id_or_name: Option<String>, vps_file_path: &PathBuf) -> Resu
                         .error()
                         .with_context("prompt", "vps selection")
                         .with_context("error", e.to_string())
-                })?;
-
-            selection
+                })?
         }
     };
 

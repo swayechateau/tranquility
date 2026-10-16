@@ -38,5 +38,4 @@ pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
         args.path,
     )
     .await
-    .map_err(|e| e.into())
 }

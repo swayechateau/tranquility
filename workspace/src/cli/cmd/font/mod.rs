@@ -46,16 +46,10 @@ pub enum FontSubcommand {
 
 pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
     match args.subcommand {
-        Some(FontSubcommand::Install { all, name }) => {
-            font::install(ctx, all, name).await.map_err(|e| e.into())
-        }
-        Some(FontSubcommand::Uninstall { all, name }) => {
-            font::uninstall(ctx, all, name).await.map_err(|e| e.into())
-        }
-        Some(FontSubcommand::Update) => font::update(ctx).await.map_err(|e| e.into()),
-        Some(FontSubcommand::List { installed, all }) => {
-            font::list(ctx, installed, all).await.map_err(|e| e.into())
-        }
+        Some(FontSubcommand::Install { all, name }) => font::install(ctx, all, name).await,
+        Some(FontSubcommand::Uninstall { all, name }) => font::uninstall(ctx, all, name).await,
+        Some(FontSubcommand::Update) => font::update(ctx).await,
+        Some(FontSubcommand::List { installed, all }) => font::list(ctx, installed, all).await,
         None => {
             print_subcommand_help("font");
             Ok(())

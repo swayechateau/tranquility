@@ -106,7 +106,7 @@ pub async fn show(
     })?;
 
     let reader = BufReader::new(file);
-    let all_lines: Vec<String> = reader.lines().filter_map(|l| l.ok()).collect();
+    let all_lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
 
     // Collect matching lines (most recent first) up to `tail`
     let matching: Vec<&str> = all_lines

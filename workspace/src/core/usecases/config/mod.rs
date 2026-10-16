@@ -101,7 +101,7 @@ pub async fn override_vps(ctx: &Context, source: &PathBuf) -> CoreResult<()> {
 }
 
 /// Validate the main config file.
-pub async fn validate_config(_ctx: &Context, source: &PathBuf) -> CoreResult<()> {
+pub async fn validate_config(_ctx: &Context, source: &std::path::Path) -> CoreResult<()> {
     if config::validate_file(source) {
         println!("✓ Config file is valid");
         Ok(())

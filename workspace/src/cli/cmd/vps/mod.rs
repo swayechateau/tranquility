@@ -100,11 +100,9 @@ pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
             host,
             user,
             port,
-        }) => vps::add(ctx, name, host, user, port)
-            .await
-            .map_err(|e| e.into()),
-        Some(VpsSubcommand::List) => vps::list(ctx).await.map_err(|e| e.into()),
-        Some(VpsSubcommand::Connect { id }) => vps::connect(ctx, id).await.map_err(|e| e.into()),
+        }) => vps::add(ctx, name, host, user, port).await,
+        Some(VpsSubcommand::List) => vps::list(ctx).await,
+        Some(VpsSubcommand::Connect { id }) => vps::connect(ctx, id).await,
         Some(VpsSubcommand::Update {
             id,
             name,
@@ -112,22 +110,18 @@ pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
             user,
             port,
             private_key,
-        }) => vps::update(ctx, id, name, host, user, port, private_key)
-            .await
-            .map_err(|e| e.into()),
-        Some(VpsSubcommand::Delete { id }) => vps::delete(ctx, id).await.map_err(|e| e.into()),
-        Some(VpsSubcommand::Script { id, inline, file }) => vps::script(ctx, id, inline, file)
-            .await
-            .map_err(|e| e.into()),
+        }) => vps::update(ctx, id, name, host, user, port, private_key).await,
+        Some(VpsSubcommand::Delete { id }) => vps::delete(ctx, id).await,
+        Some(VpsSubcommand::Script { id, inline, file }) => {
+            vps::script(ctx, id, inline, file).await
+        }
         Some(VpsSubcommand::Copy {
             id,
             source,
             destination,
             direction,
-        }) => vps::copy(ctx, id, source, destination, direction)
-            .await
-            .map_err(|e| e.into()),
-        Some(VpsSubcommand::Schema) => vps::schema(ctx).await.map_err(|e| e.into()),
+        }) => vps::copy(ctx, id, source, destination, direction).await,
+        Some(VpsSubcommand::Schema) => vps::schema(ctx).await,
         None => {
             print_subcommand_help("vps");
             Ok(())

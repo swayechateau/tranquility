@@ -46,18 +46,12 @@ pub enum ListSubcommand {
 
 pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
     match args.subcommand {
-        Some(ListSubcommand::Apps { server, category }) => list::apps(ctx, server, category)
-            .await
-            .map_err(|e| e.into()),
-        Some(ListSubcommand::Fonts { installed, all }) => {
-            list::fonts(ctx, installed, all).await.map_err(|e| e.into())
-        }
+        Some(ListSubcommand::Apps { server, category }) => list::apps(ctx, server, category).await,
+        Some(ListSubcommand::Fonts { installed, all }) => list::fonts(ctx, installed, all).await,
         Some(ListSubcommand::Vps { user, host }) => {
-            list::vps(ctx, user.as_deref(), host.as_deref())
-                .await
-                .map_err(|e| e.into())
+            list::vps(ctx, user.as_deref(), host.as_deref()).await
         }
-        Some(ListSubcommand::Categories) => list::categories(ctx).await.map_err(|e| e.into()),
+        Some(ListSubcommand::Categories) => list::categories(ctx).await,
         None => {
             print_subcommand_help("list");
             Ok(())

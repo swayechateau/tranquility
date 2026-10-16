@@ -19,7 +19,7 @@ pub enum DoctorSubcommand {
 
 pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
     match args.subcommand {
-        Some(DoctorSubcommand::Fix) => doctor::fix(ctx).await.map_err(|e| e.into()),
-        None => doctor::run(ctx).await.map_err(|e| e.into()),
+        Some(DoctorSubcommand::Fix) => doctor::fix(ctx).await,
+        None => doctor::run(ctx).await,
     }
 }
