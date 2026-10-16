@@ -135,3 +135,9 @@ cargo version --bump major
 * The `VERSION` file will never drift — it is synced automatically.
 * Formatting inside `Cargo.toml` is preserved.
 * Safe, strict script execution (`set -euo pipefail`).
+
+---
+
+### License
+
+Tranquility is licensed under the GNU General Public License, version 2 only (SPDX: `GPL-2.0-only`). The full text is in [`LICENSE`](LICENSE). It is not licensed under "any later version".
