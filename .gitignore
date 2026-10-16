@@ -13,4 +13,3 @@ target/
 *.pdb
 
 .DS_Store
-Cargo.toml.bak

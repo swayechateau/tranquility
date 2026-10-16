@@ -1,0 +1,58 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - ./scripts/tquil-build.sh
+
+  run:
+    cmds:
+      - ./scripts/tquil-run.sh {{.CLI_ARGS}}
+
+  test:
+    cmds:
+      - ./scripts/tquil-test.sh
+
+  test-coverage:
+    cmds:
+      - ./scripts/tquil-test-coverage.sh
+
+  lint:
+    cmds:
+      - ./scripts/tquil-lint.sh
+
+  fmt:
+    cmds:
+      - ./scripts/tquil-fmt.sh
+
+  clean:
+    cmds:
+      - ./scripts/tquil-clean.sh
+
+  check-license:
+    cmds:
+      - ./scripts/tquil-license.sh
+
+  image-run:
+    cmds:
+      - ./scripts/tquil-image-run.sh {{.CLI_ARGS}}
+
+  docs-build:
+    cmds:
+      - ./scripts/docs-build.sh
+
+  docs-serve:
+    cmds:
+      - ./scripts/docs-serve.sh
+
+  ci-check:
+    cmds:
+      - ./scripts/ci-check.sh
+
+  setup:
+    cmds:
+      - ./scripts/setup.sh
+
+  update:
+    cmds:
+      - ./scripts/update.sh

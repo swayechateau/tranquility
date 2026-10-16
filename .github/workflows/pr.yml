@@ -11,6 +11,9 @@ permissions:
 jobs:
   build-test-lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workspace
 
     container:
       image: ghcr.io/kitechsoftware/gcr-rust:latest
@@ -25,7 +28,7 @@ jobs:
           path: |
             /usr/local/cargo/registry
             /usr/local/cargo/git
-            target
+            workspace/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
