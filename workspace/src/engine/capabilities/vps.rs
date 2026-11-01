@@ -15,6 +15,24 @@ struct VpsConfigWrapper {
 
 /// Load VPS configuration from file, handling both wrapped `{ vps: [...] }` and bare `[...]` formats.
 fn load_vps_config(vps_file_path: &PathBuf) -> Result<Vec<VpsEntry>> {
+    let mut entries = parse_vps_config(vps_file_path)?;
+    assign_missing_ids(&mut entries);
+    Ok(entries)
+}
+
+/// Give every entry without an id a unique one derived from its name.
+fn assign_missing_ids(entries: &mut [VpsEntry]) {
+    use crate::engine::models::vps::{generate_vps_id, unique_id};
+    let mut taken: Vec<String> = entries.iter().filter_map(|e| e.id.clone()).collect();
+    for e in entries.iter_mut().filter(|e| e.id.is_none()) {
+        let base = generate_vps_id(e.name.as_deref(), &e.host, None);
+        let id = unique_id(&base, taken.iter().map(String::as_str));
+        taken.push(id.clone());
+        e.id = Some(id);
+    }
+}
+
+fn parse_vps_config(vps_file_path: &PathBuf) -> Result<Vec<VpsEntry>> {
     if !vps_file_path.exists() {
         return Ok(vec![]);
     }
@@ -71,7 +89,17 @@ pub fn validate_file(path: &PathBuf) -> Result<usize> {
             .with_context("path", path.display().to_string())
             .with_context("error", "file not found"));
     }
-    let entries = load_vps_config(path)?;
+    let entries = parse_vps_config(path)?;
+    let mut seen = std::collections::HashSet::new();
+    for entry in &entries {
+        if let Some(id) = &entry.id
+            && !seen.insert(id.as_str())
+        {
+            return Err(crate::engine::error::ErrorCode::VpsConfigInvalid
+                .error()
+                .with_context("validation", format!("duplicate id `{id}`")));
+        }
+    }
     for (i, entry) in entries.iter().enumerate() {
         entry.validate().map_err(|e| {
             crate::engine::error::ErrorCode::VpsConfigInvalid
@@ -132,10 +160,11 @@ pub struct Opts {
 
 fn entry_label(v: &VpsEntry) -> String {
     format!(
-        "{}@{} ({})",
+        "{} - {}@{} [{}]",
+        v.name.as_deref().unwrap_or("-"),
         v.effective_user(),
         v.host,
-        v.name.as_deref().unwrap_or("-")
+        v.effective_id()
     )
 }
 
@@ -157,7 +186,8 @@ fn select_entry(
     if let Some(id) = id_or_name {
         return entries
             .iter()
-            .position(|v| v.effective_id() == id || v.name.as_deref() == Some(id))
+            .position(|v| v.id.as_deref() == Some(id))
+            .or_else(|| entries.iter().position(|v| v.name.as_deref() == Some(id)))
             .ok_or_else(|| {
                 ErrorCode::VpsNotFound
                     .error()
@@ -192,6 +222,7 @@ fn select_entry(
 /// and the port to 22.
 #[allow(clippy::too_many_arguments)]
 pub async fn add(
+    id: Option<String>,
     name: String,
     host: String,
     user: Option<String>,
@@ -226,8 +257,30 @@ pub async fn add(
         _ => crate::engine::models::vps::get_current_user().unwrap_or_else(|| "root".to_string()),
     };
 
+    let id = match id.filter(|i| !i.is_empty()).map(|i| i.to_lowercase()) {
+        Some(id) => {
+            crate::engine::models::vps::validate_id_format(&id).map_err(|e| {
+                ErrorCode::ValidationFailed
+                    .error()
+                    .with_context("reason", e)
+            })?;
+            if entries.iter().any(|v| v.id.as_deref() == Some(id.as_str())) {
+                return Err(ErrorCode::ValidationFailed
+                    .error()
+                    .with_context("reason", "a VPS profile with this id already exists")
+                    .with_context("id", id));
+            }
+            id
+        }
+        None => {
+            use crate::engine::models::vps::{generate_vps_id, unique_id};
+            let base = generate_vps_id(Some(&name), &host, None);
+            unique_id(&base, entries.iter().filter_map(|v| v.id.as_deref()))
+        }
+    };
+
     let entry = VpsEntry {
-        id: None,
+        id: Some(id),
         name: Some(name),
         host,
         user: Some(user),
@@ -369,6 +422,7 @@ pub async fn connect(
 #[allow(clippy::too_many_arguments)]
 pub async fn update(
     id_or_name: Option<String>,
+    new_id: Option<String>,
     mut name: Option<String>,
     mut host: Option<String>,
     mut user: Option<String>,
@@ -379,6 +433,7 @@ pub async fn update(
 ) -> Result<()> {
     use crate::engine::error::ErrorCode;
 
+    let mut new_id = new_id.map(|i| i.to_lowercase());
     let mut entries = load_vps_config(vps_file_path)?;
 
     let idx = select_entry(
@@ -390,7 +445,8 @@ pub async fn update(
 
     // Interactive with no change flags: prompt for each field, pre-filled with the
     // current value. Unchanged answers are left as `None`.
-    let no_flags = name.is_none()
+    let no_flags = new_id.is_none()
+        && name.is_none()
         && host.is_none()
         && user.is_none()
         && port.is_none()
@@ -411,6 +467,7 @@ pub async fn update(
                 })?;
             Ok((v != current).then_some(v))
         };
+        new_id = ask("Id", cur.effective_id().to_string())?.map(|i| i.to_lowercase());
         name = ask("Name", cur.name.clone().unwrap_or_default())?;
         host = ask("Host", cur.host.clone())?;
         user = ask("User", cur.effective_user())?;
@@ -427,6 +484,23 @@ pub async fn update(
             .filter(|k| !k.trim().is_empty());
     }
 
+    if let Some(new) = &new_id {
+        crate::engine::models::vps::validate_id_format(new).map_err(|e| {
+            ErrorCode::ValidationFailed
+                .error()
+                .with_context("reason", e)
+        })?;
+        if entries
+            .iter()
+            .enumerate()
+            .any(|(i, v)| i != idx && v.id.as_deref() == Some(new.as_str()))
+        {
+            return Err(ErrorCode::ValidationFailed
+                .error()
+                .with_context("reason", "a VPS profile with this id already exists")
+                .with_context("id", new.clone()));
+        }
+    }
     if let Some(n) = &name {
         if n.trim().is_empty() {
             return Err(ErrorCode::ValidationFailed
@@ -454,11 +528,16 @@ pub async fn update(
             .error()
             .with_context("reason", "port must be between 1 and 65535"));
     }
-    if name.is_none() && host.is_none() && user.is_none() && port.is_none() && private_key.is_none()
+    if new_id.is_none()
+        && name.is_none()
+        && host.is_none()
+        && user.is_none()
+        && port.is_none()
+        && private_key.is_none()
     {
         return Err(ErrorCode::ValidationFailed.error().with_context(
             "reason",
-            "no changes provided (use --name, --host, --user, --port or --private-key)",
+            "no changes provided (use --new-id, --name, --host, --user, --port or --private-key)",
         ));
     }
 
@@ -470,6 +549,9 @@ pub async fn update(
         entry.host
     );
 
+    if let Some(i) = new_id {
+        entry.id = Some(i);
+    }
     if let Some(n) = name {
         entry.name = Some(n);
     }

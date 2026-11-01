@@ -77,13 +77,16 @@ tquil config reset [TARGET]
 
 ### VPS profiles
 
+Each profile has a friendly **name** (e.g. `Temp Server`) and a unique one-word **id** (e.g. `tempserver`). The id is generated from the name when not given (`--id` on add), made unique with a number suffix if needed, and can be changed with `vps update --new-id`. Ids are lowercase letters, digits, `-` or `_`. `--id` on every other command selects a profile by id or name.
+
 ```sh
 tquil vps schema                       # example profile
-tquil vps add --host example.com [NAME] [--user U] [--port P] [--private-key FILE]
+tquil vps add --host example.com [NAME] [--id ID] [--user U] [--port P] [--private-key FILE]
 tquil vps list
 tquil vps connect [--id ID]            # omit --id to pick interactively
 tquil vps update                       # pick a profile, then edit each field (pre-filled)
 tquil vps update --id ID --name NEW    # non-interactive: --id plus at least one change flag
+tquil vps update --id ID --new-id NEW  # change the id
 tquil vps script [--id ID] --inline 'uptime'
 tquil vps copy --id ID --source SRC --destination DEST
 tquil vps delete [--id ID]

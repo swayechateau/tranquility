@@ -76,6 +76,9 @@ impl VpsEntry {
 
     /// Validate the VPS entry.
     pub fn validate(&self) -> Result<(), String> {
+        if let Some(id) = &self.id {
+            validate_id_format(id)?;
+        }
         if self.name.as_ref().is_none_or(|name| name.trim().is_empty()) {
             return Err("Missing VPS name".into());
         }
@@ -199,15 +202,52 @@ impl From<u16> for FlexibleValue {
 }
 
 /// Generate an ID for a VPS based on name, host, and user.
-pub fn generate_vps_id(name: Option<&str>, host: &str, user: Option<&str>) -> String {
-    let raw = name
-        .or(Some(host))
-        .unwrap_or("vps")
-        .to_lowercase()
-        .replace(|c: char| !c.is_alphanumeric(), "-");
+pub fn generate_vps_id(name: Option<&str>, host: &str, _user: Option<&str>) -> String {
+    let base = slugify_id(name.filter(|n| !n.trim().is_empty()).unwrap_or(host));
+    if base.is_empty() {
+        "vps".to_string()
+    } else {
+        base
+    }
+}
 
-    let user = user.unwrap_or("user").to_lowercase();
-    format!("{}-{}", raw.trim_matches('-'), user)
+/// Reduce text to a one-word id: lowercase letters and digits only
+/// (`"Temp Server"` becomes `"tempserver"`).
+pub fn slugify_id(text: &str) -> String {
+    text.chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// Make `base` unique among `taken` by appending a number (`tempserver2`, ...).
+pub fn unique_id<'a>(base: &str, taken: impl Iterator<Item = &'a str> + Clone) -> String {
+    let exists = |candidate: &str| taken.clone().any(|t| t == candidate);
+    if !exists(base) {
+        return base.to_string();
+    }
+    let mut n = 2;
+    loop {
+        let candidate = format!("{base}{n}");
+        if !exists(&candidate) {
+            return candidate;
+        }
+        n += 1;
+    }
+}
+
+/// An explicit id must be a single word: letters, digits, `-` or `_`.
+pub fn validate_id_format(id: &str) -> Result<(), String> {
+    if id.is_empty()
+        || !id
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(format!(
+            "invalid id `{id}`: use a single word of letters, digits, '-' or '_'"
+        ));
+    }
+    Ok(())
 }
 
 /// Get the current system user.

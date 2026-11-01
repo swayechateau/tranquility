@@ -17,6 +17,7 @@ fn opts(ctx: &Context) -> vps::Opts {
 
 pub async fn add(
     ctx: &Context,
+    id: Option<String>,
     name: Option<String>,
     host: String,
     user: Option<String>,
@@ -35,6 +36,7 @@ pub async fn add(
         .unwrap_or_else(|| host.clone());
 
     vps::add(
+        id,
         name,
         host,
         user,
@@ -94,9 +96,11 @@ pub async fn connect(ctx: &Context, id_or_name: Option<String>) -> CoreResult<()
     vps::connect(id_or_name, &vps_file_path, &opts(ctx)).await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn update(
     ctx: &Context,
     id_or_name: Option<String>,
+    new_id: Option<String>,
     name: Option<String>,
     host: Option<String>,
     user: Option<String>,
@@ -112,6 +116,7 @@ pub async fn update(
 
     vps::update(
         id_or_name,
+        new_id,
         name,
         host,
         user,

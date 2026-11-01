@@ -15,8 +15,11 @@ pub struct Args {
 pub enum VpsSubcommand {
     /// Add a new VPS profile
     Add {
-        /// Profile name (default: the host)
+        /// Friendly profile name, e.g. "Temp Server" (default: the host)
         name: Option<String>,
+        /// Unique one-word id (default: generated from the name, e.g. tempserver)
+        #[arg(long)]
+        id: Option<String>,
         /// Hostname or IP
         #[arg(long)]
         host: String,
@@ -43,7 +46,10 @@ pub enum VpsSubcommand {
         /// VPS ID or name (omit for interactive selection)
         #[arg(long)]
         id: Option<String>,
-        /// New name
+        /// New unique one-word id
+        #[arg(long)]
+        new_id: Option<String>,
+        /// New friendly name
         #[arg(long)]
         name: Option<String>,
         /// New hostname or IP
@@ -100,21 +106,23 @@ pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
     match args.subcommand {
         Some(VpsSubcommand::Add {
             name,
+            id,
             host,
             user,
             port,
             private_key,
-        }) => vps::add(ctx, name, host, user, port, private_key).await,
+        }) => vps::add(ctx, id, name, host, user, port, private_key).await,
         Some(VpsSubcommand::List) => vps::list(ctx).await,
         Some(VpsSubcommand::Connect { id }) => vps::connect(ctx, id).await,
         Some(VpsSubcommand::Update {
             id,
+            new_id,
             name,
             host,
             user,
             port,
             private_key,
-        }) => vps::update(ctx, id, name, host, user, port, private_key).await,
+        }) => vps::update(ctx, id, new_id, name, host, user, port, private_key).await,
         Some(VpsSubcommand::Delete { id }) => vps::delete(ctx, id).await,
         Some(VpsSubcommand::Script { id, inline, file }) => {
             vps::script(ctx, id, inline, file).await
