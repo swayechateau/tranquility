@@ -35,10 +35,7 @@ pub async fn run(ctx: &Context) -> CoreResult<()> {
 
     // --- Data dirs ---
     output = output.heading(2, "Data Directories");
-    let log_dir = dirs::data_local_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("tranquility")
-        .join("logs");
+    let log_dir = ctx.base_config().log_directory.clone();
 
     let dir_status = if log_dir.exists() {
         format!("Log directory exists: {}", log_dir.display())
@@ -101,10 +98,7 @@ pub async fn fix(ctx: &Context) -> CoreResult<()> {
     output = output.heading(2, "Fixing Issues");
 
     // Ensure log directory exists
-    let log_dir = dirs::data_local_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("tranquility")
-        .join("logs");
+    let log_dir = ctx.base_config().log_directory.clone();
 
     if log_dir.exists() {
         output = output.status(

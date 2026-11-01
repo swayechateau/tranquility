@@ -6,11 +6,11 @@ pub type CliResult<T> = Result<T, Error>;
 
 use crate::{
     core::{bootstrap::build_app_context, exit_code, report_error},
-    engine::{Error, ErrorCode},
+    engine::{Error, ErrorCode, config::LogOutput, logging::DailyFileWriter},
 };
 use clap::Parser;
 use tracing::Level;
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 pub fn run() -> ExitCode {
     match tokio::runtime::Builder::new_multi_thread()
@@ -42,10 +42,26 @@ async fn async_run() -> ExitCode {
     };
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new(default_level.as_str()));
-    fmt()
-        .with_env_filter(filter)
-        .with_writer(std::io::stderr)
-        .init();
+
+    let base = crate::engine::config::BaseConfig::load_once();
+    let stderr_layer = fmt::layer().with_writer(std::io::stderr);
+
+    if matches!(base.log_output, LogOutput::Primary) {
+        let file_layer = fmt::layer()
+            .json()
+            .with_ansi(false)
+            .with_writer(DailyFileWriter::new(base.log_directory.clone()));
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(stderr_layer)
+            .with(file_layer)
+            .init();
+    } else {
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(stderr_layer)
+            .init();
+    }
 
     if let Err(err) = validate_global_paths(&cli.global) {
         report_error(&err);

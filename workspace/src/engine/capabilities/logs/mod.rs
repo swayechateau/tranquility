@@ -1,7 +1,7 @@
 use std::{
     fs,
     io::{BufRead, BufReader},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use crate::engine::error::{Error, ErrorCode};
@@ -10,18 +10,11 @@ use crate::engine::error::{Error, ErrorCode};
 // Path helpers
 // ---------------------------------------------------------------------------
 
-fn get_log_dir() -> PathBuf {
-    dirs::data_local_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("tranquility")
-        .join("logs")
-}
-
-fn resolve_log_file(date: Option<&str>) -> PathBuf {
+fn resolve_log_file(log_dir: &Path, date: Option<&str>) -> PathBuf {
     let date_str = date
         .map(|d| d.to_string())
         .unwrap_or_else(|| chrono::Local::now().format("%Y-%m-%d").to_string());
-    get_log_dir().join(format!("{}-tranquility.log", date_str))
+    log_dir.join(format!("{}-tranquility.log", date_str))
 }
 
 // ---------------------------------------------------------------------------
@@ -75,13 +68,14 @@ fn matches_level_filter(line: &str, filter: &str) -> bool {
 ///
 /// Log files are expected at `$XDG_DATA_HOME/tranquility/logs/{date}-tranquility.log`.
 pub async fn show(
+    log_dir: &Path,
     tail: usize,
     level: String,
     json_only: bool,
     date: Option<String>,
     path_only: bool,
 ) -> Result<(), Error> {
-    let log_path = resolve_log_file(date.as_deref());
+    let log_path = resolve_log_file(log_dir, date.as_deref());
 
     if path_only {
         println!("{}", log_path.display());
@@ -96,7 +90,7 @@ pub async fn show(
         );
         eprintln!(
             "Hint: logs are written to {} when the application is configured to log to a file.",
-            get_log_dir().display()
+            log_dir.display()
         );
         return Ok(());
     }
