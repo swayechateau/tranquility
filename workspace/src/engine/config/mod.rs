@@ -84,8 +84,20 @@ impl BaseConfig {
         CONFIG.get_or_init(|| match Self::load_internal() {
             Ok(cfg) => cfg,
             Err(err) => {
-                eprintln!("⚠️ Failed to load config: {err}");
-                std::process::exit(1);
+                eprintln!(
+                    "⚠️ Failed to load config: {err}. Using in-memory defaults for this run — run `tquil doctor fix` to repair the config file."
+                );
+                Self::load_default().unwrap_or_else(|err| {
+                    eprintln!(
+                        "⚠️ Failed to prepare default config directories: {err}. Falling back to built-in defaults."
+                    );
+                    Self {
+                        applications_file: PathBuf::from("applications.yaml"),
+                        vps_file: PathBuf::from("vps.yaml"),
+                        log_directory: PathBuf::from("."),
+                        log_output: LogOutput::Primary,
+                    }
+                })
             }
         })
     }
