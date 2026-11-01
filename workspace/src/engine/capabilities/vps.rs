@@ -377,17 +377,55 @@ pub async fn update(
     vps_file_path: &PathBuf,
     opts: &Opts,
 ) -> Result<()> {
+    use crate::engine::error::ErrorCode;
+
     let mut entries = load_vps_config(vps_file_path)?;
 
-    // Find the entry to update
-    let entry = entries
-        .iter_mut()
-        .find(|v| v.effective_id() == id_or_name || v.name.as_deref() == Some(&id_or_name))
+    let idx = entries
+        .iter()
+        .position(|v| v.effective_id() == id_or_name || v.name.as_deref() == Some(&id_or_name))
         .ok_or_else(|| {
-            crate::engine::error::ErrorCode::VpsNotFound
+            ErrorCode::VpsNotFound
                 .error()
                 .with_context("id_or_name", id_or_name)
         })?;
+
+    if let Some(n) = &name {
+        if n.trim().is_empty() {
+            return Err(ErrorCode::ValidationFailed
+                .error()
+                .with_context("reason", "name must not be empty"));
+        }
+        if entries
+            .iter()
+            .enumerate()
+            .any(|(i, v)| i != idx && v.name.as_deref() == Some(n.as_str()))
+        {
+            return Err(ErrorCode::ValidationFailed
+                .error()
+                .with_context("reason", "a VPS profile with this name already exists")
+                .with_context("name", n.clone()));
+        }
+    }
+    if host.as_deref().is_some_and(|h| h.trim().is_empty()) {
+        return Err(ErrorCode::ValidationFailed
+            .error()
+            .with_context("reason", "host must not be empty"));
+    }
+    if port == Some(0) {
+        return Err(ErrorCode::ValidationFailed
+            .error()
+            .with_context("reason", "port must be between 1 and 65535"));
+    }
+    if name.is_none() && host.is_none() && user.is_none() && port.is_none() && private_key.is_none()
+    {
+        return Err(ErrorCode::ValidationFailed.error().with_context(
+            "reason",
+            "no changes provided (use --name, --host, --user, --port or --private-key)",
+        ));
+    }
+
+    let entry = &mut entries[idx];
 
     println!(
         "✏️  Updating VPS entry: {}@{}",
@@ -395,38 +433,20 @@ pub async fn update(
         entry.host
     );
 
-    let mut changed = false;
-
     if let Some(n) = name {
         entry.name = Some(n);
-        changed = true;
     }
-
     if let Some(h) = host {
         entry.host = h;
-        changed = true;
     }
-
     if let Some(u) = user {
         entry.user = Some(u);
-        changed = true;
     }
-
-    if let Some(p) = port
-        && p > 0
-    {
+    if let Some(p) = port {
         entry.port = Some(crate::engine::models::vps::FlexibleValue::Number(p));
-        changed = true;
     }
-
     if let Some(pk) = private_key {
         entry.private_key = Some(pk);
-        changed = true;
-    }
-
-    if !changed {
-        println!("⚠️  No changes provided.");
-        return Ok(());
     }
 
     // Validate updated entry
