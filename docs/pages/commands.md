@@ -28,7 +28,7 @@ Prompts only appear when stdin and stderr are terminals and neither `--ci` nor `
 - `font install` / `font uninstall` without `--name` or `--all` show a picker; non-interactively they fail with an error.
 - `vps connect|script|update|delete|copy` without `--id` show a picker; non-interactively `--id` is required (a single profile is selected automatically).
 - `vps delete` asks for confirmation; pass `--yes` or `--ci` to skip it. With `--non-interactive` and no `--yes` it fails.
-- `vps add` never prompts: the user defaults to the current OS user and the port to 22.
+- `vps add` only prompts for the id (interactive, and only when `--id` is not given): the generated id is shown pre-filled so you can accept or edit it. The user defaults to the current OS user and the port to 22.
 - Errors are printed as `E<code>: message` with context on stderr, and the process exits non-zero.
 - `--dry-run` is honored by `app`, `font`, `config reset|override` and every `vps` command that changes state.
 - `--json`, `--format json|jsonl` and `-p` disable color. `-p` falls back to text for tables.

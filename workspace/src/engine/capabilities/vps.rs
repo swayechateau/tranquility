@@ -275,7 +275,32 @@ pub async fn add(
         None => {
             use crate::engine::models::vps::{generate_vps_id, unique_id};
             let base = generate_vps_id(Some(&name), &host, None);
-            unique_id(&base, entries.iter().filter_map(|v| v.id.as_deref()))
+            let generated = unique_id(&base, entries.iter().filter_map(|v| v.id.as_deref()));
+            if opts.interactive && !opts.dry_run {
+                // Show the generated id so the user can accept it or type their own.
+                let taken: Vec<String> = entries.iter().filter_map(|v| v.id.clone()).collect();
+                let answer: String = dialoguer::Input::new()
+                    .with_prompt("Id")
+                    .with_initial_text(generated)
+                    .validate_with(move |input: &String| -> std::result::Result<(), String> {
+                        let id = input.to_lowercase();
+                        crate::engine::models::vps::validate_id_format(&id)?;
+                        if taken.contains(&id) {
+                            return Err(format!("id `{id}` is already in use"));
+                        }
+                        Ok(())
+                    })
+                    .interact_text()
+                    .map_err(|e| {
+                        ErrorCode::UiPromptFailed
+                            .error()
+                            .with_context("field", "id")
+                            .with_context("error", e.to_string())
+                    })?;
+                answer.to_lowercase()
+            } else {
+                generated
+            }
         }
     };
 
