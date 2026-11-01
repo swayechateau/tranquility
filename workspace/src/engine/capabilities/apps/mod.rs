@@ -10,7 +10,24 @@ use crate::engine::models::system::{OsSupport, SystemInfo};
 // Application loading
 // ---------------------------------------------------------------------------
 
-/// Load applications from an optional JSON file, falling back to built-in defaults.
+/// Parse an applications file's content, picking the format from its extension
+/// (json, yaml, yml, xml — the same formats `config`/`vps` files support).
+fn parse_apps_str(path: &std::path::Path, data: &str) -> Result<ApplicationList, String> {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+
+    match ext.as_str() {
+        "json" => serde_json::from_str(data).map_err(|e| e.to_string()),
+        "yaml" | "yml" => serde_yaml::from_str(data).map_err(|e| e.to_string()),
+        "xml" => quick_xml::de::from_str(data).map_err(|e| e.to_string()),
+        other => Err(format!("unsupported file extension: .{other}")),
+    }
+}
+
+/// Load applications from an optional file, falling back to built-in defaults.
 pub fn load_apps(apps_file: Option<&std::path::Path>) -> ApplicationList {
     let mut apps = default_apps();
 
@@ -18,7 +35,7 @@ pub fn load_apps(apps_file: Option<&std::path::Path>) -> ApplicationList {
         && path.exists()
     {
         match std::fs::read_to_string(path) {
-            Ok(data) => match serde_json::from_str::<ApplicationList>(&data) {
+            Ok(data) => match parse_apps_str(path, &data) {
                 Ok(user_apps) => {
                     tracing::info!(
                         "Loaded {} applications from {}",
@@ -36,7 +53,7 @@ pub fn load_apps(apps_file: Option<&std::path::Path>) -> ApplicationList {
     ApplicationList { applications: apps }
 }
 
-/// Validate an applications file (JSON). Returns the number of applications.
+/// Validate an applications file. Returns the number of applications.
 pub fn validate_apps_file(path: &std::path::Path) -> Result<usize, Error> {
     let data = std::fs::read_to_string(path).map_err(|e| {
         ErrorCode::IoFailure
@@ -44,11 +61,11 @@ pub fn validate_apps_file(path: &std::path::Path) -> Result<usize, Error> {
             .with_context("path", path.display().to_string())
             .with_context("error", e.to_string())
     })?;
-    let list = serde_json::from_str::<ApplicationList>(&data).map_err(|e| {
+    let list = parse_apps_str(path, &data).map_err(|e| {
         ErrorCode::ConfigInvalid
             .error()
-            .with_context("format", "json")
-            .with_context("error", e.to_string())
+            .with_context("file", path.display().to_string())
+            .with_context("error", e)
     })?;
     Ok(list.applications.len())
 }
