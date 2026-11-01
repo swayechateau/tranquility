@@ -1,8 +1,11 @@
 use crate::{
     core::{Context, CoreResult},
-    engine::models::{
-        package_manager::{PackageManager, command_exists},
-        system::SystemInfo,
+    engine::{
+        config::{BaseConfig, deserialize_config},
+        models::{
+            package_manager::{PackageManager, command_exists},
+            system::SystemInfo,
+        },
     },
 };
 
@@ -133,5 +136,99 @@ pub async fn fix(ctx: &Context) -> CoreResult<()> {
         }
     }
 
+    // Ensure the project config exists, is parseable, and has every field.
+    let (kind, message) = fix_config_status(ctx.dry_run())?;
+    output = output.status(kind, message);
+
     ui.print(&output)
+}
+
+/// Diagnose/fix the config file, returning the status to report.
+/// In dry-run mode this never writes, only reports what would happen.
+fn fix_config_status(dry_run: bool) -> CoreResult<(scriba::StatusKind, String)> {
+    let path = match BaseConfig::config_path() {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok((
+                scriba::StatusKind::Warning,
+                format!("Could not resolve config path: {e}"),
+            ));
+        }
+    };
+
+    if !path.exists() {
+        return Ok(if dry_run {
+            (
+                scriba::StatusKind::Warning,
+                format!("[dry run] Would create default config: {}", path.display()),
+            )
+        } else {
+            BaseConfig::fix().map_err(|e| {
+                crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
+                    .with_context("error", e.to_string())
+            })?;
+            (
+                scriba::StatusKind::Ok,
+                format!("Created default config: {}", path.display()),
+            )
+        });
+    }
+
+    let content = std::fs::read_to_string(&path).map_err(|e| {
+        crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
+            .with_context("path", path.display().to_string())
+            .with_context("error", e.to_string())
+    })?;
+
+    match deserialize_config(&path, &content) {
+        Err(e) => Ok(if dry_run {
+            (
+                scriba::StatusKind::Warning,
+                format!(
+                    "[dry run] Would recreate invalid config ({e}): {}",
+                    path.display()
+                ),
+            )
+        } else {
+            BaseConfig::fix().map_err(|e| {
+                crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
+                    .with_context("error", e.to_string())
+            })?;
+            (
+                scriba::StatusKind::Ok,
+                format!("Recreated invalid config: {}", path.display()),
+            )
+        }),
+        Ok(cfg) => {
+            let incomplete = cfg.log_directory.as_os_str().is_empty()
+                || cfg.applications_file.as_os_str().is_empty()
+                || cfg.vps_file.as_os_str().is_empty();
+
+            if !incomplete {
+                return Ok((
+                    scriba::StatusKind::Ok,
+                    format!("Config is complete: {}", path.display()),
+                ));
+            }
+
+            Ok(if dry_run {
+                (
+                    scriba::StatusKind::Warning,
+                    format!(
+                        "[dry run] Would patch missing config fields: {}",
+                        path.display()
+                    ),
+                )
+            } else {
+                BaseConfig::fix().map_err(|e| {
+                    crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
+                        .with_context("error", e.to_string())
+                })?;
+                (
+                    scriba::StatusKind::Ok,
+                    format!("Patched missing config fields: {}", path.display()),
+                )
+            })
+        }
+    }
 }
