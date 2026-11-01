@@ -84,7 +84,7 @@ pub struct GlobalArgs {
     /// Decrease verbosity (-q, -qq)
     #[arg(short = 'q', long = "quiet", action = ArgAction::Count, global = true)]
     pub quiet: u8,
-    /// Output Envelop as JSON instead of human-readable text
+    /// Output envelope as JSON instead of human-readable text
     #[arg(long, global = true)]
     pub json: bool,
     /// Output Payload format (json, jsonl, markdown, text)
@@ -114,7 +114,7 @@ pub struct GlobalArgs {
     /// Force actions that would normally be prevented (e.g. pushing to protected branches)
     #[arg(long, global = true)]
     pub force: bool,
-    /// Use a specific cwizard config not in the default location
+    /// Use a specific Tranquility config file instead of the default location
     #[arg(long, global = true)]
     pub config: Option<PathBuf>,
 }

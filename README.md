@@ -1,6 +1,19 @@
 # Tranquility (Development Environment Setup)
 
+## Usage
 
+```sh
+cd workspace && cargo build
+./target/debug/tquil --help
+```
+
+See [docs/pages/commands.md](docs/pages/commands.md) for the full command reference.
+
+
+
+## Commits
+
+Commits follow the rules in [`.cwizard.toml`](.cwizard.toml). See the [commit-wizard guide](https://commit-wizard.kitechsoftware.com/guides/getting-started/).
 
 ## 📦 Version Management
 
