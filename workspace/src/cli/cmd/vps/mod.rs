@@ -40,9 +40,9 @@ pub enum VpsSubcommand {
     },
     /// Update a VPS profile
     Update {
-        /// VPS ID or name
-        #[arg(long, required = true)]
-        id: String,
+        /// VPS ID or name (omit for interactive selection)
+        #[arg(long)]
+        id: Option<String>,
         /// New name
         #[arg(long)]
         name: Option<String>,

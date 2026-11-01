@@ -96,7 +96,7 @@ pub async fn connect(ctx: &Context, id_or_name: Option<String>) -> CoreResult<()
 
 pub async fn update(
     ctx: &Context,
-    id_or_name: String,
+    id_or_name: Option<String>,
     name: Option<String>,
     host: Option<String>,
     user: Option<String>,

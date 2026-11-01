@@ -82,7 +82,8 @@ tquil vps schema                       # example profile
 tquil vps add --host example.com [NAME] [--user U] [--port P] [--private-key FILE]
 tquil vps list
 tquil vps connect [--id ID]            # omit --id to pick interactively
-tquil vps update --id ID --name NEW
+tquil vps update                       # pick a profile, then edit each field (pre-filled)
+tquil vps update --id ID --name NEW    # non-interactive: --id plus at least one change flag
 tquil vps script [--id ID] --inline 'uptime'
 tquil vps copy --id ID --source SRC --destination DEST
 tquil vps delete [--id ID]

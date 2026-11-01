@@ -37,7 +37,7 @@ impl VpsConfig {
 }
 
 /// A single VPS entry.
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct VpsEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -137,7 +137,7 @@ impl VpsEntry {
 }
 
 /// A flexible value that can be a number or string.
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum FlexibleValue {
     Number(u16),

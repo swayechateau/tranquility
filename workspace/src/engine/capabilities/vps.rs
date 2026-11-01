@@ -368,12 +368,12 @@ pub async fn connect(
 /// Update a VPS entry in the configuration file.
 #[allow(clippy::too_many_arguments)]
 pub async fn update(
-    id_or_name: String,
-    name: Option<String>,
-    host: Option<String>,
-    user: Option<String>,
-    port: Option<u16>,
-    private_key: Option<String>,
+    id_or_name: Option<String>,
+    mut name: Option<String>,
+    mut host: Option<String>,
+    mut user: Option<String>,
+    mut port: Option<u16>,
+    mut private_key: Option<String>,
     vps_file_path: &PathBuf,
     opts: &Opts,
 ) -> Result<()> {
@@ -381,14 +381,51 @@ pub async fn update(
 
     let mut entries = load_vps_config(vps_file_path)?;
 
-    let idx = entries
-        .iter()
-        .position(|v| v.effective_id() == id_or_name || v.name.as_deref() == Some(&id_or_name))
-        .ok_or_else(|| {
-            ErrorCode::VpsNotFound
-                .error()
-                .with_context("id_or_name", id_or_name)
-        })?;
+    let idx = select_entry(
+        &entries,
+        id_or_name.as_deref(),
+        "✏️  Select a VPS to update",
+        opts,
+    )?;
+
+    // Interactive with no change flags: prompt for each field, pre-filled with the
+    // current value. Unchanged answers are left as `None`.
+    let no_flags = name.is_none()
+        && host.is_none()
+        && user.is_none()
+        && port.is_none()
+        && private_key.is_none();
+    if no_flags && opts.interactive {
+        let cur = entries[idx].clone();
+        let ask = |label: &str, current: String| -> Result<Option<String>> {
+            let v: String = dialoguer::Input::new()
+                .with_prompt(label)
+                .with_initial_text(current.clone())
+                .allow_empty(true)
+                .interact_text()
+                .map_err(|e| {
+                    ErrorCode::UiPromptFailed
+                        .error()
+                        .with_context("field", label.to_string())
+                        .with_context("error", e.to_string())
+                })?;
+            Ok((v != current).then_some(v))
+        };
+        name = ask("Name", cur.name.clone().unwrap_or_default())?;
+        host = ask("Host", cur.host.clone())?;
+        user = ask("User", cur.effective_user())?;
+        let port_answer = ask("Port", cur.effective_port().to_string())?;
+        port = match port_answer {
+            None => None,
+            Some(p) => Some(p.trim().parse::<u16>().map_err(|_| {
+                ErrorCode::ValidationFailed
+                    .error()
+                    .with_context("reason", "port must be a number between 1 and 65535")
+            })?),
+        };
+        private_key = ask("Private key", cur.private_key.clone().unwrap_or_default())?
+            .filter(|k| !k.trim().is_empty());
+    }
 
     if let Some(n) = &name {
         if n.trim().is_empty() {
