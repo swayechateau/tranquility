@@ -118,11 +118,6 @@ async fn install_one(font: &str, dry_run: bool) -> Result<(), Error> {
         font
     );
 
-    let font_dir = get_font_dir().join(font);
-    fs::create_dir_all(&font_dir).map_err(|e| {
-        Error::from_code(ErrorCode::ProcessFailure).with_context("io", e.to_string())
-    })?;
-
     println!("  ⬇  Downloading {}...", font);
     let response = reqwest::get(&font_url).await.map_err(|e| {
         Error::from_code(ErrorCode::ProcessFailure).with_context("download", e.to_string())
@@ -139,8 +134,19 @@ async fn install_one(font: &str, dry_run: bool) -> Result<(), Error> {
         Error::from_code(ErrorCode::ProcessFailure).with_context("read_bytes", e.to_string())
     })?;
 
+    // Only create the font directory once we have bytes to extract, so a
+    // failed download never leaves behind an empty dir that `is_font_installed`
+    // would mistake for a successful install on every later run.
+    let font_dir = get_font_dir().join(font);
+    fs::create_dir_all(&font_dir).map_err(|e| {
+        Error::from_code(ErrorCode::ProcessFailure).with_context("io", e.to_string())
+    })?;
+
     println!("  📦 Extracting {}...", font);
-    extract_zip(&bytes, &font_dir)?;
+    if let Err(e) = extract_zip(&bytes, &font_dir) {
+        let _ = fs::remove_dir_all(&font_dir);
+        return Err(e);
+    }
 
     println!("  ✅ Installed {}", font);
     Ok(())
@@ -315,6 +321,57 @@ pub async fn uninstall(
     Ok(())
 }
 
+/// Re-download a font into a staging directory and swap it in, so a failed
+/// download never leaves a previously-working font uninstalled.
+async fn reinstall_one(font: &str, dry_run: bool) -> Result<(), Error> {
+    if dry_run {
+        println!("  [dry run] would update: {}", font);
+        return Ok(());
+    }
+
+    let font_url = format!(
+        "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/{}.zip",
+        font
+    );
+
+    println!("  ⬇  Downloading {}...", font);
+    let response = reqwest::get(&font_url).await.map_err(|e| {
+        Error::from_code(ErrorCode::ProcessFailure).with_context("download", e.to_string())
+    })?;
+
+    if !response.status().is_success() {
+        return Err(Error::from_code(ErrorCode::ProcessFailure).with_context(
+            "download",
+            format!("HTTP {} for {}", response.status(), font),
+        ));
+    }
+
+    let bytes = response.bytes().await.map_err(|e| {
+        Error::from_code(ErrorCode::ProcessFailure).with_context("read_bytes", e.to_string())
+    })?;
+
+    let font_dir = get_font_dir().join(font);
+    let staging_dir = get_font_dir().join(format!("{font}.update.tmp"));
+    let _ = fs::remove_dir_all(&staging_dir);
+    fs::create_dir_all(&staging_dir).map_err(|e| {
+        Error::from_code(ErrorCode::ProcessFailure).with_context("io", e.to_string())
+    })?;
+
+    println!("  📦 Extracting {}...", font);
+    if let Err(e) = extract_zip(&bytes, &staging_dir) {
+        let _ = fs::remove_dir_all(&staging_dir);
+        return Err(e);
+    }
+
+    let _ = fs::remove_dir_all(&font_dir);
+    fs::rename(&staging_dir, &font_dir).map_err(|e| {
+        Error::from_code(ErrorCode::ProcessFailure).with_context("io", e.to_string())
+    })?;
+
+    println!("  ✅ Updated {}", font);
+    Ok(())
+}
+
 /// Reinstall all currently-installed Nerd Fonts.
 pub async fn update(dry_run: bool) -> Result<(), Error> {
     let installed: Vec<&'static str> = NERD_FONT_LIST
@@ -330,8 +387,7 @@ pub async fn update(dry_run: bool) -> Result<(), Error> {
 
     println!("Updating {} installed font(s)...", installed.len());
     for font in &installed {
-        uninstall_one(font, dry_run);
-        install_one(font, dry_run).await?;
+        reinstall_one(font, dry_run).await?;
     }
     if !dry_run {
         refresh_font_cache();
