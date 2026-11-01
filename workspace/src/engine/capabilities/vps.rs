@@ -62,6 +62,27 @@ fn load_vps_config(vps_file_path: &PathBuf) -> Result<Vec<VpsEntry>> {
     }
 }
 
+/// Validate a VPS file: it must exist, parse, and every entry must be valid.
+/// Returns the number of entries.
+pub fn validate_file(path: &PathBuf) -> Result<usize> {
+    if !path.exists() {
+        return Err(crate::engine::error::ErrorCode::IoFailure
+            .error()
+            .with_context("path", path.display().to_string())
+            .with_context("error", "file not found"));
+    }
+    let entries = load_vps_config(path)?;
+    for (i, entry) in entries.iter().enumerate() {
+        entry.validate().map_err(|e| {
+            crate::engine::error::ErrorCode::VpsConfigInvalid
+                .error()
+                .with_context("entry", (i + 1).to_string())
+                .with_context("validation", e)
+        })?;
+    }
+    Ok(entries.len())
+}
+
 /// Row data for VPS listing — returned to callers for format-aware rendering.
 pub struct VpsListRow {
     pub id: String,

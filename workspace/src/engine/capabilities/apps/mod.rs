@@ -36,6 +36,23 @@ pub fn load_apps(apps_file: Option<&std::path::Path>) -> ApplicationList {
     ApplicationList { applications: apps }
 }
 
+/// Validate an applications file (JSON). Returns the number of applications.
+pub fn validate_apps_file(path: &std::path::Path) -> Result<usize, Error> {
+    let data = std::fs::read_to_string(path).map_err(|e| {
+        ErrorCode::IoFailure
+            .error()
+            .with_context("path", path.display().to_string())
+            .with_context("error", e.to_string())
+    })?;
+    let list = serde_json::from_str::<ApplicationList>(&data).map_err(|e| {
+        ErrorCode::ConfigInvalid
+            .error()
+            .with_context("format", "json")
+            .with_context("error", e.to_string())
+    })?;
+    Ok(list.applications.len())
+}
+
 /// Filter applications by server compatibility, categories, and current OS.
 pub fn filter_apps(
     server_only: bool,

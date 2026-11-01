@@ -14,6 +14,13 @@ use std::path::PathBuf;
 /// Reset the main config file to default.
 pub async fn reset_config(ctx: &Context) -> CoreResult<()> {
     if let Some(path) = ctx.project_config_path() {
+        if ctx.dry_run() {
+            ctx.ui().logger().info(&format!(
+                "[dry run] would reset config file: {}",
+                path.display()
+            ));
+            return Ok(());
+        }
         fs::remove_file(&path)?;
         ctx.ui()
             .logger()
@@ -26,6 +33,13 @@ pub async fn reset_config(ctx: &Context) -> CoreResult<()> {
 pub async fn reset_applications(ctx: &Context) -> CoreResult<()> {
     let app_file = ctx.base_config().applications_file.clone();
     if app_file.exists() {
+        if ctx.dry_run() {
+            ctx.ui().logger().info(&format!(
+                "[dry run] would reset applications file: {}",
+                app_file.display()
+            ));
+            return Ok(());
+        }
         fs::remove_file(&app_file)?;
         ctx.ui()
             .logger()
@@ -38,6 +52,13 @@ pub async fn reset_applications(ctx: &Context) -> CoreResult<()> {
 pub async fn reset_vps(ctx: &Context) -> CoreResult<()> {
     let vps_file = ctx.base_config().vps_file.clone();
     if vps_file.exists() {
+        if ctx.dry_run() {
+            ctx.ui().logger().info(&format!(
+                "[dry run] would reset VPS file: {}",
+                vps_file.display()
+            ));
+            return Ok(());
+        }
         fs::remove_file(&vps_file)?;
         ctx.ui()
             .logger()
@@ -56,6 +77,14 @@ pub async fn override_config(ctx: &Context, source: &PathBuf) -> CoreResult<()> 
         .project_config_path()
         .ok_or_else(|| Error::from_code(ErrorCode::ConfigInvalid))?;
 
+    if ctx.dry_run() {
+        ctx.ui().logger().info(&format!(
+            "[dry run] would override config with: {}",
+            source.display()
+        ));
+        return Ok(());
+    }
+
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -69,8 +98,16 @@ pub async fn override_config(ctx: &Context, source: &PathBuf) -> CoreResult<()> 
 
 /// Override the applications file with a custom file.
 pub async fn override_applications(ctx: &Context, source: &PathBuf) -> CoreResult<()> {
-    // TODO: Validate applications file structure
+    crate::engine::capabilities::apps::validate_apps_file(source)?;
     let dest = ctx.base_config().applications_file.clone();
+
+    if ctx.dry_run() {
+        ctx.ui().logger().info(&format!(
+            "[dry run] would override applications file with: {}",
+            source.display()
+        ));
+        return Ok(());
+    }
 
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)?;
@@ -86,8 +123,16 @@ pub async fn override_applications(ctx: &Context, source: &PathBuf) -> CoreResul
 
 /// Override the VPS file with a custom file.
 pub async fn override_vps(ctx: &Context, source: &PathBuf) -> CoreResult<()> {
-    // TODO: Validate VPS file structure
+    crate::engine::capabilities::vps::validate_file(source)?;
     let dest = ctx.base_config().vps_file.clone();
+
+    if ctx.dry_run() {
+        ctx.ui().logger().info(&format!(
+            "[dry run] would override VPS file with: {}",
+            source.display()
+        ));
+        return Ok(());
+    }
 
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)?;
@@ -111,15 +156,15 @@ pub async fn validate_config(_ctx: &Context, source: &std::path::Path) -> CoreRe
 }
 
 /// Validate the applications file.
-pub async fn validate_applications(_ctx: &Context, _source: &PathBuf) -> CoreResult<()> {
-    // TODO: Implement applications file validation
-    println!("✓ Applications file is valid");
+pub async fn validate_applications(_ctx: &Context, source: &PathBuf) -> CoreResult<()> {
+    let n = crate::engine::capabilities::apps::validate_apps_file(source)?;
+    println!("✓ Applications file is valid ({n} entries)");
     Ok(())
 }
 
 /// Validate the VPS file.
-pub async fn validate_vps(_ctx: &Context, _source: &PathBuf) -> CoreResult<()> {
-    // TODO: Implement VPS file validation
-    println!("✓ VPS file is valid");
+pub async fn validate_vps(_ctx: &Context, source: &PathBuf) -> CoreResult<()> {
+    let n = crate::engine::capabilities::vps::validate_file(source)?;
+    println!("✓ VPS file is valid ({n} entries)");
     Ok(())
 }
