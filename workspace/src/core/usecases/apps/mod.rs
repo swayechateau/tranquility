@@ -19,7 +19,10 @@ pub async fn list(ctx: &Context, server: bool, categories: Vec<Category>) -> Cor
 
     if rows.is_empty() {
         ctx.ui().logger().warn("No applications to display.");
-        return Ok(());
+        // Structured formats still emit an (empty) table so output stays parseable.
+        if !ctx.ui().is_structured() {
+            return Ok(());
+        }
     }
 
     let table = ctx.ui().table(
@@ -50,7 +53,10 @@ pub async fn categories(ctx: &Context) -> CoreResult<()> {
 
     if rows.is_empty() {
         ctx.ui().logger().warn("No categories to display.");
-        return Ok(());
+        // Structured formats still emit an (empty) table so output stays parseable.
+        if !ctx.ui().is_structured() {
+            return Ok(());
+        }
     }
 
     let table = ctx.ui().table(

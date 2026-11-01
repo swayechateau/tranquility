@@ -69,9 +69,11 @@ pub async fn reset_vps(ctx: &Context) -> CoreResult<()> {
 
 /// Override the main config file with a custom file.
 pub async fn override_config(ctx: &Context, source: &PathBuf) -> CoreResult<()> {
-    if !config::validate_file(source) {
-        return Err(Error::from_code(ErrorCode::ConfigInvalid));
-    }
+    config::check_file(source).map_err(|msg| {
+        Error::from_code(ErrorCode::ConfigInvalid)
+            .with_context("file", source.display().to_string())
+            .with_context("error", msg)
+    })?;
 
     let dest = ctx
         .project_config_path()
@@ -147,16 +149,17 @@ pub async fn override_vps(ctx: &Context, source: &PathBuf) -> CoreResult<()> {
 
 /// Validate the main config file.
 pub async fn validate_config(_ctx: &Context, source: &std::path::Path) -> CoreResult<()> {
-    if config::validate_file(source) {
-        println!("✓ Config file is valid");
-        Ok(())
-    } else {
-        Err(Error::from_code(ErrorCode::ValidationFailed))
-    }
+    config::check_file(source).map_err(|msg| {
+        Error::from_code(ErrorCode::ValidationFailed)
+            .with_context("file", source.display().to_string())
+            .with_context("error", msg)
+    })?;
+    println!("✓ Config file is valid");
+    Ok(())
 }
 
 /// Validate the applications file.
-pub async fn validate_applications(_ctx: &Context, source: &PathBuf) -> CoreResult<()> {
+pub async fn validate_applications(_ctx: &Context, source: &std::path::Path) -> CoreResult<()> {
     let n = crate::engine::capabilities::apps::validate_apps_file(source)?;
     println!("✓ Applications file is valid ({n} entries)");
     Ok(())

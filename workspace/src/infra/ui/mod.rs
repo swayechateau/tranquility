@@ -73,6 +73,11 @@ impl Ui {
         false
     }
 
+    /// True when the output format is machine-readable (json, jsonl).
+    pub fn is_structured(&self) -> bool {
+        self.config.format.is_structured() || self.envelope.mode.is_json()
+    }
+
     /// Get reference to the current envelope configuration.
     pub fn envelope(&self) -> &envelope::EnvelopeConfig {
         &self.envelope
@@ -139,7 +144,16 @@ impl Ui {
     }
 
     pub fn render(&self, output: &Output) -> UiResult<String> {
-        render::render_output(self.config.format, output).map_err(map_scriba_error_to_error)
+        match render::render_output(self.config.format, output) {
+            Ok(text) => Ok(text),
+            // Plain output only supports a single scalar value; fall back to text
+            // for tables and other structured content instead of failing.
+            Err(_) if self.config.format == scriba::Format::Plain => {
+                render::render_output(scriba::Format::Text, output)
+                    .map_err(map_scriba_error_to_error)
+            }
+            Err(e) => Err(map_scriba_error_to_error(e)),
+        }
     }
 
     pub fn print(&self, output: &Output) -> UiResult<()> {

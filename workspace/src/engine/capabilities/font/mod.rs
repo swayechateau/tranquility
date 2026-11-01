@@ -169,6 +169,34 @@ fn uninstall_one(font: &str, dry_run: bool) {
 // Public capability functions
 // ---------------------------------------------------------------------------
 
+/// Resolve user-supplied font names (case-insensitive) against the known list.
+/// Unknown names are an error rather than being silently dropped.
+fn resolve_names(names: &[String]) -> Result<Vec<&'static str>, Error> {
+    let mut resolved = Vec::new();
+    let mut unknown = Vec::new();
+    for name in names {
+        let name = name.trim();
+        match NERD_FONT_LIST
+            .iter()
+            .copied()
+            .find(|f| f.eq_ignore_ascii_case(name))
+        {
+            Some(f) => {
+                if !resolved.contains(&f) {
+                    resolved.push(f);
+                }
+            }
+            None => unknown.push(name.to_string()),
+        }
+    }
+    if !unknown.is_empty() {
+        return Err(Error::from_code(ErrorCode::ValidationFailed)
+            .with_context("reason", "unknown font name(s); see `tquil list fonts`")
+            .with_context("fonts", unknown.join(", ")));
+    }
+    Ok(resolved)
+}
+
 /// Install one or more Nerd Fonts.  When `all` is false and `names` is empty,
 /// an interactive multi-select prompt is shown (requires a TTY).
 pub async fn install(
@@ -180,10 +208,7 @@ pub async fn install(
     let fonts_to_install: Vec<&'static str> = if all {
         NERD_FONT_LIST.to_vec()
     } else if !names.is_empty() {
-        names
-            .iter()
-            .filter_map(|n| NERD_FONT_LIST.iter().copied().find(|&f| f == n.as_str()))
-            .collect()
+        resolve_names(&names)?
     } else if interactive {
         let selected_indices = tokio::task::spawn_blocking(|| {
             let theme = dialoguer::theme::ColorfulTheme::default();
@@ -203,8 +228,10 @@ pub async fn install(
             .map(|&i| NERD_FONT_LIST[i])
             .collect()
     } else {
-        eprintln!("No fonts specified. Use --all or provide font names.");
-        return Ok(());
+        return Err(Error::from_code(ErrorCode::ValidationFailed).with_context(
+            "reason",
+            "no fonts specified: use --all, --name <font>, or run interactively",
+        ));
     };
 
     if fonts_to_install.is_empty() {
@@ -216,7 +243,9 @@ pub async fn install(
     for font in fonts_to_install {
         install_one(font, dry_run).await?;
     }
-    refresh_font_cache();
+    if !dry_run {
+        refresh_font_cache();
+    }
 
     Ok(())
 }
@@ -235,10 +264,7 @@ pub async fn uninstall(
             .filter(|&f| is_font_installed(f))
             .collect()
     } else if !names.is_empty() {
-        names
-            .iter()
-            .filter_map(|n| NERD_FONT_LIST.iter().copied().find(|&f| f == n.as_str()))
-            .collect()
+        resolve_names(&names)?
     } else if interactive {
         let installed: Vec<&'static str> = NERD_FONT_LIST
             .iter()
@@ -267,8 +293,10 @@ pub async fn uninstall(
 
         selected_indices.iter().map(|&i| installed[i]).collect()
     } else {
-        eprintln!("No fonts specified. Use --all or provide font names.");
-        return Ok(());
+        return Err(Error::from_code(ErrorCode::ValidationFailed).with_context(
+            "reason",
+            "no fonts specified: use --all, --name <font>, or run interactively",
+        ));
     };
 
     if fonts_to_remove.is_empty() {
@@ -280,7 +308,9 @@ pub async fn uninstall(
     for font in fonts_to_remove {
         uninstall_one(font, dry_run);
     }
-    refresh_font_cache();
+    if !dry_run {
+        refresh_font_cache();
+    }
 
     Ok(())
 }
@@ -303,7 +333,9 @@ pub async fn update(dry_run: bool) -> Result<(), Error> {
         uninstall_one(font, dry_run);
         install_one(font, dry_run).await?;
     }
-    refresh_font_cache();
+    if !dry_run {
+        refresh_font_cache();
+    }
     println!("Font update complete.");
 
     Ok(())

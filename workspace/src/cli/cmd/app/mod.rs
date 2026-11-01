@@ -9,11 +9,11 @@ use clap::{Args as ClapArgs, Subcommand};
 #[derive(Debug, Clone, ClapArgs)]
 #[command(about = "Manage applications")]
 pub struct Args {
-    /// Install all applications
-    #[arg(long)]
+    /// Apply to all applications (install/uninstall)
+    #[arg(long, global = true)]
     all: bool,
     /// Include server-compatible applications
-    #[arg(long)]
+    #[arg(long, global = true)]
     server: bool,
     #[command(subcommand)]
     pub subcommand: Option<AppSubcommand>,

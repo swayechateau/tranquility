@@ -21,6 +21,19 @@ These work on every command.
 | `--force` | Force actions that would normally be prevented |
 | `--config <FILE>` | Use a config file from a non-default location |
 
+## Interactive and non-interactive use
+
+Prompts only appear when stdin and stderr are terminals and neither `--ci` nor `--non-interactive` is set.
+
+- `font install` / `font uninstall` without `--name` or `--all` show a picker; non-interactively they fail with an error.
+- `vps connect|script|update|delete|copy` without `--id` show a picker; non-interactively `--id` is required (a single profile is selected automatically).
+- `vps delete` asks for confirmation; pass `--yes` or `--ci` to skip it. With `--non-interactive` and no `--yes` it fails.
+- `vps add` never prompts: the user defaults to the current OS user and the port to 22.
+- Errors are printed as `E<code>: message` with context on stderr, and the process exits non-zero.
+- `--dry-run` is honored by `app`, `font`, `config reset|override` and every `vps` command that changes state.
+- `--json`, `--format json|jsonl` and `-p` disable color. `-p` falls back to text for tables.
+- `-C` and `--config` must point at an existing directory / file.
+
 ## Commands
 
 | Command | Description |
@@ -28,7 +41,7 @@ These work on every command.
 | `tquil info` | Show system information and status |
 | `tquil doctor` | Diagnose the local environment |
 | `tquil doctor fix` | Attempt safe local repairs (try `--dry-run` first) |
-| `tquil logs` | View logs (`--tail N`, `--date YYYY-MM-DD`, `--level`, `--json-only`, `--path`) |
+| `tquil logs` | View logs (`--tail N`, `--date YYYY-MM-DD`, `--level info\|warn\|error`, `--json-only`, `--path`) |
 
 ### Lists
 
@@ -39,7 +52,7 @@ These work on every command.
 ```sh
 tquil app list
 tquil app categories
-tquil app install [--all] [--server] [--dry-run]
+tquil app install [--all] [--server] [--dry-run]   # --all/--server work before or after the subcommand
 tquil app uninstall
 ```
 
@@ -66,7 +79,7 @@ tquil config reset [TARGET]
 
 ```sh
 tquil vps schema                       # example profile
-tquil vps add NAME --host example.com
+tquil vps add NAME --host example.com [--user U] [--port P] [--private-key FILE]
 tquil vps list
 tquil vps connect [--id ID]            # omit --id to pick interactively
 tquil vps update --id ID --name NEW

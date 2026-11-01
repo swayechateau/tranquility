@@ -1,7 +1,19 @@
 use crate::core::Context;
 use crate::core::CoreResult;
 use crate::engine::capabilities::vps;
+use std::io::IsTerminal;
 use std::path::PathBuf;
+
+fn opts(ctx: &Context) -> vps::Opts {
+    use crate::engine::models::runtime::mode::RunMode;
+    vps::Opts {
+        dry_run: ctx.dry_run(),
+        interactive: ctx.is_interactive()
+            && std::io::stdin().is_terminal()
+            && std::io::stderr().is_terminal(),
+        assume_yes: ctx.auto_yes() || matches!(ctx.runtime().mode(), RunMode::Ci),
+    }
+}
 
 pub async fn add(
     ctx: &Context,
@@ -9,6 +21,7 @@ pub async fn add(
     host: String,
     user: Option<String>,
     port: Option<u16>,
+    private_key: Option<PathBuf>,
 ) -> CoreResult<()> {
     let vps_file_path = ctx
         .config()
@@ -18,13 +31,14 @@ pub async fn add(
         .clone();
 
     vps::add(
-        Some(name),
-        Some(host),
+        name,
+        host,
         user,
         port,
-        None,
+        private_key,
         None,
         &vps_file_path,
+        &opts(ctx),
     )
     .await
 }
@@ -43,7 +57,10 @@ pub async fn list(ctx: &Context) -> CoreResult<()> {
         ctx.ui()
             .logger()
             .warn("No VPS profiles configured. Run 'tquil vps add' to add one.");
-        return Ok(());
+        // Structured formats still emit an (empty) table so output stays parseable.
+        if !ctx.ui().is_structured() {
+            return Ok(());
+        }
     }
 
     let table = ctx.ui().table(
@@ -70,7 +87,7 @@ pub async fn connect(ctx: &Context, id_or_name: Option<String>) -> CoreResult<()
         .vps_file
         .clone();
 
-    vps::connect(id_or_name, &vps_file_path).await
+    vps::connect(id_or_name, &vps_file_path, &opts(ctx)).await
 }
 
 pub async fn update(
@@ -97,6 +114,7 @@ pub async fn update(
         port,
         private_key,
         &vps_file_path,
+        &opts(ctx),
     )
     .await
 }
@@ -109,7 +127,7 @@ pub async fn delete(ctx: &Context, id_or_name: Option<String>) -> CoreResult<()>
         .vps_file
         .clone();
 
-    vps::delete(id_or_name, &vps_file_path).await
+    vps::delete(id_or_name, &vps_file_path, &opts(ctx)).await
 }
 
 pub async fn script(
@@ -125,7 +143,14 @@ pub async fn script(
         .vps_file
         .clone();
 
-    vps::script(id_or_name, inline_script, script_file, &vps_file_path).await
+    vps::script(
+        id_or_name,
+        inline_script,
+        script_file,
+        &vps_file_path,
+        &opts(ctx),
+    )
+    .await
 }
 
 pub async fn copy(
@@ -148,7 +173,15 @@ pub async fn copy(
         _ => "push",
     };
 
-    vps::copy(id_or_name, source, destination, dir, &vps_file_path).await
+    vps::copy(
+        id_or_name,
+        source,
+        destination,
+        dir,
+        &vps_file_path,
+        &opts(ctx),
+    )
+    .await
 }
 
 pub async fn schema(ctx: &Context) -> CoreResult<()> {

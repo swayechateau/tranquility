@@ -19,7 +19,7 @@ pub enum FontSubcommand {
         #[arg(long)]
         all: bool,
         /// Font name(s) (comma-separated or repeated)
-        #[arg(long, value_name = "NAME")]
+        #[arg(long, value_name = "NAME", value_delimiter = ',')]
         name: Vec<String>,
     },
     /// Uninstall Nerd Fonts
@@ -28,7 +28,7 @@ pub enum FontSubcommand {
         #[arg(long)]
         all: bool,
         /// Font name(s) (comma-separated or repeated)
-        #[arg(long, value_name = "NAME")]
+        #[arg(long, value_name = "NAME", value_delimiter = ',')]
         name: Vec<String>,
     },
     /// Update all installed fonts

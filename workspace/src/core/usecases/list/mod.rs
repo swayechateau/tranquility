@@ -11,7 +11,10 @@ pub async fn apps(ctx: &Context, server: bool, categories: Vec<Category>) -> Cor
         ctx.ui()
             .logger()
             .warn("No applications found matching the given filters.");
-        return Ok(());
+        // Structured formats still emit an (empty) table so output stays parseable.
+        if !ctx.ui().is_structured() {
+            return Ok(());
+        }
     }
 
     let table = ctx.ui().table(
@@ -46,7 +49,10 @@ pub async fn fonts(ctx: &Context, installed: bool, all: bool) -> CoreResult<()> 
             "No fonts to display."
         };
         ctx.ui().logger().warn(msg);
-        return Ok(());
+        // Structured formats still emit an (empty) table so output stays parseable.
+        if !ctx.ui().is_structured() {
+            return Ok(());
+        }
     }
 
     let table = ctx.ui().table(
@@ -88,7 +94,10 @@ pub async fn vps(ctx: &Context, user: Option<&str>, host: Option<&str>) -> CoreR
             "No VPS profiles configured. Run 'tquil vps add' to add one."
         };
         ctx.ui().logger().warn(msg);
-        return Ok(());
+        // Structured formats still emit an (empty) table so output stays parseable.
+        if !ctx.ui().is_structured() {
+            return Ok(());
+        }
     }
 
     let table = ctx.ui().table(

@@ -20,12 +20,15 @@ pub enum VpsSubcommand {
         /// Hostname or IP
         #[arg(long)]
         host: String,
-        /// SSH user
+        /// SSH user (default: the current user)
         #[arg(long)]
         user: Option<String>,
-        /// SSH port
+        /// SSH port (default: 22)
         #[arg(long)]
         port: Option<u16>,
+        /// Path to the SSH private key
+        #[arg(long)]
+        private_key: Option<std::path::PathBuf>,
     },
     /// List VPS profiles
     List,
@@ -100,7 +103,8 @@ pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
             host,
             user,
             port,
-        }) => vps::add(ctx, name, host, user, port).await,
+            private_key,
+        }) => vps::add(ctx, name, host, user, port, private_key).await,
         Some(VpsSubcommand::List) => vps::list(ctx).await,
         Some(VpsSubcommand::Connect { id }) => vps::connect(ctx, id).await,
         Some(VpsSubcommand::Update {

@@ -119,104 +119,140 @@ pub fn vps_list_rows(
         .collect())
 }
 
-/// Add a new VPS entry to the VPS configuration file (interactive).
+/// Runtime options shared by the VPS operations.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Opts {
+    /// Print what would happen without changing anything.
+    pub dry_run: bool,
+    /// Prompts are allowed (a terminal is attached and not in --ci/--non-interactive).
+    pub interactive: bool,
+    /// Confirmations are answered "yes" automatically (--yes or --ci).
+    pub assume_yes: bool,
+}
+
+fn entry_label(v: &VpsEntry) -> String {
+    format!(
+        "{}@{} ({})",
+        v.effective_user(),
+        v.host,
+        v.name.as_deref().unwrap_or("-")
+    )
+}
+
+/// Resolve the target entry by id/name, or prompt when interactive.
+fn select_entry(
+    entries: &[VpsEntry],
+    id_or_name: Option<&str>,
+    prompt: &str,
+    opts: &Opts,
+) -> Result<usize> {
+    use crate::engine::error::ErrorCode;
+
+    if entries.is_empty() {
+        return Err(ErrorCode::VpsNotFound
+            .error()
+            .with_context("reason", "no VPS entries found"));
+    }
+
+    if let Some(id) = id_or_name {
+        return entries
+            .iter()
+            .position(|v| v.effective_id() == id || v.name.as_deref() == Some(id))
+            .ok_or_else(|| {
+                ErrorCode::VpsNotFound
+                    .error()
+                    .with_context("id_or_name", id)
+            });
+    }
+
+    if !opts.interactive {
+        if entries.len() == 1 {
+            return Ok(0);
+        }
+        return Err(ErrorCode::ValidationFailed
+            .error()
+            .with_context("reason", "--id is required when not running interactively"));
+    }
+
+    let options: Vec<String> = entries.iter().map(entry_label).collect();
+    dialoguer::Select::new()
+        .with_prompt(prompt)
+        .items(&options)
+        .default(0)
+        .interact()
+        .map_err(|e| {
+            ErrorCode::UiPromptFailed
+                .error()
+                .with_context("prompt", "vps selection")
+                .with_context("error", e.to_string())
+        })
+}
+
+/// Add a new VPS entry. Never prompts: the user defaults to the current OS user
+/// and the port to 22.
+#[allow(clippy::too_many_arguments)]
 pub async fn add(
-    name: Option<String>,
-    host: Option<String>,
+    name: String,
+    host: String,
     user: Option<String>,
     port: Option<u16>,
-    _private_key: Option<PathBuf>,
-    _post_connect_script: Option<String>,
+    private_key: Option<PathBuf>,
+    post_connect_script: Option<String>,
     vps_file_path: &PathBuf,
+    opts: &Opts,
 ) -> crate::engine::Result<()> {
-    use dialoguer::Input;
+    use crate::engine::error::ErrorCode;
 
-    // Load existing config or create new one
-    let mut entries = load_vps_config(vps_file_path).unwrap_or_default();
+    let mut entries = load_vps_config(vps_file_path)?;
 
-    // Get input for name
-    let name = match name {
-        Some(n) if !n.is_empty() => n,
-        _ => Input::new()
-            .with_prompt("VPS Name")
-            .interact_text()
-            .map_err(|e| {
-                crate::engine::error::ErrorCode::UiPromptFailed
-                    .error()
-                    .with_context("field", "name")
-                    .with_context("error", e.to_string())
-            })?,
-    };
+    if name.trim().is_empty() || host.trim().is_empty() {
+        return Err(ErrorCode::ValidationFailed
+            .error()
+            .with_context("reason", "name and host must not be empty"));
+    }
 
-    // Get input for host
-    let host = match host {
-        Some(h) if !h.is_empty() => h,
-        _ => Input::new()
-            .with_prompt("Host")
-            .interact_text()
-            .map_err(|e| {
-                crate::engine::error::ErrorCode::UiPromptFailed
-                    .error()
-                    .with_context("field", "host")
-                    .with_context("error", e.to_string())
-            })?,
-    };
+    if entries
+        .iter()
+        .any(|v| v.name.as_deref() == Some(name.as_str()))
+    {
+        return Err(ErrorCode::ValidationFailed
+            .error()
+            .with_context("reason", "a VPS profile with this name already exists")
+            .with_context("name", name));
+    }
 
-    // Get input for user (with default)
     let user = match user {
         Some(u) if !u.is_empty() => u,
-        _ => {
-            let default_user = std::env::var("USER").unwrap_or_else(|_| "root".to_string());
-            Input::new()
-                .with_prompt("User")
-                .default(default_user)
-                .interact_text()
-                .map_err(|e| {
-                    crate::engine::error::ErrorCode::UiPromptFailed
-                        .error()
-                        .with_context("field", "user")
-                        .with_context("error", e.to_string())
-                })?
-        }
+        _ => crate::engine::models::vps::get_current_user().unwrap_or_else(|| "root".to_string()),
     };
 
-    // Get input for port (with default 22)
-    let port = match port {
-        Some(p) if p > 0 => Some(p),
-        _ => {
-            let port_str: String = Input::new()
-                .with_prompt("Port")
-                .default("22".to_string())
-                .interact_text()
-                .map_err(|e| {
-                    crate::engine::error::ErrorCode::UiPromptFailed
-                        .error()
-                        .with_context("field", "port")
-                        .with_context("error", e.to_string())
-                })?;
-            port_str.parse::<u16>().ok()
-        }
-    };
-
-    // Create new VPS entry
     let entry = VpsEntry {
-        id: None, // Will be generated
+        id: None,
         name: Some(name),
         host,
         user: Some(user),
-        port: port.map(crate::engine::models::vps::FlexibleValue::Number),
-        private_key: _private_key.map(|p| p.to_string_lossy().to_string()),
-        post_connect_script: _post_connect_script,
+        port: port
+            .filter(|p| *p > 0)
+            .map(crate::engine::models::vps::FlexibleValue::Number),
+        private_key: private_key.map(|p| p.to_string_lossy().to_string()),
+        post_connect_script,
     };
 
-    // Validate the entry
     entry.validate().map_err(|e| {
-        crate::engine::error::ErrorCode::VpsConfigInvalid
+        ErrorCode::VpsConfigInvalid
             .error()
             .with_context("validation", e)
     })?;
 
-    // Add to entries and save
+    if opts.dry_run {
+        println!(
+            "[dry run] would add VPS profile {} to {}",
+            entry_label(&entry),
+            vps_file_path.display()
+        );
+        return Ok(());
+    }
+
     entries.push(entry);
     save_vps_config(&entries, vps_file_path)?;
 
@@ -268,55 +304,22 @@ fn save_vps_config(entries: &[VpsEntry], vps_file_path: &PathBuf) -> crate::engi
 }
 
 /// Connect to a VPS server via SSH.
-pub async fn connect(id_or_name: Option<String>, vps_file_path: &PathBuf) -> Result<()> {
-    use dialoguer::Select;
+pub async fn connect(
+    id_or_name: Option<String>,
+    vps_file_path: &PathBuf,
+    opts: &Opts,
+) -> Result<()> {
     use std::process::Command;
 
     let entries = load_vps_config(vps_file_path)?;
+    let idx = select_entry(
+        &entries,
+        id_or_name.as_deref(),
+        "🔌 Select a VPS to connect to",
+        opts,
+    )?;
+    let vps = &entries[idx];
 
-    if entries.is_empty() {
-        return Err(crate::engine::error::ErrorCode::VpsNotFound
-            .error()
-            .with_context("reason", "no VPS entries found"));
-    }
-
-    // Find VPS by ID or prompt to select
-    let vps = match id_or_name {
-        Some(id) => entries
-            .iter()
-            .find(|v| v.effective_id() == id || v.name.as_deref() == Some(&id))
-            .ok_or_else(|| {
-                crate::engine::error::ErrorCode::VpsNotFound
-                    .error()
-                    .with_context("id_or_name", id)
-            })?,
-        None => {
-            let options: Vec<String> = entries
-                .iter()
-                .map(|v| {
-                    let user = v.effective_user();
-                    let name = v.name.as_deref().unwrap_or("-");
-                    format!("{}@{} ({})", user, v.host, name)
-                })
-                .collect();
-
-            let selection = Select::new()
-                .with_prompt("🔌 Select a VPS to connect to")
-                .items(&options)
-                .default(0)
-                .interact()
-                .map_err(|e| {
-                    crate::engine::error::ErrorCode::UiPromptFailed
-                        .error()
-                        .with_context("prompt", "vps selection")
-                        .with_context("error", e.to_string())
-                })?;
-
-            &entries[selection]
-        }
-    };
-
-    // Build SSH command
     let user = vps.effective_user();
     let host = &vps.host;
     let port = vps.effective_port();
@@ -336,6 +339,11 @@ pub async fn connect(id_or_name: Option<String>, vps_file_path: &PathBuf) -> Res
     }
 
     cmd.arg(remote);
+
+    if opts.dry_run {
+        println!("[dry run] would connect to {}@{}:{}", user, host, port);
+        return Ok(());
+    }
 
     println!("🔌 Connecting to {}@{}:{}", user, host, port);
 
@@ -358,6 +366,7 @@ pub async fn connect(id_or_name: Option<String>, vps_file_path: &PathBuf) -> Res
 }
 
 /// Update a VPS entry in the configuration file.
+#[allow(clippy::too_many_arguments)]
 pub async fn update(
     id_or_name: String,
     name: Option<String>,
@@ -366,6 +375,7 @@ pub async fn update(
     port: Option<u16>,
     private_key: Option<String>,
     vps_file_path: &PathBuf,
+    opts: &Opts,
 ) -> Result<()> {
     let mut entries = load_vps_config(vps_file_path)?;
 
@@ -426,80 +436,65 @@ pub async fn update(
             .with_context("validation", e)
     })?;
 
+    if opts.dry_run {
+        println!(
+            "[dry run] would update VPS entry in {}",
+            vps_file_path.display()
+        );
+        return Ok(());
+    }
+
     save_vps_config(&entries, vps_file_path)?;
     println!("✅ VPS entry updated successfully!");
     Ok(())
 }
 
 /// Delete a VPS entry from the configuration file.
-pub async fn delete(id_or_name: Option<String>, vps_file_path: &PathBuf) -> Result<()> {
-    use dialoguer::{Confirm, Select};
+pub async fn delete(
+    id_or_name: Option<String>,
+    vps_file_path: &PathBuf,
+    opts: &Opts,
+) -> Result<()> {
+    use crate::engine::error::ErrorCode;
 
     let mut entries = load_vps_config(vps_file_path)?;
+    let index = select_entry(
+        &entries,
+        id_or_name.as_deref(),
+        "🗑️  Select a VPS to delete",
+        opts,
+    )?;
 
-    if entries.is_empty() {
-        return Err(crate::engine::error::ErrorCode::VpsNotFound
-            .error()
-            .with_context("reason", "no VPS entries found"));
+    println!("🗑️  Delete entry: {}", entry_label(&entries[index]));
+
+    if opts.dry_run {
+        println!(
+            "[dry run] would delete this entry from {}",
+            vps_file_path.display()
+        );
+        return Ok(());
     }
 
-    // Find the entry to delete
-    let index = match id_or_name {
-        Some(id_or_name) => entries
-            .iter()
-            .position(|v| v.effective_id() == id_or_name || v.name.as_deref() == Some(&id_or_name))
-            .ok_or_else(|| {
-                crate::engine::error::ErrorCode::VpsNotFound
-                    .error()
-                    .with_context("id_or_name", id_or_name)
-            })?,
-        None => {
-            let options: Vec<String> = entries
-                .iter()
-                .map(|v| {
-                    let user = v.effective_user();
-                    let name = v.name.as_deref().unwrap_or("-");
-                    format!("{}@{} ({})", user, v.host, name)
-                })
-                .collect();
-
-            Select::new()
-                .with_prompt("🗑️  Select a VPS to delete")
-                .items(&options)
-                .default(0)
-                .interact()
-                .map_err(|e| {
-                    crate::engine::error::ErrorCode::UiPromptFailed
-                        .error()
-                        .with_context("prompt", "vps selection")
-                        .with_context("error", e.to_string())
-                })?
-        }
-    };
-
-    let entry = &entries[index];
-    println!(
-        "🗑️  Delete entry: {}@{} ({})",
-        entry.effective_user(),
-        entry.host,
-        entry.name.as_deref().unwrap_or("-")
-    );
-
-    // Confirm deletion
-    let confirmed = Confirm::new()
-        .with_prompt("Are you sure?")
-        .default(false)
-        .interact()
-        .map_err(|e| {
-            crate::engine::error::ErrorCode::UiPromptFailed
+    if !opts.assume_yes {
+        if !opts.interactive {
+            return Err(ErrorCode::ValidationFailed
                 .error()
-                .with_context("prompt", "delete confirmation")
-                .with_context("error", e.to_string())
-        })?;
-
-    if !confirmed {
-        println!("❌ Deletion cancelled.");
-        return Ok(());
+                .with_context("reason", "confirmation required: pass --yes (or --ci)"));
+        }
+        let confirmed = dialoguer::Confirm::new()
+            .with_prompt("Are you sure?")
+            .default(false)
+            .interact()
+            .map_err(|e| {
+                ErrorCode::UiPromptFailed
+                    .error()
+                    .with_context("prompt", "delete confirmation")
+                    .with_context("error", e.to_string())
+            })?;
+        if !confirmed {
+            println!("❌ Deletion cancelled.");
+            return Ok(());
+        }
     }
 
     entries.remove(index);
@@ -514,53 +509,18 @@ pub async fn script(
     inline_script: Option<String>,
     script_file: Option<PathBuf>,
     vps_file_path: &PathBuf,
+    opts: &Opts,
 ) -> Result<()> {
-    use dialoguer::Select;
     use std::process::Command;
 
     let entries = load_vps_config(vps_file_path)?;
-
-    if entries.is_empty() {
-        return Err(crate::engine::error::ErrorCode::VpsNotFound
-            .error()
-            .with_context("reason", "no VPS entries found"));
-    }
-
-    // Find VPS by ID or prompt to select
-    let vps = match id_or_name {
-        Some(id) => entries
-            .iter()
-            .find(|v| v.effective_id() == id || v.name.as_deref() == Some(&id))
-            .ok_or_else(|| {
-                crate::engine::error::ErrorCode::VpsNotFound
-                    .error()
-                    .with_context("id_or_name", id)
-            })?,
-        None => {
-            let options: Vec<String> = entries
-                .iter()
-                .map(|v| {
-                    let user = v.effective_user();
-                    let name = v.name.as_deref().unwrap_or("-");
-                    format!("{}@{} ({})", user, v.host, name)
-                })
-                .collect();
-
-            let selection = Select::new()
-                .with_prompt("💻 Select a VPS to run the script on")
-                .items(&options)
-                .default(0)
-                .interact()
-                .map_err(|e| {
-                    crate::engine::error::ErrorCode::UiPromptFailed
-                        .error()
-                        .with_context("prompt", "vps selection")
-                        .with_context("error", e.to_string())
-                })?;
-
-            &entries[selection]
-        }
-    };
+    let idx = select_entry(
+        &entries,
+        id_or_name.as_deref(),
+        "💻 Select a VPS to run the script on",
+        opts,
+    )?;
+    let vps = &entries[idx];
 
     // Resolve script content
     let script_content = if let Some(inline) = inline_script {
@@ -609,6 +569,11 @@ pub async fn script(
     cmd.arg(remote);
     cmd.arg("bash"); // Run bash on remote
     cmd.arg("-s"); // Read script from stdin
+
+    if opts.dry_run {
+        println!("[dry run] would run script on {}@{}", user, host);
+        return Ok(());
+    }
 
     println!("🚀 Running script on {}@{}", user, host);
 
@@ -659,98 +624,53 @@ pub async fn copy(
     destination: String,
     direction: &str,
     vps_file_path: &PathBuf,
+    opts: &Opts,
 ) -> Result<()> {
-    use dialoguer::Select;
-
     let entries = load_vps_config(vps_file_path)?;
+    let idx = select_entry(
+        &entries,
+        id_or_name.as_deref(),
+        "📋 Select a VPS to copy from/to",
+        opts,
+    )?;
+    let vps = &entries[idx];
 
-    if entries.is_empty() {
-        println!("⚠️  No VPS profiles found in configuration.");
+    let port = vps.effective_port().to_string();
+    let remote = format!("{}@{}", vps.effective_user(), vps.host);
+
+    let mut args: Vec<String> = vec!["-P".into(), port];
+
+    if let Some(ref key) = vps.private_key {
+        args.push("-i".into());
+        args.push(key.clone());
+    }
+
+    // push (local→remote), pull (remote→local), remote (remote→remote)
+    match direction {
+        "pull" => {
+            args.push(format!("{remote}:{source}"));
+            args.push(destination);
+        }
+        "remote" => {
+            args.push("-3".into());
+            args.push(source);
+            args.push(destination);
+        }
+        _ => {
+            args.push(source);
+            args.push(format!("{remote}:{destination}"));
+        }
+    }
+
+    if opts.dry_run {
+        println!("[dry run] would execute: scp {}", args.join(" "));
         return Ok(());
     }
 
-    // Find VPS by ID or prompt to select
-    let vps = match id_or_name {
-        Some(id) => entries
-            .iter()
-            .find(|v| v.effective_id() == id || v.name.as_deref() == Some(&id))
-            .ok_or_else(|| {
-                crate::engine::error::ErrorCode::VpsNotFound
-                    .error()
-                    .with_context("id_or_name", id)
-            })?,
-        None => {
-            if entries.len() == 1 {
-                &entries[0]
-            } else {
-                let options: Vec<String> = entries
-                    .iter()
-                    .map(|v| {
-                        let user = v.effective_user();
-                        let name = v.name.as_deref().unwrap_or("-");
-                        format!("{}@{} ({})", user, v.host, name)
-                    })
-                    .collect();
+    println!("📋 Executing: scp {}", args.join(" "));
 
-                let selection = Select::new()
-                    .with_prompt("📋 Select a VPS to copy from/to")
-                    .items(&options)
-                    .default(0)
-                    .interact()
-                    .map_err(|e| {
-                        crate::engine::error::ErrorCode::UiPromptFailed
-                            .error()
-                            .with_context("prompt", "vps selection")
-                            .with_context("error", e.to_string())
-                    })?;
-
-                &entries[selection]
-            }
-        }
-    };
-
-    let port = vps.effective_port().to_string();
-    let user = vps.effective_user();
-    let host = &vps.host;
-    let remote = format!("{user}@{host}");
-
-    let mut cmd_args = vec!["scp".to_string()];
-
-    // Add port
-    cmd_args.push("-P".to_string());
-    cmd_args.push(port);
-
-    // Add private key if specified
-    if let Some(ref key) = vps.private_key {
-        cmd_args.push("-i".to_string());
-        cmd_args.push(key.clone());
-    }
-
-    // Handle directions: push (local→remote), pull (remote→local), remote (remote→remote)
-    match direction {
-        "pull" => {
-            // Remote to local: remote_path → local_path
-            cmd_args.push(format!("{remote}:{source}"));
-            cmd_args.push(destination);
-        }
-        "remote" => {
-            // Remote to remote (via scp -3)
-            cmd_args.push("-3".to_string());
-            cmd_args.push(source);
-            cmd_args.push(destination);
-        }
-        _ => {
-            // Default: push (local to remote)
-            cmd_args.push(source);
-            cmd_args.push(format!("{remote}:{destination}"));
-        }
-    }
-
-    println!("📋 Executing: {}", cmd_args.join(" "));
-
-    let status = std::process::Command::new("bash")
-        .arg("-c")
-        .arg(cmd_args.join(" "))
+    let status = std::process::Command::new("scp")
+        .args(&args)
         .status()
         .map_err(|e| {
             crate::engine::error::ErrorCode::ShellCommandFailed

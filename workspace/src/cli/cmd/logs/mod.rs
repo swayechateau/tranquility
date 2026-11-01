@@ -20,12 +20,18 @@ pub struct Args {
     pub tail: usize,
 
     /// Filter logs by date (YYYY-MM-DD)
-    #[arg(long)]
+    #[arg(long, value_parser = parse_date)]
     pub date: Option<String>,
 
     /// Filter logs by level (info, warn, error)
-    #[arg(long, default_value = "info")]
+    #[arg(long, default_value = "info", value_parser = ["info", "warn", "error"])]
     pub level: String,
+}
+
+fn parse_date(value: &str) -> Result<String, String> {
+    chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        .map(|d| d.format("%Y-%m-%d").to_string())
+        .map_err(|_| format!("`{value}` is not a valid date, expected YYYY-MM-DD"))
 }
 
 pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {

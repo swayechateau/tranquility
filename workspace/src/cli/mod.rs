@@ -47,6 +47,11 @@ async fn async_run() -> ExitCode {
         .with_writer(std::io::stderr)
         .init();
 
+    if let Err(err) = validate_global_paths(&cli.global) {
+        report_error(&err);
+        return exit_code(&err);
+    }
+
     let ctx = match build_app_context(cli.global.into()) {
         Ok(ctx) => ctx,
         Err(err) => {
@@ -76,4 +81,23 @@ async fn async_run() -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+/// Fail early when `-C/--cwd` or `--config` point at something that does not exist.
+fn validate_global_paths(global: &args::GlobalArgs) -> Result<(), Error> {
+    if !global.cwd.is_dir() {
+        return Err(ErrorCode::IoFailure
+            .error()
+            .with_context("path", global.cwd.display().to_string())
+            .with_context("error", "--cwd is not an existing directory"));
+    }
+    if let Some(config) = &global.config
+        && !config.is_file()
+    {
+        return Err(ErrorCode::ConfigNotFound
+            .error()
+            .with_context("path", config.display().to_string())
+            .with_context("error", "--config is not an existing file"));
+    }
+    Ok(())
 }

@@ -242,7 +242,8 @@ fn resolve_config_file_with_extensions(base: &Path, name: &str) -> Option<PathBu
     None
 }
 
-pub fn validate_file(path: &Path) -> bool {
+/// Validate a config file, returning every problem found as a message.
+pub fn check_file(path: &Path) -> Result<(), String> {
     let ext = path
         .extension()
         .and_then(|e| e.to_str())
@@ -252,8 +253,7 @@ pub fn validate_file(path: &Path) -> bool {
     let raw = match fs::read_to_string(path) {
         Ok(r) => r,
         Err(e) => {
-            tracing::warn!("validate config: failed to read file: {e}");
-            return false;
+            return Err(format!("failed to read file: {e}"));
         }
     };
 
@@ -261,24 +261,21 @@ pub fn validate_file(path: &Path) -> bool {
         "json" => match serde_json::from_str(&raw) {
             Ok(v) => v,
             Err(e) => {
-                tracing::warn!("validate config: invalid JSON: {e}");
-                return false;
+                return Err(format!("invalid JSON: {e}"));
             }
         },
         "yaml" | "yml" => {
             let yaml: serde_yaml::Value = match serde_yaml::from_str(&raw) {
                 Ok(v) => v,
                 Err(e) => {
-                    tracing::warn!("validate config: invalid YAML: {e}");
-                    return false;
+                    return Err(format!("invalid YAML: {e}"));
                 }
             };
 
             match serde_json::to_value(yaml) {
                 Ok(v) => v,
                 Err(e) => {
-                    tracing::warn!("validate config: failed to convert YAML to JSON: {e}");
-                    return false;
+                    return Err(format!("failed to convert YAML to JSON: {e}"));
                 }
             }
         }
@@ -286,22 +283,19 @@ pub fn validate_file(path: &Path) -> bool {
             let parsed: BaseConfig = match quick_xml::de::from_str(&raw) {
                 Ok(cfg) => cfg,
                 Err(e) => {
-                    tracing::warn!("validate config: invalid XML: {e}");
-                    return false;
+                    return Err(format!("invalid XML: {e}"));
                 }
             };
 
             match serde_json::to_value(parsed) {
                 Ok(v) => v,
                 Err(e) => {
-                    tracing::warn!("validate config: failed to convert XML to JSON: {e}");
-                    return false;
+                    return Err(format!("failed to convert XML to JSON: {e}"));
                 }
             }
         }
         _ => {
-            tracing::warn!("validate config: unsupported file extension: .{ext}");
-            return false;
+            return Err(format!("unsupported file extension: .{ext}"));
         }
     };
 
@@ -309,35 +303,36 @@ pub fn validate_file(path: &Path) -> bool {
     let schema_value = match serde_json::to_value(&schema) {
         Ok(s) => s,
         Err(e) => {
-            tracing::warn!("validate schema: failed to serialize full schema: {e}");
-            return false;
+            return Err(format!("failed to serialize full schema: {e}"));
         }
     };
 
     let validator = match validator_for(&schema_value) {
         Ok(v) => v,
         Err(e) => {
-            tracing::warn!("validate schema: invalid schema: {e}");
-            return false;
+            return Err(format!("invalid schema: {e}"));
         }
     };
 
     if validator.validate(&json_value).is_err() {
-        for err in validator.iter_errors(&json_value) {
-            tracing::warn!("validate schema: schema violation: {err}");
-        }
-        return false;
+        let msgs: Vec<String> = validator
+            .iter_errors(&json_value)
+            .map(|err| format!("schema violation: {err}"))
+            .collect();
+        return Err(msgs.join("\n"));
     }
 
-    if let Err(custom_errors) = validate_custom(&json_value) {
-        for err in custom_errors.lines() {
-            tracing::warn!("validate custom: {err}");
-        }
-        return false;
-    }
+    validate_custom(&json_value)
+}
 
-    tracing::info!("validate config: config file is valid");
-    true
+pub fn validate_file(path: &Path) -> bool {
+    match check_file(path) {
+        Ok(()) => true,
+        Err(msg) => {
+            tracing::warn!("validate config: {msg}");
+            false
+        }
+    }
 }
 
 fn validate_custom(json: &Value) -> Result<(), String> {

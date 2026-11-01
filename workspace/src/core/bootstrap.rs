@@ -27,7 +27,9 @@ pub fn build_app_context(args: ContextArgs) -> Result<Context> {
     let mode = RunMode::from_flags(args.ci, args.non_interactive);
 
     let output_color = if args.output_color == "auto" {
-        if mode == RunMode::Interactive {
+        let machine_format =
+            args.json || matches!(args.format.as_str(), "json" | "jsonl" | "plain");
+        if mode == RunMode::Interactive && !machine_format {
             scriba::ColorMode::Auto
         } else {
             scriba::ColorMode::Never
