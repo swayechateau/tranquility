@@ -32,6 +32,9 @@ pub enum VpsSubcommand {
         /// Path to the SSH private key
         #[arg(long)]
         private_key: Option<std::path::PathBuf>,
+        /// Script to run on the server after `vps connect` logs in
+        #[arg(long)]
+        post_connect_script: Option<String>,
     },
     /// List VPS profiles
     List,
@@ -64,6 +67,9 @@ pub enum VpsSubcommand {
         /// New private key path
         #[arg(long)]
         private_key: Option<String>,
+        /// New post-connect script (empty string removes it)
+        #[arg(long)]
+        post_connect_script: Option<String>,
     },
     /// Delete a VPS profile
     Delete {
@@ -111,7 +117,20 @@ pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
             user,
             port,
             private_key,
-        }) => vps::add(ctx, id, name, host, user, port, private_key).await,
+            post_connect_script,
+        }) => {
+            vps::add(
+                ctx,
+                id,
+                name,
+                host,
+                user,
+                port,
+                private_key,
+                post_connect_script,
+            )
+            .await
+        }
         Some(VpsSubcommand::List) => vps::list(ctx).await,
         Some(VpsSubcommand::Connect { id }) => vps::connect(ctx, id).await,
         Some(VpsSubcommand::Update {
@@ -122,7 +141,21 @@ pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
             user,
             port,
             private_key,
-        }) => vps::update(ctx, id, new_id, name, host, user, port, private_key).await,
+            post_connect_script,
+        }) => {
+            vps::update(
+                ctx,
+                id,
+                new_id,
+                name,
+                host,
+                user,
+                port,
+                private_key,
+                post_connect_script,
+            )
+            .await
+        }
         Some(VpsSubcommand::Delete { id }) => vps::delete(ctx, id).await,
         Some(VpsSubcommand::Script { id, inline, file }) => {
             vps::script(ctx, id, inline, file).await

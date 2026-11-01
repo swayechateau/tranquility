@@ -32,6 +32,8 @@ Prompts only appear when stdin and stderr are terminals and neither `--ci` nor `
 - Errors are printed as `E<code>: message` with context on stderr, and the process exits non-zero.
 - `--dry-run` is honored by `app`, `font`, `config reset|override` and every `vps` command that changes state.
 - `--json`, `--format json|jsonl` and `-p` disable color. `-p` falls back to text for tables.
+- `vps connect`, `script` and `copy` add `-o BatchMode=yes` to ssh/scp when not interactive, so a password or host-key prompt fails instead of hanging.
+- `vps connect` runs the profile's `post_connect_script` (set with `--post-connect-script` on `add`/`update`) and then leaves you in a login shell.
 - `-C` and `--config` must point at an existing directory / file.
 
 ## Commands
@@ -81,7 +83,7 @@ Each profile has a friendly **name** (e.g. `Temp Server`) and a unique one-word 
 
 ```sh
 tquil vps schema                       # example profile
-tquil vps add --host example.com [NAME] [--id ID] [--user U] [--port P] [--private-key FILE]
+tquil vps add --host example.com [NAME] [--id ID] [--user U] [--port P] [--private-key FILE] [--post-connect-script CMD]
 tquil vps list
 tquil vps connect [--id ID]            # omit --id to pick interactively
 tquil vps update                       # pick a profile, then edit each field (pre-filled)

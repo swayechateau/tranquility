@@ -15,6 +15,7 @@ fn opts(ctx: &Context) -> vps::Opts {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn add(
     ctx: &Context,
     id: Option<String>,
@@ -23,6 +24,7 @@ pub async fn add(
     user: Option<String>,
     port: Option<u16>,
     private_key: Option<PathBuf>,
+    post_connect_script: Option<String>,
 ) -> CoreResult<()> {
     let vps_file_path = ctx
         .config()
@@ -42,7 +44,7 @@ pub async fn add(
         user,
         port,
         private_key,
-        None,
+        post_connect_script,
         &vps_file_path,
         &opts(ctx),
     )
@@ -106,6 +108,7 @@ pub async fn update(
     user: Option<String>,
     port: Option<u16>,
     private_key: Option<String>,
+    post_connect_script: Option<String>,
 ) -> CoreResult<()> {
     let vps_file_path = ctx
         .config()
@@ -122,6 +125,7 @@ pub async fn update(
         user,
         port,
         private_key,
+        post_connect_script,
         &vps_file_path,
         &opts(ctx),
     )

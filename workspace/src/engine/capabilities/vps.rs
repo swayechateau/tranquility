@@ -168,6 +168,16 @@ fn entry_label(v: &VpsEntry) -> String {
     )
 }
 
+/// SSH options shared by ssh and scp. Non-interactive runs use BatchMode so a
+/// password or host-key prompt fails fast instead of hanging a script/CI job.
+fn batch_args(opts: &Opts) -> Vec<&'static str> {
+    if opts.interactive {
+        vec![]
+    } else {
+        vec!["-o", "BatchMode=yes"]
+    }
+}
+
 /// Resolve the target entry by id/name, or prompt when interactive.
 fn select_entry(
     entries: &[VpsEntry],
@@ -405,6 +415,7 @@ pub async fn connect(
 
     let mut cmd = Command::new("ssh");
     cmd.arg("-tt"); // Force pseudo-terminal allocation
+    cmd.args(batch_args(opts));
 
     if let Some(ref key) = vps.private_key {
         cmd.arg("-i");
@@ -418,8 +429,21 @@ pub async fn connect(
 
     cmd.arg(remote);
 
+    // Run the profile's post-connect script, then drop into a login shell.
+    let post = vps
+        .post_connect_script
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    if let Some(script) = post {
+        cmd.arg(format!("{script}\nexec \"${{SHELL:-/bin/sh}}\" -l"));
+    }
+
     if opts.dry_run {
         println!("[dry run] would connect to {}@{}:{}", user, host, port);
+        if post.is_some() {
+            println!("[dry run] would run the post-connect script first");
+        }
         return Ok(());
     }
 
@@ -453,6 +477,7 @@ pub async fn update(
     mut user: Option<String>,
     mut port: Option<u16>,
     mut private_key: Option<String>,
+    post_connect_script: Option<String>,
     vps_file_path: &PathBuf,
     opts: &Opts,
 ) -> Result<()> {
@@ -559,10 +584,11 @@ pub async fn update(
         && user.is_none()
         && port.is_none()
         && private_key.is_none()
+        && post_connect_script.is_none()
     {
         return Err(ErrorCode::ValidationFailed.error().with_context(
             "reason",
-            "no changes provided (use --new-id, --name, --host, --user, --port or --private-key)",
+            "no changes provided (use --new-id, --name, --host, --user, --port, --private-key or --post-connect-script)",
         ));
     }
 
@@ -591,6 +617,9 @@ pub async fn update(
     }
     if let Some(pk) = private_key {
         entry.private_key = Some(pk);
+    }
+    if let Some(script) = post_connect_script {
+        entry.post_connect_script = Some(script).filter(|s| !s.trim().is_empty());
     }
 
     // Validate updated entry
@@ -719,6 +748,7 @@ pub async fn script(
     let remote = format!("{}@{}", user, host);
 
     let mut cmd = Command::new("ssh");
+    cmd.args(batch_args(opts));
 
     if let Some(ref key) = vps.private_key {
         cmd.arg("-i");
@@ -802,7 +832,9 @@ pub async fn copy(
     let port = vps.effective_port().to_string();
     let remote = format!("{}@{}", vps.effective_user(), vps.host);
 
-    let mut args: Vec<String> = vec!["-P".into(), port];
+    let mut args: Vec<String> = batch_args(opts).into_iter().map(String::from).collect();
+    args.push("-P".into());
+    args.push(port);
 
     if let Some(ref key) = vps.private_key {
         args.push("-i".into());
