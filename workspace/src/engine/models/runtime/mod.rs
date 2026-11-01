@@ -93,27 +93,36 @@ impl Runtime {
 
     pub fn load_config(&mut self) -> &mut Self {
         if let Some(explicit) = self.resolution.explicit_config_path.clone() {
-            let config = BaseConfig::load_from(&explicit).unwrap_or_else(|err| {
-                eprintln!(
-                    "⚠️ Failed to load config from {}: {err}. Using in-memory defaults for this run.",
-                    explicit.display()
-                );
-                BaseConfig::fallback_default()
-            });
+            let (config, load_error) = match BaseConfig::load_from(&explicit) {
+                Ok(cfg) => (cfg, None),
+                Err(err) => {
+                    eprintln!(
+                        "⚠️ Failed to load config from {}: {err}. Using in-memory defaults for this run.",
+                        explicit.display()
+                    );
+                    (BaseConfig::fallback_default(), Some(err.to_string()))
+                }
+            };
             self.resolution.config = Some(ResolvedConfig {
                 path: explicit,
                 base: config,
+                load_error,
             });
             return self;
         }
 
         let config = BaseConfig::load_once().clone();
+        let load_error = BaseConfig::load_once_error();
         let path = BaseConfig::config_path().unwrap_or_else(|_| {
             dirs::config_dir()
                 .unwrap_or_default()
                 .join("tranquility/config.yaml")
         });
-        self.resolution.config = Some(ResolvedConfig { path, base: config });
+        self.resolution.config = Some(ResolvedConfig {
+            path,
+            base: config,
+            load_error,
+        });
         self
     }
 }

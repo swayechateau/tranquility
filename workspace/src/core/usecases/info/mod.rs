@@ -62,14 +62,14 @@ pub async fn show(ctx: &Context) -> CoreResult<()> {
     }
 
     output = output.heading(2, blue_key("Configuration", colored));
-    output = match ctx.config() {
-        Some(_) => output.status(
+    output = match ctx.config_load_error() {
+        None => output.status(
             scriba::StatusKind::Ok,
             green_key("Config file is valid", colored),
         ),
-        None => output.status(
+        Some(err) => output.status(
             scriba::StatusKind::Warning,
-            yellow_key("No config loaded — using defaults", colored),
+            yellow_key(&format!("Config invalid, using defaults: {err}"), colored),
         ),
     };
 

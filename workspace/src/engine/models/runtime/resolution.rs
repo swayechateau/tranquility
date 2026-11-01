@@ -7,6 +7,9 @@ use crate::engine::config::BaseConfig;
 pub struct ResolvedConfig {
     pub path: PathBuf,
     pub base: BaseConfig,
+    /// Set when the config file couldn't be loaded/validated and `base` is
+    /// an in-memory fallback rather than what's actually on disk at `path`.
+    pub load_error: Option<String>,
 }
 
 /// Runtime resolution state: holds the loaded config and any explicit override path.

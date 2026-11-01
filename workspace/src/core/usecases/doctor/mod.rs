@@ -14,13 +14,13 @@ pub async fn run(ctx: &Context) -> CoreResult<()> {
     let mut output = ui.new_output_content();
 
     // --- Config ---
-    let config_status = match ctx.config() {
-        Some(_) => "Config loaded",
-        None => "No config loaded — using defaults",
+    let config_status = match ctx.config_load_error() {
+        None => "Config loaded".to_string(),
+        Some(err) => format!("Config invalid, using in-memory defaults: {err}"),
     };
 
     output = output.heading(2, "Configuration");
-    output = output.paragraph(config_status);
+    output = output.paragraph(&config_status);
 
     if let Some(path) = ctx.project_config_path() {
         let status = if path.exists() {

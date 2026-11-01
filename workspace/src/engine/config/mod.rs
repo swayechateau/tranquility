@@ -13,6 +13,10 @@ use std::{
 use crate::engine::constants::SUPPORTED_EXTS;
 
 pub static CONFIG: OnceCell<BaseConfig> = OnceCell::new();
+/// Set alongside `CONFIG` the one time `load_once` actually runs its init
+/// closure: `None` on a clean load, `Some(message)` if it fell back to
+/// in-memory defaults.
+static CONFIG_LOAD_ERROR: OnceCell<Option<String>> = OnceCell::new();
 
 #[derive(Default, Debug, Serialize, Deserialize, JsonSchema, Clone)]
 #[serde(rename_all = "lowercase")]
@@ -82,14 +86,26 @@ impl BaseConfig {
 
     pub fn load_once() -> &'static BaseConfig {
         CONFIG.get_or_init(|| match Self::load_internal() {
-            Ok(cfg) => cfg,
+            Ok(cfg) => {
+                let _ = CONFIG_LOAD_ERROR.set(None);
+                cfg
+            }
             Err(err) => {
                 eprintln!(
                     "⚠️ Failed to load config: {err}. Using in-memory defaults for this run — run `tquil doctor fix` to repair the config file."
                 );
+                let _ = CONFIG_LOAD_ERROR.set(Some(err.to_string()));
                 Self::fallback_default()
             }
         })
+    }
+
+    /// The error from the one time `load_once` actually ran, if it fell back
+    /// to in-memory defaults. `None` if the load succeeded, or if
+    /// `load_once` hasn't run yet (e.g. an explicit `--config` was used
+    /// instead, via `load_from`).
+    pub fn load_once_error() -> Option<String> {
+        CONFIG_LOAD_ERROR.get().cloned().flatten()
     }
 
     /// Load and validate a config file at an explicit path (used for `--config`).

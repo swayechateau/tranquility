@@ -68,6 +68,12 @@ impl Context {
         self.runtime.config().map(|c| c.path.clone())
     }
 
+    /// `Some(message)` if the config couldn't be loaded/validated and the
+    /// running config is an in-memory fallback, not what's actually on disk.
+    pub fn config_load_error(&self) -> Option<&str> {
+        self.runtime.config().and_then(|c| c.load_error.as_deref())
+    }
+
     pub fn ui_config(&self) -> scriba::Config {
         self.runtime.output_config()
     }
