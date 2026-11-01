@@ -5,17 +5,20 @@ use crate::engine::models::category::Category;
 
 /// Install applications using the engine capability
 pub async fn install(ctx: &Context, all: bool, server: bool) -> CoreResult<()> {
-    apps::install_apps_command(all, server, ctx.dry_run()).await
+    let apps_file = ctx.config().map(|c| c.base.applications_file.as_path());
+    apps::install_apps_command(all, server, ctx.dry_run(), apps_file).await
 }
 
 /// Uninstall applications using the engine capability
 pub async fn uninstall(ctx: &Context, all: bool, server: bool) -> CoreResult<()> {
-    apps::uninstall_apps_command(all, server, ctx.dry_run()).await
+    let apps_file = ctx.config().map(|c| c.base.applications_file.as_path());
+    apps::uninstall_apps_command(all, server, ctx.dry_run(), apps_file).await
 }
 
 /// List applications (optionally filtered)
 pub async fn list(ctx: &Context, server: bool, categories: Vec<Category>) -> CoreResult<()> {
-    let rows = apps::app_list_rows(server, categories, None);
+    let apps_file = ctx.config().map(|c| c.base.applications_file.as_path());
+    let rows = apps::app_list_rows(server, categories, apps_file);
 
     if rows.is_empty() {
         ctx.ui().logger().warn("No applications to display.");

@@ -21,10 +21,10 @@ pub struct Args {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum AppSubcommand {
-    /// Install default applications and from applications.json
+    /// Install default applications and any from the configured applications file
     Install,
 
-    /// Uninstall default applications and from applications.json
+    /// Uninstall default applications and any from the configured applications file
     Uninstall,
 
     /// List all categories

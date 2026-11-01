@@ -104,8 +104,13 @@ pub fn filter_apps(
 // Install
 // ---------------------------------------------------------------------------
 
-pub async fn install_apps_command(all: bool, server: bool, dry_run: bool) -> Result<(), Error> {
-    let apps = filter_apps(server, vec![], None);
+pub async fn install_apps_command(
+    all: bool,
+    server: bool,
+    dry_run: bool,
+    apps_file: Option<&std::path::Path>,
+) -> Result<(), Error> {
+    let apps = filter_apps(server, vec![], apps_file);
     let system = SystemInfo::new();
     let current_os = system.os_type_raw();
 
@@ -153,8 +158,13 @@ pub async fn install_apps_command(all: bool, server: bool, dry_run: bool) -> Res
 // Uninstall
 // ---------------------------------------------------------------------------
 
-pub async fn uninstall_apps_command(all: bool, server: bool, dry_run: bool) -> Result<(), Error> {
-    let apps = filter_apps(server, vec![], None);
+pub async fn uninstall_apps_command(
+    all: bool,
+    server: bool,
+    dry_run: bool,
+    apps_file: Option<&std::path::Path>,
+) -> Result<(), Error> {
+    let apps = filter_apps(server, vec![], apps_file);
     let system = SystemInfo::new();
     let current_os = system.os_type_raw();
 
