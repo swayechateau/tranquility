@@ -79,17 +79,28 @@ tquil config reset [TARGET]
 
 ### VPS profiles
 
-Each profile has a friendly **name** (e.g. `Temp Server`) and a unique one-word **id** (e.g. `tempserver`). The id is generated from the name when not given (`--id` on add), made unique with a number suffix if needed, and can be changed with `vps update --new-id`. Ids are lowercase letters, digits, `-` or `_`. `--id` on every other command selects a profile by id or name.
+Each profile has a friendly **name** (e.g. `Temp Server`) and a unique one-word **id** (e.g. `tempserver`). The id is generated from the name when not given (`--id` on add), made unique with a number suffix if needed, and can be changed with `vps update --new-id` (alias `--rename-to`). Ids are lowercase letters, digits, `-` or `_`. `--id` on every other command selects a profile by id or name.
 
 ```sh
-tquil vps schema                       # example profile
-tquil vps add --host example.com [NAME] [--id ID] [--user U] [--port P] [--private-key FILE] [--post-connect-script CMD]
+tquil vps schema                       # JSON Schema for the vps file, with an example
+tquil vps add --host example.com [NAME] [--id ID] [--user U] [--port P] [--private-key FILE] [--post-connect-script CMD] [--jump-host SPEC]
 tquil vps list
-tquil vps connect [--id ID]            # omit --id to pick interactively
+tquil vps connect [--id ID] [--timeout SECS]   # omit --id to pick interactively
 tquil vps update                       # pick a profile, then edit each field (pre-filled)
 tquil vps update --id ID --name NEW    # non-interactive: --id plus at least one change flag
 tquil vps update --id ID --new-id NEW  # change the id
-tquil vps script [--id ID] --inline 'uptime'
-tquil vps copy --id ID --source SRC --destination DEST
+tquil vps script [--id ID] --inline 'uptime' [--timeout SECS]
+tquil vps script --all --inline 'uptime'       # run on every profile; continues past failures
+tquil vps copy --id ID --source SRC --destination DEST [--direction push|pull|remote] [--timeout SECS]
+tquil vps copy --all --source SRC --destination DEST          # copy to/from every profile
+tquil vps copy --id FROM --to-id TO --source SRC --destination DEST   # directly between two profiles (scp -3)
+tquil vps ping [--id ID | --all] [--timeout SECS]   # check reachability only, never prompts
+tquil vps export [--output FILE]       # dump all profiles (stdout, or a file)
+tquil vps import --file FILE [--merge] # replace, or merge skipping duplicate ids
 tquil vps delete [--id ID]
 ```
+
+- **ProxyJump:** `--jump-host user@bastion[:port]` on `add`/`update` routes `connect`/`script`/`copy` through that host via ssh's `-J`.
+- **Host keys:** every ssh/scp call uses `StrictHostKeyChecking=accept-new` — a host is trusted the first time, but a later change to its key is still rejected (unlike disabling the check entirely).
+- **Timeouts:** `--timeout` becomes `ConnectTimeout` for `connect`, `script`, `copy` and `ping`; `ping` defaults to 5s. It bounds the connection attempt, not how long a remote command itself takes to finish.
+- **SSH keys:** only key-based auth is supported non-interactively (`--private-key`, or the default identity/agent). A passphrase-protected key with no agent running will fail fast under `--ci`/`--non-interactive` rather than hang, since those add `BatchMode=yes`.

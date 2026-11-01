@@ -52,6 +52,9 @@ pub struct VpsEntry {
     pub private_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub post_connect_script: Option<String>,
+    /// ProxyJump spec (`user@host[:port]`), passed to ssh/scp as `-J`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jump_host: Option<String>,
 }
 
 impl VpsEntry {
@@ -259,4 +262,122 @@ pub fn get_current_user() -> Option<String> {
 #[cfg(target_family = "windows")]
 pub fn get_current_user() -> Option<String> {
     std::env::var("USERNAME").ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(name: Option<&str>, host: &str) -> VpsEntry {
+        VpsEntry {
+            id: None,
+            name: name.map(str::to_string),
+            host: host.to_string(),
+            user: None,
+            port: None,
+            private_key: None,
+            post_connect_script: None,
+            jump_host: None,
+        }
+    }
+
+    #[test]
+    fn slugify_id_reduces_to_one_lowercase_word() {
+        assert_eq!(slugify_id("Temp Server"), "tempserver");
+        assert_eq!(slugify_id("Temp  Server!"), "tempserver");
+        assert_eq!(slugify_id("already-slug_1"), "alreadyslug1");
+        assert_eq!(slugify_id("   "), "");
+    }
+
+    #[test]
+    fn generate_vps_id_prefers_name_over_host() {
+        assert_eq!(
+            generate_vps_id(Some("Temp Server"), "a.com", None),
+            "tempserver"
+        );
+        assert_eq!(generate_vps_id(None, "a.com", None), "acom");
+        assert_eq!(generate_vps_id(Some(""), "a.com", None), "acom");
+        // A name/host with no alphanumeric characters falls back to "vps".
+        assert_eq!(generate_vps_id(Some("!!!"), "!!!", None), "vps");
+    }
+
+    #[test]
+    fn unique_id_appends_a_number_only_when_needed() {
+        let taken = ["tempserver", "web"];
+        assert_eq!(unique_id("db", taken.iter().copied()), "db");
+        assert_eq!(
+            unique_id("tempserver", taken.iter().copied()),
+            "tempserver2"
+        );
+        let taken3 = ["a", "a2", "a3"];
+        assert_eq!(unique_id("a", taken3.iter().copied()), "a4");
+    }
+
+    #[test]
+    fn validate_id_format_rejects_spaces_and_empty() {
+        assert!(validate_id_format("tempserver").is_ok());
+        assert!(validate_id_format("temp-server_1").is_ok());
+        assert!(validate_id_format("").is_err());
+        assert!(validate_id_format("bad id").is_err());
+        assert!(validate_id_format("bad!id").is_err());
+    }
+
+    #[test]
+    fn validate_rejects_missing_name_and_host() {
+        assert!(entry(None, "a.com").validate().is_err());
+        assert!(entry(Some("x"), "").validate().is_err());
+        assert!(entry(Some("x"), "a.com").validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_bad_port() {
+        let mut e = entry(Some("x"), "a.com");
+        e.port = Some(FlexibleValue::Number(0));
+        assert!(e.validate().is_err());
+        e.port = Some(FlexibleValue::String("notanumber".into()));
+        assert!(e.validate().is_err());
+        e.port = Some(FlexibleValue::Number(2222));
+        assert!(e.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_malformed_explicit_id() {
+        let mut e = entry(Some("x"), "a.com");
+        e.id = Some("bad id".into());
+        assert!(e.validate().is_err());
+        e.id = Some("good-id".into());
+        assert!(e.validate().is_ok());
+    }
+
+    #[test]
+    fn effective_port_defaults_to_22() {
+        assert_eq!(entry(Some("x"), "a.com").effective_port(), 22);
+    }
+
+    #[test]
+    fn flexible_value_to_u16_handles_both_variants() {
+        assert_eq!(FlexibleValue::Number(80).to_u16(), Some(80));
+        assert_eq!(FlexibleValue::String("443".into()).to_u16(), Some(443));
+        assert_eq!(FlexibleValue::String("nope".into()).to_u16(), None);
+    }
+
+    #[test]
+    fn config_fix_assigns_unique_ids_and_keeps_existing() {
+        let mut cfg = VpsConfig {
+            vps: vec![entry(Some("Temp Server"), "a.com"), {
+                let mut e = entry(Some("Temp Server"), "b.com");
+                e.id = Some("tempserver".into()); // collides with the generated id above
+                e
+            }],
+        };
+        let changed = cfg.fix();
+        assert!(changed);
+        let ids: Vec<_> = cfg
+            .vps
+            .iter()
+            .map(|e| e.effective_id().to_string())
+            .collect();
+        assert_eq!(ids.len(), 2);
+        assert_ne!(ids[0], ids[1]);
+    }
 }
