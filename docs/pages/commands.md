@@ -79,7 +79,7 @@ tquil config reset [TARGET]
 
 ```sh
 tquil vps schema                       # example profile
-tquil vps add NAME --host example.com [--user U] [--port P] [--private-key FILE]
+tquil vps add --host example.com [NAME] [--user U] [--port P] [--private-key FILE]
 tquil vps list
 tquil vps connect [--id ID]            # omit --id to pick interactively
 tquil vps update --id ID --name NEW

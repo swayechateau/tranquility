@@ -17,7 +17,7 @@ fn opts(ctx: &Context) -> vps::Opts {
 
 pub async fn add(
     ctx: &Context,
-    name: String,
+    name: Option<String>,
     host: String,
     user: Option<String>,
     port: Option<u16>,
@@ -29,6 +29,10 @@ pub async fn add(
         .base
         .vps_file
         .clone();
+
+    let name = name
+        .filter(|n| !n.trim().is_empty())
+        .unwrap_or_else(|| host.clone());
 
     vps::add(
         name,

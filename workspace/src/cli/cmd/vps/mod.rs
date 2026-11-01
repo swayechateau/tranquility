@@ -15,8 +15,8 @@ pub struct Args {
 pub enum VpsSubcommand {
     /// Add a new VPS profile
     Add {
-        /// Profile name
-        name: String,
+        /// Profile name (default: the host)
+        name: Option<String>,
         /// Hostname or IP
         #[arg(long)]
         host: String,
