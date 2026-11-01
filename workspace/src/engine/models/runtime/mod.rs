@@ -92,6 +92,21 @@ impl Runtime {
     }
 
     pub fn load_config(&mut self) -> &mut Self {
+        if let Some(explicit) = self.resolution.explicit_config_path.clone() {
+            let config = BaseConfig::load_from(&explicit).unwrap_or_else(|err| {
+                eprintln!(
+                    "⚠️ Failed to load config from {}: {err}. Using in-memory defaults for this run.",
+                    explicit.display()
+                );
+                BaseConfig::fallback_default()
+            });
+            self.resolution.config = Some(ResolvedConfig {
+                path: explicit,
+                base: config,
+            });
+            return self;
+        }
+
         let config = BaseConfig::load_once().clone();
         let path = BaseConfig::config_path().unwrap_or_else(|_| {
             dirs::config_dir()

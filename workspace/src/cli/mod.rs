@@ -43,7 +43,11 @@ async fn async_run() -> ExitCode {
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new(default_level.as_str()));
 
-    let base = crate::engine::config::BaseConfig::load_once();
+    let base = match &cli.global.config {
+        Some(path) => crate::engine::config::BaseConfig::load_from(path)
+            .unwrap_or_else(|_| crate::engine::config::BaseConfig::fallback_default()),
+        None => crate::engine::config::BaseConfig::load_once().clone(),
+    };
     let stderr_layer = fmt::layer().with_writer(std::io::stderr);
 
     if matches!(base.log_output, LogOutput::Primary) {

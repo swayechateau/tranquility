@@ -131,25 +131,25 @@ pub async fn fix(ctx: &Context) -> CoreResult<()> {
     }
 
     // Ensure the project config exists, is parseable, and has every field.
-    let (kind, message) = fix_config_status(ctx.dry_run())?;
+    let config_path = match ctx.project_config_path() {
+        Some(path) => path,
+        None => BaseConfig::config_path().map_err(|e| {
+            crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
+                .with_context("error", e.to_string())
+        })?,
+    };
+    let (kind, message) = fix_config_status(&config_path, ctx.dry_run())?;
     output = output.status(kind, message);
 
     ui.print(&output)
 }
 
-/// Diagnose/fix the config file, returning the status to report.
+/// Diagnose/fix the config file at `path`, returning the status to report.
 /// In dry-run mode this never writes, only reports what would happen.
-fn fix_config_status(dry_run: bool) -> CoreResult<(scriba::StatusKind, String)> {
-    let path = match BaseConfig::config_path() {
-        Ok(p) => p,
-        Err(e) => {
-            return Ok((
-                scriba::StatusKind::Warning,
-                format!("Could not resolve config path: {e}"),
-            ));
-        }
-    };
-
+fn fix_config_status(
+    path: &std::path::Path,
+    dry_run: bool,
+) -> CoreResult<(scriba::StatusKind, String)> {
     if !path.exists() {
         return Ok(if dry_run {
             (
@@ -157,7 +157,7 @@ fn fix_config_status(dry_run: bool) -> CoreResult<(scriba::StatusKind, String)> 
                 format!("[dry run] Would create default config: {}", path.display()),
             )
         } else {
-            BaseConfig::fix().map_err(|e| {
+            BaseConfig::fix_at(path).map_err(|e| {
                 crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
                     .with_context("error", e.to_string())
             })?;
@@ -168,13 +168,13 @@ fn fix_config_status(dry_run: bool) -> CoreResult<(scriba::StatusKind, String)> 
         });
     }
 
-    let content = std::fs::read_to_string(&path).map_err(|e| {
+    let content = std::fs::read_to_string(path).map_err(|e| {
         crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
             .with_context("path", path.display().to_string())
             .with_context("error", e.to_string())
     })?;
 
-    match deserialize_config(&path, &content) {
+    match deserialize_config(path, &content) {
         Err(e) => Ok(if dry_run {
             (
                 scriba::StatusKind::Warning,
@@ -184,7 +184,7 @@ fn fix_config_status(dry_run: bool) -> CoreResult<(scriba::StatusKind, String)> 
                 ),
             )
         } else {
-            BaseConfig::fix().map_err(|e| {
+            BaseConfig::fix_at(path).map_err(|e| {
                 crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
                     .with_context("error", e.to_string())
             })?;
@@ -214,7 +214,7 @@ fn fix_config_status(dry_run: bool) -> CoreResult<(scriba::StatusKind, String)> 
                     ),
                 )
             } else {
-                BaseConfig::fix().map_err(|e| {
+                BaseConfig::fix_at(path).map_err(|e| {
                     crate::engine::Error::from_code(crate::engine::ErrorCode::IoFailure)
                         .with_context("error", e.to_string())
                 })?;

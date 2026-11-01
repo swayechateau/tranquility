@@ -87,17 +87,36 @@ impl BaseConfig {
                 eprintln!(
                     "⚠️ Failed to load config: {err}. Using in-memory defaults for this run — run `tquil doctor fix` to repair the config file."
                 );
-                Self::load_default().unwrap_or_else(|err| {
-                    eprintln!(
-                        "⚠️ Failed to prepare default config directories: {err}. Falling back to built-in defaults."
-                    );
-                    Self {
-                        applications_file: PathBuf::from("applications.yaml"),
-                        vps_file: PathBuf::from("vps.yaml"),
-                        log_directory: PathBuf::from("."),
-                        log_output: LogOutput::Primary,
-                    }
-                })
+                Self::fallback_default()
+            }
+        })
+    }
+
+    /// Load and validate a config file at an explicit path (used for `--config`).
+    /// Unlike `load_once`, this never auto-creates or patches the file — an
+    /// explicitly-named config is expected to already exist and be valid.
+    pub fn load_from(path: &Path) -> io::Result<Self> {
+        let content = fs::read_to_string(path)?;
+        Self::validate_schema(&content, path)?;
+        let mut cfg = deserialize_config(path, &content)?;
+        if cfg.log_directory.as_os_str().is_empty() {
+            cfg.log_directory = Self::config_dir()?.join("logs");
+        }
+        Ok(cfg)
+    }
+
+    /// Built-in defaults used when even `load_default` (which needs a
+    /// resolvable, writable config directory) fails.
+    pub fn fallback_default() -> Self {
+        Self::load_default().unwrap_or_else(|err| {
+            eprintln!(
+                "⚠️ Failed to prepare default config directories: {err}. Falling back to built-in defaults."
+            );
+            Self {
+                applications_file: PathBuf::from("applications.yaml"),
+                vps_file: PathBuf::from("vps.yaml"),
+                log_directory: PathBuf::from("."),
+                log_output: LogOutput::Primary,
             }
         })
     }
@@ -140,7 +159,13 @@ impl BaseConfig {
     }
 
     pub fn fix() -> io::Result<()> {
-        let path = Self::config_path()?;
+        Self::fix_at(&Self::config_path()?)
+    }
+
+    /// Same as `fix`, but against an explicit path (e.g. from `--config`)
+    /// instead of always resolving the default config location.
+    pub fn fix_at(path: &Path) -> io::Result<()> {
+        let path = path.to_path_buf();
 
         if path.exists() {
             let content = fs::read_to_string(&path)?;
