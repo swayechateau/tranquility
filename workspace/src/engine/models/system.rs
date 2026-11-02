@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use os_info::{self, Type as OSType};
 use schemars::{JsonSchema, Schema, SchemaGenerator};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
 
 use crate::engine::models::package_manager::PackageManager;
@@ -15,15 +15,67 @@ bitflags! {
     }
 }
 
-/// Wrapper around OSType for serialization.
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+/// Wrapper around OSType for serialization. Reads/writes as a plain string
+/// (e.g. `"macos"`), matching every other enum field in the applications
+/// schema (`supported_systems`, `categories`, `package_manager`) — not the
+/// `{os_type: "..."}` struct form the derived (de)serializer would otherwise
+/// require.
+#[derive(Debug, PartialEq)]
 pub struct OsTypeWrapper {
     pub os_type: String,
 }
 
+impl Serialize for OsTypeWrapper {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.os_type)
+    }
+}
+
+impl<'de> Deserialize<'de> for OsTypeWrapper {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let os_type = String::deserialize(deserializer)?;
+        Ok(OsTypeWrapper { os_type })
+    }
+}
+
 impl OsTypeWrapper {
+    /// Matches either an exact os_info distro name (e.g. `"Ubuntu"`, as the
+    /// built-in application list uses for distro-specific install methods)
+    /// or the broad family name (`"linux"`, `"macos"`, `"windows"` —
+    /// case-insensitive, same convention as `SystemSupport`), so a
+    /// hand-written applications file can say `os: [linux]` once instead of
+    /// enumerating every distro.
     pub fn equals_ostype(&self, other: &OSType) -> bool {
-        self.os_type.eq_ignore_ascii_case(&other.to_string())
+        let want = self.os_type.trim();
+        if want.eq_ignore_ascii_case(&other.to_string()) {
+            return true;
+        }
+        match os_family(*other) {
+            OSType::Macos => want.eq_ignore_ascii_case("macos"),
+            OSType::Linux => want.eq_ignore_ascii_case("linux"),
+            OSType::Windows => want.eq_ignore_ascii_case("windows"),
+            _ => false,
+        }
+    }
+}
+
+/// Squash a distro-specific `OSType` into its broad family (Linux/Macos/
+/// Windows); anything else is returned unchanged.
+pub fn os_family(os: OSType) -> OSType {
+    match os {
+        OSType::Ubuntu
+        | OSType::Debian
+        | OSType::Pop
+        | OSType::Fedora
+        | OSType::Redhat
+        | OSType::Alpine
+        | OSType::Arch
+        | OSType::SUSE
+        | OSType::openSUSE
+        | OSType::Gentoo
+        | OSType::Manjaro
+        | OSType::EndeavourOS => OSType::Linux,
+        other => other,
     }
 }
 
@@ -172,23 +224,7 @@ impl SystemInfo {
 }
 
 fn normalize_os_type(info: &os_info::Info) -> OSType {
-    let os = info.os_type();
-    match os {
-        OSType::Linux => OSType::Linux,
-        OSType::Macos => OSType::Macos,
-        OSType::Windows => OSType::Windows,
-        OSType::Ubuntu => OSType::Linux,
-        OSType::Debian => OSType::Linux,
-        OSType::Fedora => OSType::Linux,
-        OSType::Redhat => OSType::Linux,
-        OSType::Alpine => OSType::Linux,
-        OSType::Arch => OSType::Linux,
-        OSType::SUSE => OSType::Linux,
-        OSType::Gentoo => OSType::Linux,
-        OSType::Manjaro => OSType::Linux,
-        OSType::EndeavourOS => OSType::Linux,
-        _ => os,
-    }
+    os_family(info.os_type())
 }
 
 fn detect_default_package_manager(os: OSType) -> Option<PackageManager> {

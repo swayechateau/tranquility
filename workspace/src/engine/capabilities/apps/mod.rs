@@ -113,6 +113,7 @@ pub async fn install_apps_command(
     let apps = filter_apps(server, vec![], apps_file);
     let system = SystemInfo::new();
     let current_os = system.os_type_raw();
+    let mut failed = Vec::new();
 
     for app in apps {
         if app.is_installed() {
@@ -144,14 +145,22 @@ pub async fn install_apps_command(
         match method {
             Some(m) => {
                 println!("  🚀 Installing {}...", app.name);
-                m.install(dry_run);
-                println!("  ✅ {}", app.name);
+                if m.install(dry_run) {
+                    println!("  ✅ {}", app.name);
+                } else {
+                    println!("  ❌ Failed to install {}", app.name);
+                    failed.push(app.name);
+                }
             }
             None => println!("  ⚠️  No install method found for {} on this OS", app.name),
         }
     }
 
-    Ok(())
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        Err(Error::from_code(ErrorCode::ProcessFailure).with_context("failed", failed.join(", ")))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +176,7 @@ pub async fn uninstall_apps_command(
     let apps = filter_apps(server, vec![], apps_file);
     let system = SystemInfo::new();
     let current_os = system.os_type_raw();
+    let mut failed = Vec::new();
 
     for app in apps {
         if !app.is_installed() {
@@ -198,8 +208,12 @@ pub async fn uninstall_apps_command(
         match method {
             Some(m) => {
                 println!("  🧹 Uninstalling {}...", app.name);
-                m.uninstall(dry_run);
-                println!("  🗑️  {}", app.name);
+                if m.uninstall(dry_run) {
+                    println!("  🗑️  {}", app.name);
+                } else {
+                    println!("  ❌ Failed to uninstall {}", app.name);
+                    failed.push(app.name);
+                }
             }
             None => println!(
                 "  ⚠️  No uninstall method found for {} on this OS",
@@ -208,7 +222,11 @@ pub async fn uninstall_apps_command(
         }
     }
 
-    Ok(())
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        Err(Error::from_code(ErrorCode::ProcessFailure).with_context("failed", failed.join(", ")))
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -89,14 +89,16 @@ impl PackageManager {
         command_exists(self.name())
     }
 
-    /// Install a package using this package manager.
-    pub fn install(&self, package: &str, is_cask: Option<bool>, dry_run: bool) {
+    /// Install a package using this package manager. Returns `true` on
+    /// success (or dry-run), `false` if the command failed or there's no
+    /// automated path for this package manager.
+    pub fn install(&self, package: &str, is_cask: Option<bool>, dry_run: bool) -> bool {
         if matches!(self, Self::Nix) {
             println!(
                 "⚠️ Install '{}' via Nix manually:\n    nix-env -iA nixpkgs.{}",
                 package, package
             );
-            return;
+            return false;
         }
 
         let (cmd, args): (&str, Vec<&str>) = match self {
@@ -117,17 +119,18 @@ impl PackageManager {
             Self::Winget => ("winget", vec!["install", package]),
             Self::Choco => ("choco", vec!["install", package, "-y"]),
             Self::Scoop => ("scoop", vec!["install", package]),
-            _ => return,
+            _ => return false,
         };
 
-        run_package_cmd(cmd, &args, self.requires_sudo(), dry_run);
+        run_package_cmd(cmd, &args, self.requires_sudo(), dry_run)
     }
 
-    /// Uninstall a package using this package manager.
-    pub fn uninstall(&self, package: &str, dry_run: bool) {
+    /// Uninstall a package using this package manager. Same return
+    /// semantics as `install`.
+    pub fn uninstall(&self, package: &str, dry_run: bool) -> bool {
         if matches!(self, Self::Nix) {
             println!("⚠️ Uninstall via Nix manually:\n    nix-env -e {}", package);
-            return;
+            return false;
         }
 
         let (cmd, args): (&str, Vec<&str>) = match self {
@@ -142,10 +145,10 @@ impl PackageManager {
             Self::Choco => ("choco", vec!["uninstall", package, "-y"]),
             Self::Winget => ("winget", vec!["uninstall", package]),
             Self::Scoop => ("scoop", vec!["uninstall", package]),
-            _ => return,
+            _ => return false,
         };
 
-        run_package_cmd(cmd, &args, self.requires_sudo(), dry_run);
+        run_package_cmd(cmd, &args, self.requires_sudo(), dry_run)
     }
 }
 
@@ -161,7 +164,9 @@ pub fn command_exists(cmd: &str) -> bool {
 }
 
 /// Run a shell command via the given executable, optionally with sudo.
-fn run_package_cmd(cmd: &str, args: &[&str], sudo: bool, dry_run: bool) {
+/// Returns `true` on success (or dry-run), `false` on a failed exit status
+/// or if the command couldn't be spawned at all.
+fn run_package_cmd(cmd: &str, args: &[&str], sudo: bool, dry_run: bool) -> bool {
     let full_cmd = if sudo && !cfg!(windows) {
         let mut parts = vec!["sudo", cmd];
         parts.extend_from_slice(args);
@@ -174,7 +179,7 @@ fn run_package_cmd(cmd: &str, args: &[&str], sudo: bool, dry_run: bool) {
 
     if dry_run {
         println!("💡 [dry run] {}", full_cmd);
-        return;
+        return true;
     }
 
     let status = if cfg!(windows) {
@@ -186,17 +191,36 @@ fn run_package_cmd(cmd: &str, args: &[&str], sudo: bool, dry_run: bool) {
     };
 
     match status {
-        Ok(s) if s.success() => {}
-        Ok(s) => eprintln!("⚠️ Command exited with status: {}", s),
-        Err(e) => eprintln!("❌ Failed to run '{}': {}", full_cmd, e),
+        Ok(s) if s.success() => true,
+        Ok(s) => {
+            eprintln!("⚠️ Command exited with status: {}", s);
+            false
+        }
+        Err(e) => {
+            eprintln!("❌ Failed to run '{}': {}", full_cmd, e);
+            false
+        }
     }
 }
 
-/// Run an arbitrary shell command string.
-pub fn run_shell_command(cmd: &str) {
-    if cfg!(windows) {
-        let _ = Command::new("cmd").args(["/C", cmd]).status();
+/// Run an arbitrary shell command string. Returns `true` on a successful
+/// exit status, `false` otherwise (including if it couldn't be spawned).
+pub fn run_shell_command(cmd: &str) -> bool {
+    let status = if cfg!(windows) {
+        Command::new("cmd").args(["/C", cmd]).status()
     } else {
-        let _ = Command::new("sh").args(["-c", cmd]).status();
+        Command::new("sh").args(["-c", cmd]).status()
+    };
+
+    match status {
+        Ok(s) if s.success() => true,
+        Ok(s) => {
+            eprintln!("⚠️ Command exited with status: {}", s);
+            false
+        }
+        Err(e) => {
+            eprintln!("❌ Failed to run '{}': {}", cmd, e);
+            false
+        }
     }
 }

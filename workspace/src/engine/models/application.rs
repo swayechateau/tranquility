@@ -89,38 +89,42 @@ pub struct InstallMethod {
 }
 
 impl InstallMethod {
-    /// Run the install steps for this method.
-    pub fn install(&self, dry_run: bool) {
+    /// Run the install steps for this method. Returns `true` only if every
+    /// step (or the package manager command) succeeded.
+    pub fn install(&self, dry_run: bool) -> bool {
         if let Some(steps) = &self.steps {
-            for cmd in &steps.preinstall_steps {
-                run_shell_command(cmd);
+            let mut ok = true;
+            for cmd in steps
+                .preinstall_steps
+                .iter()
+                .chain(&steps.install)
+                .chain(&steps.postinstall_steps)
+            {
+                ok &= dry_run || run_shell_command(cmd);
             }
-            for cmd in &steps.install {
-                run_shell_command(cmd);
-            }
-            for cmd in &steps.postinstall_steps {
-                run_shell_command(cmd);
-            }
+            ok
         } else if let (Some(pm), Some(pkg)) = (self.package_manager, self.package_name.as_deref()) {
-            pm.install(pkg, self.is_cask, dry_run);
+            pm.install(pkg, self.is_cask, dry_run)
         } else {
             eprintln!("❌ No install steps or valid package manager fallback provided.");
+            false
         }
     }
 
-    /// Run the uninstall steps for this method.
-    pub fn uninstall(&self, dry_run: bool) {
+    /// Run the uninstall steps for this method. Same return semantics as
+    /// `install`.
+    pub fn uninstall(&self, dry_run: bool) -> bool {
         if let Some(steps) = &self.steps {
-            for cmd in &steps.uninstall {
-                run_shell_command(cmd);
+            let mut ok = true;
+            for cmd in steps.uninstall.iter().chain(&steps.postuninstall_steps) {
+                ok &= dry_run || run_shell_command(cmd);
             }
-            for cmd in &steps.postuninstall_steps {
-                run_shell_command(cmd);
-            }
+            ok
         } else if let (Some(pm), Some(pkg)) = (self.package_manager, self.package_name.as_deref()) {
-            pm.uninstall(pkg, dry_run);
+            pm.uninstall(pkg, dry_run)
         } else {
             eprintln!("❌ No uninstall steps or valid package manager fallback provided.");
+            false
         }
     }
 }
