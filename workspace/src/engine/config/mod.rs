@@ -48,7 +48,7 @@ impl BaseConfig {
         Ok(
             resolve_config_file_with_extensions(&base, Self::config_file_base_name())
                 .unwrap_or_else(|| {
-                    Self::file_with_ext(&base, Self::config_file_base_name(), "yaml")
+                    Self::file_with_ext(&base, Self::config_file_base_name(), "toml")
                 }),
         )
     }
@@ -61,7 +61,7 @@ impl BaseConfig {
 
     fn default_file_path(base_dir: &Path, name: &str) -> PathBuf {
         resolve_config_file_with_extensions(base_dir, name)
-            .unwrap_or_else(|| base_dir.join(format!("{name}.yaml")))
+            .unwrap_or_else(|| base_dir.join(format!("{name}.toml")))
     }
 
     pub fn log_file(&self) -> PathBuf {
@@ -129,8 +129,8 @@ impl BaseConfig {
                 "⚠️ Failed to prepare default config directories: {err}. Falling back to built-in defaults."
             );
             Self {
-                applications_file: PathBuf::from("applications.yaml"),
-                vps_file: PathBuf::from("vps.yaml"),
+                applications_file: PathBuf::from("applications.toml"),
+                vps_file: PathBuf::from("vps.toml"),
                 log_directory: PathBuf::from("."),
                 log_output: LogOutput::Primary,
             }
@@ -243,6 +243,8 @@ pub fn deserialize_config(path: &Path, content: &str) -> io::Result<BaseConfig> 
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("JSON error: {e}"))),
         "yaml" | "yml" => serde_yaml::from_str(content)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("YAML error: {e}"))),
+        "toml" => toml::from_str(content)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("TOML error: {e}"))),
         "xml" => quick_xml::de::from_str(content)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("XML error: {e}"))),
         _ => Err(io::Error::new(
@@ -270,6 +272,9 @@ fn write_config(path: &PathBuf, config: &BaseConfig) -> io::Result<()> {
         })?,
         "yaml" | "yml" => serde_yaml::to_string(config).map_err(|e| {
             io::Error::new(io::ErrorKind::InvalidData, format!("YAML write error: {e}"))
+        })?,
+        "toml" => toml::to_string_pretty(config).map_err(|e| {
+            io::Error::new(io::ErrorKind::InvalidData, format!("TOML write error: {e}"))
         })?,
         "xml" => quick_xml::se::to_string(config).map_err(|e| {
             io::Error::new(io::ErrorKind::InvalidData, format!("XML write error: {e}"))
@@ -329,6 +334,21 @@ pub fn check_file(path: &Path) -> Result<(), String> {
                 Ok(v) => v,
                 Err(e) => {
                     return Err(format!("failed to convert YAML to JSON: {e}"));
+                }
+            }
+        }
+        "toml" => {
+            let toml_value: toml::Value = match toml::from_str(&raw) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(format!("invalid TOML: {e}"));
+                }
+            };
+
+            match serde_json::to_value(toml_value) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(format!("failed to convert TOML to JSON: {e}"));
                 }
             }
         }

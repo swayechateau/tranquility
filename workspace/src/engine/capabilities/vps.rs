@@ -8,7 +8,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// A VPS config file can be `{ vps: [...] }` wrapper or a bare array.
-#[derive(serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 struct VpsConfigWrapper {
     vps: Vec<VpsEntry>,
 }
@@ -68,6 +68,17 @@ fn parse_vps_str(content: &str, path: &std::path::Path) -> Result<Vec<VpsEntry>>
                         .with_context("error", e.to_string())
                 })
             }
+        }
+        "toml" => {
+            // TOML has no top-level arrays, so only the wrapped format applies
+            toml::from_str::<VpsConfigWrapper>(content)
+                .map(|w| w.vps)
+                .map_err(|e| {
+                    crate::engine::error::ErrorCode::ConfigInvalid
+                        .error()
+                        .with_context("format", "toml")
+                        .with_context("error", e.to_string())
+                })
         }
         _ => {
             // JSON: try bare array first, then wrapped
@@ -444,6 +455,15 @@ fn serialize_entries(entries: &[VpsEntry], vps_file_path: &std::path::Path) -> R
             crate::engine::error::ErrorCode::SerializationFailure
                 .error()
                 .with_context("format", "yaml")
+                .with_context("error", e.to_string())
+        }),
+        "toml" => toml::to_string_pretty(&VpsConfigWrapper {
+            vps: entries.to_vec(),
+        })
+        .map_err(|e| {
+            crate::engine::error::ErrorCode::SerializationFailure
+                .error()
+                .with_context("format", "toml")
                 .with_context("error", e.to_string())
         }),
         _ => serde_json::to_string_pretty(&entries).map_err(|e| {
@@ -1278,6 +1298,16 @@ pub async fn schema(_ctx: &crate::core::Context) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn toml_vps_round_trips() {
+        let path = std::path::Path::new("vps.toml");
+        let entries = vec![entry("a-root", "A", "a.example.com")];
+        let raw = serialize_entries(&entries, path).unwrap();
+        let back = parse_vps_str(&raw, path).unwrap();
+        assert_eq!(back.len(), 1);
+        assert_eq!(back[0].host, "a.example.com");
+    }
 
     fn entry(id: &str, name: &str, host: &str) -> VpsEntry {
         VpsEntry {

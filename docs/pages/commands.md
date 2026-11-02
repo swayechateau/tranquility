@@ -45,7 +45,7 @@ Prompts only appear when stdin and stderr are terminals and neither `--ci` nor `
 | `tquil doctor fix` | Attempt safe local repairs (try `--dry-run` first) |
 | `tquil logs` | View logs (`--tail N`, `--date YYYY-MM-DD`, `--level info\|warn\|error`, `--json-only`, `--path`) |
 
-Logs are written as one JSON line per event to `{log_directory}/{YYYY-MM-DD}-tranquility.log` (`log_directory` from `config.yaml`, visible via `tquil doctor`/`tquil config validate config`), in addition to the normal stderr output. Set `log_output: stdout` in `config.yaml` to disable file logging and keep only the terminal output.
+Logs are written as one JSON line per event to `{log_directory}/{YYYY-MM-DD}-tranquility.log` (`log_directory` from `config.toml`, visible via `tquil doctor`/`tquil config validate config`), in addition to the normal stderr output. Set `log_output: stdout` in `config.toml` to disable file logging and keep only the terminal output.
 
 ### Lists
 
