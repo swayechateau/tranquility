@@ -243,6 +243,8 @@ pub fn deserialize_config(path: &Path, content: &str) -> io::Result<BaseConfig> 
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("JSON error: {e}"))),
         "yaml" | "yml" => serde_yaml::from_str(content)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("YAML error: {e}"))),
+        "toml" => toml::from_str(content)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("TOML error: {e}"))),
         "xml" => quick_xml::de::from_str(content)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("XML error: {e}"))),
         _ => Err(io::Error::new(
@@ -270,6 +272,9 @@ fn write_config(path: &PathBuf, config: &BaseConfig) -> io::Result<()> {
         })?,
         "yaml" | "yml" => serde_yaml::to_string(config).map_err(|e| {
             io::Error::new(io::ErrorKind::InvalidData, format!("YAML write error: {e}"))
+        })?,
+        "toml" => toml::to_string_pretty(config).map_err(|e| {
+            io::Error::new(io::ErrorKind::InvalidData, format!("TOML write error: {e}"))
         })?,
         "xml" => quick_xml::se::to_string(config).map_err(|e| {
             io::Error::new(io::ErrorKind::InvalidData, format!("XML write error: {e}"))
@@ -329,6 +334,21 @@ pub fn check_file(path: &Path) -> Result<(), String> {
                 Ok(v) => v,
                 Err(e) => {
                     return Err(format!("failed to convert YAML to JSON: {e}"));
+                }
+            }
+        }
+        "toml" => {
+            let toml_value: toml::Value = match toml::from_str(&raw) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(format!("invalid TOML: {e}"));
+                }
+            };
+
+            match serde_json::to_value(toml_value) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(format!("failed to convert TOML to JSON: {e}"));
                 }
             }
         }

@@ -22,6 +22,7 @@ fn parse_apps_str(path: &std::path::Path, data: &str) -> Result<ApplicationList,
     match ext.as_str() {
         "json" => serde_json::from_str(data).map_err(|e| e.to_string()),
         "yaml" | "yml" => serde_yaml::from_str(data).map_err(|e| e.to_string()),
+        "toml" => toml::from_str(data).map_err(|e| e.to_string()),
         "xml" => quick_xml::de::from_str(data).map_err(|e| e.to_string()),
         other => Err(format!("unsupported file extension: .{other}")),
     }

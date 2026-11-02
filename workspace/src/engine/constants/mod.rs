@@ -11,7 +11,7 @@ pub const APP_NAME: &str = "tranquility";
 pub const BIN_NAME: &str = "tquil";
 
 /// List of supported file extensions for schema validation.
-pub const SUPPORTED_EXTS: [&str; 4] = ["yaml", "yml", "json", "xml"];
+pub const SUPPORTED_EXTS: [&str; 5] = ["yaml", "yml", "json", "toml", "xml"];
 pub const CONFIG_FILE_NAME: &str = "config.yaml";
 pub const STATE_FILE_NAME: &str = "state.json";
 
