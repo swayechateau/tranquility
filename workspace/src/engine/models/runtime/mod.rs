@@ -116,7 +116,7 @@ impl Runtime {
         let path = BaseConfig::config_path().unwrap_or_else(|_| {
             dirs::config_dir()
                 .unwrap_or_default()
-                .join("tranquility/config.yaml")
+                .join("tranquility/config.toml")
         });
         self.resolution.config = Some(ResolvedConfig {
             path,

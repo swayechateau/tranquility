@@ -86,7 +86,7 @@ pub async fn vps(ctx: &Context, user: Option<&str>, host: Option<&str>) -> CoreR
         .map(|c| c.base.vps_file.clone())
         .unwrap_or_else(|| {
             crate::engine::config::BaseConfig::config_dir()
-                .map(|d| d.join("vps.yaml"))
+                .map(|d| d.join("vps.toml"))
                 .unwrap_or_default()
         });
 

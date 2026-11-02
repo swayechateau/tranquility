@@ -48,7 +48,7 @@ impl BaseConfig {
         Ok(
             resolve_config_file_with_extensions(&base, Self::config_file_base_name())
                 .unwrap_or_else(|| {
-                    Self::file_with_ext(&base, Self::config_file_base_name(), "yaml")
+                    Self::file_with_ext(&base, Self::config_file_base_name(), "toml")
                 }),
         )
     }
@@ -61,7 +61,7 @@ impl BaseConfig {
 
     fn default_file_path(base_dir: &Path, name: &str) -> PathBuf {
         resolve_config_file_with_extensions(base_dir, name)
-            .unwrap_or_else(|| base_dir.join(format!("{name}.yaml")))
+            .unwrap_or_else(|| base_dir.join(format!("{name}.toml")))
     }
 
     pub fn log_file(&self) -> PathBuf {
@@ -129,8 +129,8 @@ impl BaseConfig {
                 "⚠️ Failed to prepare default config directories: {err}. Falling back to built-in defaults."
             );
             Self {
-                applications_file: PathBuf::from("applications.yaml"),
-                vps_file: PathBuf::from("vps.yaml"),
+                applications_file: PathBuf::from("applications.toml"),
+                vps_file: PathBuf::from("vps.toml"),
                 log_directory: PathBuf::from("."),
                 log_output: LogOutput::Primary,
             }
