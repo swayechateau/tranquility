@@ -9,3 +9,4 @@ theme:
 nav:
   - Home: index.md
   - Commands: commands.md
+  - Roadmap: roadmap.md
