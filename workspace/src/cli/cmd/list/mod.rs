@@ -21,6 +21,10 @@ pub enum ListSubcommand {
         /// Filter by category (can be repeated)
         #[arg(long, value_name = "CATEGORY")]
         category: Vec<crate::engine::models::category::Category>,
+        /// Use the configured applications file as the complete catalog
+        /// instead of adding it to the built-in defaults
+        #[arg(long)]
+        replace: bool,
     },
     /// List Nerd Fonts
     Fonts {
@@ -46,7 +50,11 @@ pub enum ListSubcommand {
 
 pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
     match args.subcommand {
-        Some(ListSubcommand::Apps { server, category }) => list::apps(ctx, server, category).await,
+        Some(ListSubcommand::Apps {
+            server,
+            category,
+            replace,
+        }) => list::apps(ctx, server, category, replace).await,
         Some(ListSubcommand::Fonts { installed, all }) => list::fonts(ctx, installed, all).await,
         Some(ListSubcommand::Vps { user, host }) => {
             list::vps(ctx, user.as_deref(), host.as_deref()).await

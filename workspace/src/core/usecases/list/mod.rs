@@ -3,9 +3,14 @@ use crate::core::CoreResult;
 use crate::engine::capabilities::{apps, font, vps};
 use crate::engine::models::category::Category;
 
-pub async fn apps(ctx: &Context, server: bool, categories: Vec<Category>) -> CoreResult<()> {
+pub async fn apps(
+    ctx: &Context,
+    server: bool,
+    categories: Vec<Category>,
+    replace: bool,
+) -> CoreResult<()> {
     let apps_file = ctx.config().map(|c| c.base.applications_file.as_path());
-    let rows = apps::app_list_rows(server, categories, apps_file);
+    let rows = apps::app_list_rows(server, categories, apps_file, replace);
 
     if rows.is_empty() {
         ctx.ui()

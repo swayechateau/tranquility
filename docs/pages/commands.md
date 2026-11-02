@@ -58,7 +58,11 @@ tquil app list
 tquil app categories
 tquil app install [--all] [--server] [--dry-run]   # --all/--server work before or after the subcommand
 tquil app uninstall
+tquil app list --replace       # use the configured applications file as the whole catalog
+tquil app install --replace    # ...instead of adding it to the built-in defaults
 ```
+
+The applications file (set with `config override applications`, read by `app list`/`install`/`uninstall` and `list apps`) is added to the built-in catalog by default — a user or company list extends, not replaces, the defaults. Pass `--replace` to use only the configured file (a warning and an empty catalog if none is set).
 
 ### Fonts
 

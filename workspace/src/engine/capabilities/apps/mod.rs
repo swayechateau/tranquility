@@ -27,9 +27,13 @@ fn parse_apps_str(path: &std::path::Path, data: &str) -> Result<ApplicationList,
     }
 }
 
-/// Load applications from an optional file, falling back to built-in defaults.
-pub fn load_apps(apps_file: Option<&std::path::Path>) -> ApplicationList {
-    let mut apps = default_apps();
+/// Load applications from an optional file, falling back to built-in
+/// defaults. By default the file's entries are added to the built-ins; with
+/// `replace: true` the file's entries are used *instead of* the built-ins —
+/// for a user or company catalog meant to be the complete, authoritative
+/// list rather than an extension of it.
+pub fn load_apps(apps_file: Option<&std::path::Path>, replace: bool) -> ApplicationList {
+    let mut apps = if replace { Vec::new() } else { default_apps() };
 
     if let Some(path) = apps_file
         && path.exists()
@@ -48,6 +52,8 @@ pub fn load_apps(apps_file: Option<&std::path::Path>) -> ApplicationList {
             },
             Err(e) => eprintln!("❌ Failed to read applications file: {e}"),
         }
+    } else if replace {
+        eprintln!("⚠️  --replace given but no applications file is configured — catalog is empty.");
     }
 
     ApplicationList { applications: apps }
@@ -75,8 +81,9 @@ pub fn filter_apps(
     server_only: bool,
     categories: Vec<Category>,
     apps_file: Option<&std::path::Path>,
+    replace: bool,
 ) -> Vec<Application> {
-    let all = load_apps(apps_file);
+    let all = load_apps(apps_file, replace);
     let system = SystemInfo::new();
     let os_flag = match system.os_type() {
         OSType::Linux => OsSupport::LINUX,
@@ -109,8 +116,9 @@ pub async fn install_apps_command(
     server: bool,
     dry_run: bool,
     apps_file: Option<&std::path::Path>,
+    replace: bool,
 ) -> Result<(), Error> {
-    let apps = filter_apps(server, vec![], apps_file);
+    let apps = filter_apps(server, vec![], apps_file, replace);
     let system = SystemInfo::new();
     let current_os = system.os_type_raw();
     let mut failed = Vec::new();
@@ -172,8 +180,9 @@ pub async fn uninstall_apps_command(
     server: bool,
     dry_run: bool,
     apps_file: Option<&std::path::Path>,
+    replace: bool,
 ) -> Result<(), Error> {
-    let apps = filter_apps(server, vec![], apps_file);
+    let apps = filter_apps(server, vec![], apps_file, replace);
     let system = SystemInfo::new();
     let current_os = system.os_type_raw();
     let mut failed = Vec::new();
@@ -246,8 +255,9 @@ pub fn app_list_rows(
     server_only: bool,
     categories: Vec<Category>,
     apps_file: Option<&std::path::Path>,
+    replace: bool,
 ) -> Vec<AppListRow> {
-    filter_apps(server_only, categories, apps_file)
+    filter_apps(server_only, categories, apps_file, replace)
         .into_iter()
         .map(|app| AppListRow {
             categories: app

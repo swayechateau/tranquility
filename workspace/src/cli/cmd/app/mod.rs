@@ -15,6 +15,10 @@ pub struct Args {
     /// Include server-compatible applications
     #[arg(long, global = true)]
     server: bool,
+    /// Use the configured applications file as the complete catalog instead
+    /// of adding it to the built-in defaults
+    #[arg(long, global = true)]
+    replace: bool,
     #[command(subcommand)]
     pub subcommand: Option<AppSubcommand>,
 }
@@ -40,10 +44,16 @@ pub enum AppSubcommand {
 
 pub async fn run(ctx: &Context, args: Args) -> CliResult<()> {
     match args.subcommand {
-        Some(AppSubcommand::Install) => apps::install(ctx, args.all, args.server).await,
-        Some(AppSubcommand::Uninstall) => apps::uninstall(ctx, args.all, args.server).await,
+        Some(AppSubcommand::Install) => {
+            apps::install(ctx, args.all, args.server, args.replace).await
+        }
+        Some(AppSubcommand::Uninstall) => {
+            apps::uninstall(ctx, args.all, args.server, args.replace).await
+        }
         Some(AppSubcommand::Categories) => apps::categories(ctx).await,
-        Some(AppSubcommand::List { category }) => apps::list(ctx, args.server, category).await,
+        Some(AppSubcommand::List { category }) => {
+            apps::list(ctx, args.server, category, args.replace).await
+        }
         None => {
             print_subcommand_help("app");
             Ok(())
