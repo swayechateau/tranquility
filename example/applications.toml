@@ -1,0 +1,41 @@
+# Custom application catalog. Entries are added to the built-in defaults;
+# use `tquil app --replace` to use only this file.
+
+[[applications]]
+id = "ripgrep"
+name = "ripgrep"
+categories = ["CLITools"]
+server_compatible = true
+supported_systems = ["Cross"]
+
+[[applications.versions]]
+name = "latest"
+check_command = "rg"
+
+[[applications.versions.install_methods]]
+os = ["Ubuntu", "Debian"]
+package_manager = "Apt"
+package_name = "ripgrep"
+
+[[applications.versions.install_methods]]
+os = ["macos"]
+package_manager = "Brew"
+package_name = "ripgrep"
+
+[[applications]]
+id = "my-tool"
+name = "My Tool"
+categories = ["DevTools"]
+supported_systems = ["Linux"]
+
+[[applications.versions]]
+name = "1.0.0"
+check_command = "my-tool"
+
+[[applications.versions.install_methods]]
+os = ["linux"]
+
+[applications.versions.install_methods.steps]
+preinstall_steps = ["echo preparing"]
+install = ["curl -fsSL https://example.com/my-tool.sh | sh"]
+uninstall = ["rm -f ~/.local/bin/my-tool"]
