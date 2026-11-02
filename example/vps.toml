@@ -1,0 +1,23 @@
+[[vps]]
+id = "dev-vm"
+name = "Dev VM"
+host = "10.0.0.5"
+
+[[vps]]
+name = "staging"
+user = "root"
+host = "staging.example.com"
+port = 22
+private_key = "~/.ssh/staging_id_rsa"
+post_connect_script = "./scripts/bootstrap.sh"
+
+[[vps]]
+name = "prod"
+user = "deploy"
+host = "prod.example.com"
+port = "2222"
+private_key = "~/.ssh/prod_deploy_id_rsa"
+post_connect_script = """
+echo Starting provisioning...
+./scripts/deploy.sh
+"""

@@ -1,0 +1,29 @@
+applications:
+  - id: "ripgrep"
+    name: "ripgrep"
+    categories: ["CLITools"]
+    server_compatible: true
+    supported_systems: ["Cross"]
+    versions:
+      - name: "latest"
+        check_command: "rg"
+        install_methods:
+          - os: ["Ubuntu", "Debian"]
+            package_manager: "Apt"
+            package_name: "ripgrep"
+          - os: ["macos"]
+            package_manager: "Brew"
+            package_name: "ripgrep"
+  - id: "my-tool"
+    name: "My Tool"
+    categories: ["DevTools"]
+    supported_systems: ["Linux"]
+    versions:
+      - name: "1.0.0"
+        check_command: "my-tool"
+        install_methods:
+          - os: ["linux"]
+            steps:
+              preinstall_steps: ["echo preparing"]
+              install: ["curl -fsSL https://example.com/my-tool.sh | sh"]
+              uninstall: ["rm -f ~/.local/bin/my-tool"]

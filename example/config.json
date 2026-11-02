@@ -1,0 +1,6 @@
+{
+  "applications_file": "/home/user/.config/tranquility/applications.toml",
+  "vps_file": "/home/user/.config/tranquility/vps.toml",
+  "log_directory": "/home/user/.config/tranquility/logs",
+  "log_output": "primary"
+}
